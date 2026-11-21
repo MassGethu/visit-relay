@@ -112,6 +112,7 @@ class Visit:
         self._readback_done = False
         self._pending_doubt: Doubt | None = None
         self._safety_pending: list[str] = []
+        self._safety_disagreements: list[str] = []
         self._safety_started = False
         self._checklist_snapshot = None
         self.switches: list[dict] = []          # every visit-type change: from, to, time, by
@@ -247,9 +248,13 @@ class Visit:
             self._safety_started = True
             # Follow the same core questions the phone showed before recording.
             preview = self.danger.guided_questions()
-            self._safety_pending = [sign for sign in preview
-                                    if self.danger.states[sign].status == NOT_CHECKED
-                                    or self.danger.states[sign].needs_confirmation]
+            disagreements = [sign for sign in self._safety_disagreements
+                             if self.danger.states[sign].status != PRESENT]
+            self._safety_pending = disagreements + [
+                sign for sign in preview if sign not in disagreements
+                and (self.danger.states[sign].status == NOT_CHECKED
+                     or self.danger.states[sign].needs_confirmation)
+            ]
         return self._continue_safety()
 
     def _spoken_safety_question(self, sign: str) -> str:
@@ -372,10 +377,32 @@ class Visit:
 
         new = self.danger.add_vitals({k: v for k, v in changed.items()
                                       if k in ("bp", "temperature", "breaths_per_min", "weight_kg")})
+        general_denial = tuple(t.text for t in tokens(text)) in {
+            ("abhi", "bimar", "nahi", "hai"), ("abhi", "beemar", "nahi", "hai"),
+            ("koi", "dikkat", "nahi"), ("koi", "dikkat", "nahi", "hai"),
+            ("sab", "theek", "hai"), ("अभी", "बीमार", "नहीं", "है"),
+            ("कोई", "दिक्कत", "नहीं", "है"), ("सब", "ठीक", "है"),
+        }
         for s in result.get("danger_signs", []):
-            if s["status"] in ("present", "past") and self.danger.add_external(
-                    s["id"], s.get("evidence") or text, idx, history=s["status"] == "past"):
-                new.append(s["id"])
+            sign = s["id"]
+            state = self.danger.states.get(sign)
+            if state is None or s["status"] not in ("present", "past"):
+                continue
+            denied = sign in self.danger.denied_signs.get(idx, ())
+            if general_denial or (denied and s["status"] == "present"):
+                if state.status != PRESENT and sign not in self._safety_disagreements:
+                    self._safety_disagreements.append(sign)
+                    if self._safety_started and sign not in self._safety_pending:
+                        if self._safety_pending:
+                            # Keep the question she already heard at the front.
+                            self._safety_pending.insert(1, sign)
+                        else:
+                            self._safety_pending.append(sign)
+                            self._unspoken += self._continue_safety()
+                continue
+            if self.danger.add_external(sign, s.get("evidence") or text, idx,
+                                        history=s["status"] == "past"):
+                new.append(sign)
         if changed:
             self._emit_record()
         self._unspoken += self._alerts(new)
@@ -407,6 +434,7 @@ class Visit:
             return [self.speaker.say("visit_kept", visit=self.speaker.visit_name(visit_type))]
         old = self.danger
         self._safety_pending.clear()
+        self._safety_disagreements.clear()
         self._pending_doubt = None
         self.switches.append({"from": self.visit_type, "to": visit_type, "at": now(), "by": by})
         self.visit_type, self.subject = visit_type, SUBJECTS[visit_type]

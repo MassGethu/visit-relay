@@ -172,6 +172,23 @@ def test_affirmed_danger_signs_remain_immediate(text, lang, sign):
     assert sign in DangerChecker("anc").add_utterance(text, lang)
 
 
+@pytest.mark.parametrize("visit_type,text,expected", [
+    ("anc", "She doesn't have a headache", []),
+    ("anc", "there isn’t any fever", []),
+    ("anc", "does not have fever, but there is bleeding", ["anc_vaginal_bleeding"]),
+    ("anc", "doesn't have fever, but there is bleeding", ["anc_vaginal_bleeding"]),
+    ("anc", "she is not complaining of any headache", []),
+    ("anc", "pehle jhatke aaye, ab nahi", ["anc_convulsions"]),
+    ("anc", "sir mein bahut dard", ["anc_severe_headache_blurred_vision"]),
+    ("hbnc", "baby is not feeding", ["nb_poor_feeding"]),
+    ("hbnc", "baby doesn’t feed", ["nb_poor_feeding"]),
+    ("hbnc", "baby is not drinking milk", ["nb_poor_feeding"]),
+    ("hbnc", "baby is feeding", []),
+])
+def test_reported_danger_sign_phrases(visit_type, text, expected):
+    assert DangerChecker(visit_type).add_utterance(text) == expected
+
+
 def test_affirmed_abdominal_pain_is_not_negated_by_earlier_denials():
     checker = DangerChecker("anc")
     signs = checker.add_utterance(

@@ -408,6 +408,22 @@ def test_hindi_sentence_punctuation_keeps_spoken_save_and_undo_commands():
     assert any(e["type"] == "undo" for e in v.events())
 
 
+@pytest.mark.parametrize("text,sign", [
+    ("abhi bimar nahi hai", "anc_severe_headache_blurred_vision"),
+    ("patient ko headache nahi hai", "anc_severe_headache_blurred_vision"),
+    ("there isn't any fever", "anc_high_fever"),
+])
+def test_llm_disagreement_asks_before_alerting(text, sign):
+    v = make(use_llm=True, understand=llm_says(danger_signs=[{"id": sign, "status": "present"}]))
+    v.hear(text)
+    v.followup()
+    number = v.danger.guided_questions().index(sign) + 1
+    assert v.readback() == [v.speaker.safety_question(sign, number)]
+    assert not any(event["type"] == "alert" for event in v.events())
+    v.hear("yes")
+    assert any(event["type"] == "alert" and event["sign"] == sign for event in v.events())
+
+
 @pytest.mark.parametrize("chunks", [
     ["There is no vaginal bleeding, there is no headache, and there is no severe abdomen pain."],
     ["There is no vaginal bleeding.", "There is no headache.", "And there is no severe abdominal pain."],

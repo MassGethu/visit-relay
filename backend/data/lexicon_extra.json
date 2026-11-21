@@ -86,6 +86,16 @@
     "script": "feed nahi kar raha",
     "roman": "feed nahi kar raha",
     "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "not feeding",
+    "roman": "not feed",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "not drinking milk",
+    "roman": "not drinking milk",
+    "provenance": "UNSOURCED-linguistic"
    }
   ],
   "negations": [

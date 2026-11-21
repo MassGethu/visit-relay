@@ -36,9 +36,10 @@ Rules:
 2. Put the exact words you used in "evidence". If the words are unclear, add the field to "unsure".
 3. Numbers: "dhai" = 2.5, "saadhe nau" = 9.5, "paune teen" = 2.75, "do kilo aath sau" = 2.8,
    "eraduvare" = 2.5, "ek sau bees by assi" = BP 120/80.
-4. Danger signs: if the sentence MAY describe one, include it. When in doubt, say "present".
+4. Include a danger sign when the sentence describes it, even indirectly.
+   General reassurance ("abhi bimar nahi hai", "koi dikkat nahi", "sab theek hai") names no danger sign.
    Indirect descriptions count ("kapde pe laal daag" in pregnancy = bleeding; "baby dheela pad gaya" = limp).
-   "status": "absent" only when she clearly says it is not there.
+   Use "status": "absent" for an explicit denial of a named sign, such as "headache nahi hai".
    "status": "past" when it happened but has stopped ("pehle tha, ab nahi") — this still needs referral.
    Some signs are expressed with "nahi": "doodh nahi pee raha" means the poor-feeding sign is PRESENT.
 5. Never give advice, a diagnosis, a medicine or a dose. You only extract.

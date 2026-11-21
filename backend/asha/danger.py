@@ -62,7 +62,7 @@ STOPWORDS = {
     # English fillers
     "is", "are", "was", "the", "a", "an", "has", "have", "of", "in", "on", "and", "or", "it",
 }
-NEGATORS = {"nahi", "nahin", "nahī", "na", "nai", "no", "not", "never", "illa", "nahi.",
+NEGATORS = {"nahi", "nahin", "nahī", "na", "nai", "no", "not", "never", "illa", "nahi.", "without", "nothing", "none",
             "नहीं", "नही", "ना", "ಇಲ್ಲ"}
 POLARITY_WORDS = {"band", "बंद", "kam", "kammi", "kadime", "कम", "ಕಡಿಮೆ", "ruk", "stop", "stopped"}
 HEDGES = [("thoda", "thoda"), ("kabhi", "kabhi"), ("swalpa",), ("ಸ್ವಲ್ಪ",), ("aadru",),
@@ -406,13 +406,17 @@ class DangerChecker:
             self.generic = frozenset({w for w, ss in self.lex.word_signs.items() if len(ss & scope) >= 3}
                                      | ALWAYS_GENERIC)
         self.utterances: list[str] = []
+        self.denied_signs: dict[int, set[str]] = {}
         self.to_ask: list[str] = []   # mentioned in a way that is not the official sign: ask once
 
     # one final transcript in, newly present signs out (these must alert at once)
     def add_utterance(self, text: str, language_code: str = "hi-IN") -> list[str]:
         idx = len(self.utterances)
         self.utterances.append(text)
-        toks = tokens(text)
+        # Expand English negation before matching both signs and denials.
+        expanded = re.sub(r"\b(do|does|did|is|are|was|were|has|have|had)n['’]t\b",
+                          r"\1 not", text, flags=re.IGNORECASE)
+        toks = tokens(expanded)
         words = [t.text for t in toks]
         lang_ok = language_code.split("-")[0] in self.tested
         scope = set(self.scope)
@@ -457,8 +461,7 @@ class DangerChecker:
                 continue
             quote = " ".join(words[max(0, m.start - 2): m.end + 4])
             ev = self._polarity(m, words, starts, idx, quote)
-            if ev is not None:
-                per_sign.setdefault(m.sign, []).append(ev)
+            per_sign.setdefault(m.sign, []).append(ev)
         for sign, a, b in neg_spans:
             quote = " ".join(words[max(0, a - 2): b + 3])
             per_sign.setdefault(sign, []).append(Evidence(RULED_OUT, quote, idx, phrase="negation"))
@@ -484,18 +487,22 @@ class DangerChecker:
         for sign, evs in per_sign.items():
             # strongest single piece of evidence per utterance: present > ruled_out
             present = [e for e in evs if e.status == PRESENT]
-            chosen = sorted(present, key=lambda e: (e.partial, e.history))[:1] if present else sorted(evs, key=lambda e: e.phrase != "explicit_mixed_denial")[:1]
-            for e in chosen:
-                if e.status == RULED_OUT and not lang_ok and e.phrase != "explicit_mixed_denial":
+            chosen = (min(present, key=lambda e: (e.partial, e.history)) if present
+                      else min(evs, key=lambda e: (e.partial, e.phrase != "explicit_mixed_denial")))
+            if chosen.status == RULED_OUT:
+                if not lang_ok and chosen.phrase != "explicit_mixed_denial":
                     continue  # fail closed: not evaluated in this language
-                self.states[sign].evidence.append(e)
+                self.denied_signs.setdefault(idx, set()).add(sign)
+                if chosen.partial:
+                    continue  # use weak denials for clarification, never for the receipt
+            self.states[sign].evidence.append(chosen)
         for s in scope:
             if before[s] != PRESENT and self.states[s].status == PRESENT:
                 newly.append(s)
         return newly
 
     def _polarity(self, m: Match, words: list[str], starts: list[int], idx: int,
-                  quote: str) -> Evidence | None:
+                  quote: str) -> Evidence:
         if m.sign in self.lex.inverted:
             return Evidence(PRESENT, quote, idx, partial=m.partial, phrase=m.phrase)
         # look for a negator just before or just after the phrase, inside the clause,
@@ -510,7 +517,6 @@ class DangerChecker:
             if words[j] in CLAUSE_BREAKS:
                 break
             hi = j
-        window = words[lo:hi + 1]
         after = words[m.end + 1:hi + 1]
         if m.sign == "anc_water_break_no_labour":
             # "Water broke, no pain" denies pain, while affirming the water breaking.
@@ -523,7 +529,7 @@ class DangerChecker:
         # English can put the denial farther away: "did not have a headache".
         lead = " ".join(words[max(0, m.start - 5):m.start])
         negated = negated or bool(re.search(
-            r"(?:^| )not (?:have|had|having|report|experience)(?: (?:a|an|any|the))?$", lead,
+            r"(?:^| )not(?: (?:have|had|having|report|experience|complaining of))?(?: (?:a|an|any|the))?$", lead,
         ))
         clause = words[lo: min(len(words), m.end + 8, barrier + 2)]
         if any(_has_seq(clause, h) for h in RESOLVED):
@@ -531,11 +537,14 @@ class DangerChecker:
             return Evidence(PRESENT, quote, idx, partial=m.partial, history=True, phrase=m.phrase)
         if not negated:
             return Evidence(PRESENT, quote, idx, partial=m.partial, phrase=m.phrase)
-        if any(_has_seq(window + words[hi + 1: hi + 3], h) for h in HEDGES):
+        hedge_end = hi + 3
+        if barrier < len(words):
+            # A contrast introducing another sign cannot qualify this denial.
+            hedge_end = next((j for j in range(hi + 1, min(hedge_end, barrier))
+                              if words[j] in CLAUSE_BREAKS), min(hedge_end, barrier))
+        if any(_has_seq(words[lo:hedge_end], h) for h in HEDGES):
             return Evidence(PRESENT, quote, idx, partial=m.partial, phrase=m.phrase)
-        if m.partial or not m.specific:
-            return None  # too weak to rule anything out: leave it not_checked
-        return Evidence(RULED_OUT, quote, idx, phrase=m.phrase)
+        return Evidence(RULED_OUT, quote, idx, partial=m.partial or not m.specific, phrase=m.phrase)
 
     # ───────── outputs ─────────
 
