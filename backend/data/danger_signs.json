@@ -1,0 +1,669 @@
+[
+ {
+  "id": "anc_vaginal_bleeding",
+  "group": "pregnancy",
+  "official_wording": "\"Bleeding from vagina\" (M6); \"Bleeding during pregnancy\" (MCP); \"Bleeding from vagina\" (INT26)",
+  "threshold": "\"any amount (bright red bleeding or clots or tissue)\" (M6)",
+  "urgency": "refer_immediately",
+  "source": "M6; MCP; INT26",
+  "page": "M6 p.30 (pdf p.32) 'Health problems during pregnancy that need immediate referral'; MCP pdf p.4; INT26 p.183 item 3, also p.177 (early pregnancy)"
+ },
+ {
+  "id": "anc_reduced_fetal_movement",
+  "group": "pregnancy",
+  "official_wording": "\"Loss of foetal movement\" (M6); \"Decreased foetal movements\" (INT26); \"Decreased/absent foetal movements is an emergency\" (INT26)",
+  "threshold": "\"Movements usually felt from 18–20 weeks; monitoring especially important after 24–28 weeks. Reassuring = 3 or more movements in 1 hour after meals, or 10 movements in 12 hours (DFMR). Fewer than that, or absent = refer.\" (INT26). M6 has no number ('Absence of movement/kicking').",
+  "urgency": "refer_immediately",
+  "source": "INT26; M6",
+  "page": "INT26 p.178–179 (pdf p.188–189) and p.183 item 13; M6 p.30"
+ },
+ {
+  "id": "anc_severe_headache_blurred_vision",
+  "group": "pregnancy",
+  "official_wording": "\"Headache/dizziness/blurred vision\" (M6); \"Severe headache / blurring of vision\" (INT26); \"Headache, blurring of vision, fits and swelling all over the body\" (MCP)",
+  "threshold": "\"severe headache with blurred vision or spots before the eyes\" (M6)",
+  "urgency": "refer_immediately",
+  "source": "M6; INT26; MCP",
+  "page": "M6 p.30; INT26 p.183 item 6; MCP pdf p.4"
+ },
+ {
+  "id": "anc_swelling_face_hands",
+  "group": "pregnancy",
+  "official_wording": "\"Swollen face/hands\" (M6); \"Swelling over face / hands / body\" (INT26)",
+  "threshold": "\"pitting oedema over back of palm\" (M6). Ankle-only swelling is NOT listed as a danger sign.",
+  "urgency": "refer_immediately",
+  "source": "M6; INT26; MCP",
+  "page": "M6 p.31; INT26 p.183 item 7; MCP pdf p.4"
+ },
+ {
+  "id": "anc_convulsions",
+  "group": "pregnancy",
+  "official_wording": "\"Convulsions/fits\" (M6); \"Convulsions\" (INT26)",
+  "threshold": "\"eyes roll, face and limbs twitch, body gets stiff and shakes, fists clenched\" (M6)",
+  "urgency": "refer_immediately",
+  "source": "M6; INT26; MCP",
+  "page": "M6 p.31; INT26 p.183 item 9 and p.177; MCP pdf p.4"
+ },
+ {
+  "id": "anc_high_fever",
+  "group": "pregnancy",
+  "official_wording": "\"High grade fever\" (INT26); \"High fever during pregnancy or within one month of delivery\" (MCP); \"Fever\" (M6)",
+  "threshold": "M6: temp >100 °F (37.8 °C). INT26/MCP: no number ('high grade').",
+  "urgency": "refer_immediately",
+  "urgency_conflict": "M6 p.32 lists fever under NON-emergency (home care first, refer to PHC if no relief after 48 h). INT26 and MCP list it as a danger sign for immediate referral. App: flag and refer; never suggest medicine.",
+  "source": "INT26; MCP; M6",
+  "page": "INT26 p.183 item 1; MCP pdf p.4; M6 p.32"
+ },
+ {
+  "id": "anc_severe_abdominal_pain",
+  "group": "pregnancy",
+  "official_wording": "\"Severe pain abdomen / continuous pain abdomen\" (INT26)",
+  "threshold": "\"severe or continuous\" (no number)",
+  "urgency": "refer_immediately",
+  "source": "INT26; M6",
+  "page": "INT26 p.183 item 5, p.177; M6 p.30 (with loss of foetal movement)"
+ },
+ {
+  "id": "anc_breathlessness",
+  "group": "pregnancy",
+  "official_wording": "\"Breathlessness\" (INT26); \"Severe Anemia with or without breathlessness\" (MCP)",
+  "threshold": "none stated",
+  "urgency": "refer_immediately",
+  "source": "INT26; MCP",
+  "page": "INT26 p.183 item 8; MCP pdf p.4"
+ },
+ {
+  "id": "anc_severe_anaemia",
+  "group": "pregnancy",
+  "official_wording": "\"Severe anaemia\" — \"Tongue very pale, weakness, general swelling in body\" (M6); \"Severe Anemia\" (MCP)",
+  "threshold": "Hb cut-off for severe anaemia: UNVERIFIED in the fetched sources (often cited as <7 g/dL; do not hard-code without checking Anaemia Mukta Bharat guidelines)",
+  "urgency": "refer",
+  "urgency_conflict": "M6 p.31: 'Non-Emergency referral — refer to PHC/Dist. Hospital'. MCP pdf p.4 lists it with 'take to hospital immediately'.",
+  "source": "M6; MCP",
+  "page": "M6 p.31; MCP pdf p.4"
+ },
+ {
+  "id": "anc_water_break_no_labour",
+  "group": "pregnancy",
+  "official_wording": "\"Bursting of water bag without labour pains\" (MCP); \"Breaking of water much before due date and without any pain\" (INT26); \"Water breaks but labour does not start within 24 hours\" (M6)",
+  "threshold": "M6: no labour within 24 h of water breaking. MCP/INT26: any leak without pains.",
+  "urgency": "refer_immediately",
+  "source": "MCP; INT26; M6",
+  "page": "MCP pdf p.4; INT26 p.183 item 12; M6 p.33 'Danger signs in labour and delivery'"
+ },
+ {
+  "id": "anc_preterm_labour",
+  "group": "pregnancy",
+  "official_wording": "\"Labor pains before the due date\" (INT26)",
+  "threshold": "before due date (no week cut-off stated)",
+  "urgency": "refer_immediately",
+  "source": "INT26",
+  "page": "INT26 p.183 item 11"
+ },
+ {
+  "id": "anc_prolonged_labour",
+  "group": "pregnancy",
+  "official_wording": "\"Labour pain for more than 12 hours\" (MCP); \"Prolonged labour\" (M6)",
+  "threshold": "> 12 hours (MCP). M6: woman pushing > 12 h, or > 8 h if she has had children before, baby not coming out.",
+  "urgency": "refer_immediately",
+  "source": "MCP; M6",
+  "page": "MCP pdf p.4; M6 p.33"
+ },
+ {
+  "id": "anc_foul_vaginal_discharge",
+  "group": "pregnancy",
+  "official_wording": "\"Foul smelling discharge from vagina\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "INT26",
+  "page": "INT26 p.183 item 4"
+ },
+ {
+  "id": "anc_burning_urination",
+  "group": "pregnancy",
+  "official_wording": "\"Burning sensation and pain while passing urine\" (INT26); \"Pain/burning when urinating\" (M6)",
+  "threshold": "M6: refer to PHC if no relief after 24 h",
+  "urgency": "refer",
+  "urgency_conflict": "INT26 puts it in the 'danger signs... immediate referral' list. M6 p.32 calls it non-emergency (refer after 24 h).",
+  "source": "INT26; M6",
+  "page": "INT26 p.183 item 2; M6 p.32"
+ },
+ {
+  "id": "anc_high_bp",
+  "group": "pregnancy",
+  "official_wording": "\"High Blood Pressure\" (INT26)",
+  "threshold": "\"BP more than 140/90 mm Hg around or after 20 weeks\" (INT26 p.181). Only applies when a measured value is spoken.",
+  "urgency": "refer_immediately",
+  "source": "INT26",
+  "page": "INT26 p.183 item 10; definition p.181"
+ },
+ {
+  "id": "anc_labour_green_liquor",
+  "group": "pregnancy (labour)",
+  "official_wording": "\"Colour of water – green or brown\" (M6)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "M6",
+  "page": "M6 p.33 'Danger signs in labour and delivery'"
+ },
+ {
+  "id": "anc_retained_placenta",
+  "group": "pregnancy (labour)",
+  "official_wording": "\"Retained placenta\" (M6)",
+  "threshold": "UNVERIFIED (no time cut-off given in M6)",
+  "urgency": "refer_immediately",
+  "source": "M6",
+  "page": "M6 p.33"
+ },
+ {
+  "id": "pnc_heavy_bleeding",
+  "group": "postnatal",
+  "official_wording": "\"Excessive bleeding\" (M6, INT26); \"Excessive bleeding during delivery or after delivery\" (MCP)",
+  "threshold": "M6/INT26 Table 1/HBNCH form: using > 5 pads a day, or > 1 thick cloth a day. INT26 p.48: soaking > 2–3 pads in 20–30 minutes after delivery. INT26 p.11: also large clots, or a return to heavy red bleeding after it had reduced.",
+  "urgency": "refer_immediately",
+  "note": "M6: 'Referral is most urgent. Even the delay of a few minutes can make a difference.'",
+  "source": "M6; INT26; HBNCH; MCP",
+  "page": "M6 p.39 (pdf p.41); INT26 p.11, p.47 Table 1 row 1, p.48 item 1; HBNCH p.20 Annex 1c A3; MCP pdf p.4"
+ },
+ {
+  "id": "pnc_foul_lochia",
+  "group": "postnatal",
+  "official_wording": "\"Puerperal sepsis (infections) – fever, foul smelling discharge, pain lower abdomen\" (INT26); \"Foul-smelling lochia\" (INT26)",
+  "threshold": "HBNCH form: foul-smelling discharge AND fever > 100 °F (37.8 °C) → refer",
+  "urgency": "refer_same_day",
+  "urgency_conflict": "M6 p.39: 'Referral on the same day is advisable'. INT26 p.11–12: foul-smelling discharge 'should be taken to a health facility immediately'.",
+  "source": "M6; INT26; HBNCH",
+  "page": "M6 p.39; INT26 p.11, p.47 row 2, p.49 item 15; HBNCH p.20 Annex 1c B2"
+ },
+ {
+  "id": "pnc_fever",
+  "group": "postnatal",
+  "official_wording": "\"Fever\" (INT26); \"High fever ... within one month of delivery\" (MCP)",
+  "threshold": "HBNCH form: mother's temperature > 102 °F (38.9 °C) → refer to hospital. Below that, the form has ASHA give a medicine; the APP MUST NOT. INT26/MCP give no number.",
+  "urgency": "refer_immediately",
+  "source": "MCP; INT26; HBNCH",
+  "page": "MCP pdf p.4; INT26 p.49 item 6; HBNCH p.20 Annex 1c B1"
+ },
+ {
+  "id": "pnc_convulsions_unconscious",
+  "group": "postnatal",
+  "official_wording": "\"Convulsions with or without swelling of face and hands, severe headache, and blurred vision\" (M6); \"Unconscious/Fits\" (HBNCH)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "M6; INT26; HBNCH",
+  "page": "M6 p.39 item 3; INT26 p.48 Table 1 row 3, p.49 item 5; HBNCH p.18 Annex 1b Q5b"
+ },
+ {
+  "id": "pnc_headache_blurred_vision",
+  "group": "postnatal",
+  "official_wording": "\"severe headache, and blurred vision\" (M6); pre-eclampsia signs \"can appear in post natal period also\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "M6; INT26",
+  "page": "M6 p.39; INT26 p.182"
+ },
+ {
+  "id": "pnc_swelling_face_hands",
+  "group": "postnatal",
+  "official_wording": "\"Swelling on face, hands and legs\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer",
+  "source": "INT26",
+  "page": "INT26 p.49 item 14"
+ },
+ {
+  "id": "pnc_breathing_difficulty",
+  "group": "postnatal",
+  "official_wording": "\"Difficulty in breathing\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer",
+  "source": "INT26",
+  "page": "INT26 p.48 item 11; p.13 ('very weak, dizzy, breathless')"
+ },
+ {
+  "id": "pnc_severe_abdominal_pain",
+  "group": "postnatal",
+  "official_wording": "\"Severe abdominal pain\" (INT26); \"soft or poorly contracted uterus, increasing abdominal pain\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "INT26",
+  "page": "INT26 p.12, p.48 item 10"
+ },
+ {
+  "id": "pnc_no_urine",
+  "group": "postnatal",
+  "official_wording": "\"No urine passed within 6 hours after delivery\"; \"Very little or no urine output\" (INT26)",
+  "threshold": "no urine within 6 h of delivery",
+  "urgency": "refer_immediately",
+  "source": "INT26",
+  "page": "INT26 p.13 'Danger Signs – Refer Immediately'; p.48 item 12"
+ },
+ {
+  "id": "pnc_urinary_burning_leg_swelling",
+  "group": "postnatal",
+  "official_wording": "\"Urinary burning along with pain and swelling in lower limbs\" (INT26); \"Fever along with urinary complaints\"; \"Severe pain or burning while passing urine\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "INT26",
+  "page": "INT26 p.13; p.48 item 9"
+ },
+ {
+  "id": "pnc_pallor_weakness",
+  "group": "postnatal",
+  "official_wording": "\"Pale skin or eyes, giddiness or weakness\" (INT26); \"Anaemia\" (M6)",
+  "threshold": "Hb threshold UNVERIFIED",
+  "urgency": "refer",
+  "source": "INT26; M6",
+  "page": "INT26 p.48 item 3, p.47 row 4; M6 p.39 item 4"
+ },
+ {
+  "id": "pnc_jaundice",
+  "group": "postnatal",
+  "official_wording": "\"Yellowness of urine, skin or eyes\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer",
+  "source": "INT26",
+  "page": "INT26 p.48 item 2"
+ },
+ {
+  "id": "pnc_abnormal_behaviour_harm_thoughts",
+  "group": "postnatal",
+  "official_wording": "\"Abnormal behaviour such as confusion, severe behavioural change, hallucinations ... – urgent assessment/referral\" (INT26); \"persistently sad ... thoughts of harming herself or the baby\" (INT26); \"Is mother speaking abnormally\" (HBNCH)",
+  "threshold": "Mood changes in the first days are normal. Refer if severe, persisting beyond about a week (M6), or any harm thoughts.",
+  "urgency": "refer_immediately",
+  "source": "INT26; HBNCH; M6",
+  "page": "INT26 p.13, p.49 item 13; HBNCH p.20 Annex 1c B3; M6 p.40 item 7"
+ },
+ {
+  "id": "pnc_breast_problem_fever",
+  "group": "postnatal",
+  "official_wording": "\"Cracked and painful nipples\" (INT26); engorged breasts \"If the mother has fever then, refer to a hospital\" (HBNCH)",
+  "threshold": "refer if breast problem + fever, or red/shiny nipple condition persists",
+  "urgency": "refer",
+  "source": "HBNCH; INT26",
+  "page": "HBNCH p.21 Annex 1c B5; INT26 p.48 item 4"
+ },
+ {
+  "id": "pnc_perineal_infection",
+  "group": "postnatal",
+  "official_wording": "\"Perineal swelling and infection\" — pain, swelling and discharge from the stitch line, with or without fever (INT26)",
+  "threshold": "M6: refer to PHC/CHC if there is fever",
+  "urgency": "refer",
+  "source": "INT26; M6",
+  "page": "INT26 p.48 Table 1 row 5; M6 p.40 item 6"
+ },
+ {
+  "id": "pnc_not_eating_vomiting",
+  "group": "postnatal",
+  "official_wording": "\"No appetite or inability to eat for more than 24 hours\"; \"Repeated vomiting\"; \"Severe weakness or dizziness\" (INT26)",
+  "threshold": "> 24 h not eating",
+  "urgency": "refer",
+  "source": "INT26",
+  "page": "INT26 p.12–13 ('Danger signs')"
+ },
+ {
+  "id": "pnc_stool_incontinence",
+  "group": "postnatal",
+  "official_wording": "\"Incontinence of stool\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer",
+  "source": "INT26",
+  "page": "INT26 p.49 item 8"
+ },
+ {
+  "id": "nb_fast_breathing",
+  "group": "newborn",
+  "official_wording": "\"Fast breathing (more than 60 breaths / min)\" (INT26); \"Respiratory rate more than 60 per minute\" (HBNCH); \"Fast breathing (60 breaths per minute or more)\" (FIMNCI)",
+  "threshold": "INT26/HBNCH: > 60/min. FIMNCI/INT26 p.126: ≥ 60/min. Count for a full minute with the baby calm. Normal is 40–60 (INT26 p.8).",
+  "urgency": "refer_immediately",
+  "source": "INT26; HBNCH; FIMNCI",
+  "page": "INT26 p.8, p.46, p.126; HBNCH p.23 Annex 1c E7; FIMNCI pdf p.3 (chart p.1)"
+ },
+ {
+  "id": "nb_chest_indrawing",
+  "group": "newborn",
+  "official_wording": "\"Severe chest in-drawing\" (INT26, FIMNCI); \"Has chest indrawing\" (M7); \"Difficulty in breathing, indrawing of chest\" (INT26)",
+  "threshold": "visible lower-chest indrawing",
+  "urgency": "refer_immediately",
+  "source": "INT26; M7; HBNCH; FIMNCI",
+  "page": "INT26 p.8, p.46; M7 p.55; HBNCH p.23 E6; FIMNCI chart p.1"
+ },
+ {
+  "id": "nb_grunting_nasal_flaring",
+  "group": "newborn",
+  "official_wording": "\"Grunting sound while breathing\"; \"Nasal flaring\" (INT26, FIMNCI)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "note": "INT26 marks these 'Not in SSBSK but in IMNCI'",
+  "source": "INT26; FIMNCI",
+  "page": "INT26 p.8; FIMNCI chart p.1"
+ },
+ {
+  "id": "nb_cyanosis",
+  "group": "newborn",
+  "official_wording": "\"Bluish colour of lips, tongue, or face\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "INT26",
+  "page": "INT26 p.8; p.29 (hypothermia: 'pale or bluish')"
+ },
+ {
+  "id": "nb_apnoea_slow_breathing",
+  "group": "newborn",
+  "official_wording": "\"Slow or irregular breathing\"; \"Pauses in breathing lasting more than 20 seconds\" (INT26)",
+  "threshold": "pause > 20 s",
+  "urgency": "refer_immediately",
+  "source": "INT26",
+  "page": "INT26 p.8"
+ },
+ {
+  "id": "nb_fever",
+  "group": "newborn",
+  "official_wording": "\"Has fever\" (M7, MCP); \"fever with a temperature > 99 °F (37.2 °C)\" (HBNCH); \"axillary temperature 37.5 °C or above (or feels hot to touch)\" (FIMNCI)",
+  "threshold": "CONFLICT. M6 p.60, HBNCH p.22, INT26 p.28: > 99 °F (37.2 °C). INT26 p.8 says normal is 97.7–99.5 °F (36.5–37.5 °C). FIMNCI: ≥ 37.5 °C. M6: if overdressed or in a hot room, unwrap and recheck after 30 min; refer if still high.",
+  "urgency": "refer_immediately",
+  "source": "M6; HBNCH; INT26; FIMNCI; M7; MCP",
+  "page": "M6 p.60 (pdf p.62); HBNCH p.22 C3 and p.23 E5; INT26 p.8, p.28, p.46; FIMNCI chart p.1; M7 p.55; MCP pdf p.28"
+ },
+ {
+  "id": "nb_hypothermia",
+  "group": "newborn",
+  "official_wording": "\"Is cold to touch\" (M7, MCP); \"Mother says the baby is 'cold to touch'\" (HBNCH)",
+  "threshold": "CONFLICT. FIMNCI: < 35.5 °C → refer urgently; 35.5–36.4 °C → warm and reassess in 1 h, refer if no improvement. M6 p.59: < 97 °F (36.1 °C) cold, < 95.9 °F (35.5 °C) too cold; refer if not stable within 4 h. INT26 p.28–29: < 95 °F (35 °C) = danger signs of hypothermia, refer immediately. M7 p.56: refer if < 95 °F persists after re-warming for 24 h.",
+  "urgency": "refer_immediately",
+  "source": "FIMNCI; M6; INT26; M7; HBNCH; MCP",
+  "page": "FIMNCI chart p.1; M6 p.59 (pdf p.61); INT26 p.28–29; M7 p.56; HBNCH p.22 C3, p.23 E5; MCP pdf p.28"
+ },
+ {
+  "id": "nb_poor_feeding",
+  "group": "newborn",
+  "official_wording": "\"Stops feeding\" (M7); \"Is sucking weakly or refuses to breast feed\" (MCP); \"Feeding less/stopped\" (HBNCH); \"Inability to suck milk\" (INT26)",
+  "threshold": "Normal is 8–10+ feeds per 24 h (INT26 p.8). HBNCH day-1 check: fed weakly / spoon only / not at all.",
+  "urgency": "refer_immediately",
+  "source": "M7; MCP; HBNCH; INT26",
+  "page": "M7 p.55; MCP pdf p.28; HBNCH p.18 Q8, p.19 Q5b, p.23 E2; INT26 p.46"
+ },
+ {
+  "id": "nb_lethargy_limp",
+  "group": "newborn",
+  "official_wording": "\"Limbs become limp\" (M7); \"Is lethargic or unconscious\" (MCP); \"Lethargic or unconscious or less than normal movements\" (FIMNCI); \"Dull and lethargic baby\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "M7; MCP; FIMNCI; INT26; HBNCH",
+  "page": "M7 p.55; MCP pdf p.28; FIMNCI chart p.1; INT26 p.46; HBNCH p.23 E1"
+ },
+ {
+  "id": "nb_weak_cry",
+  "group": "newborn",
+  "official_wording": "\"Cry weak / stopped\" (HBNCH); \"Is unable to cry\" (MCP)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "HBNCH; MCP; INT26",
+  "page": "HBNCH p.19 Q5c, p.23 E3; MCP pdf p.28; INT26 p.29"
+ },
+ {
+  "id": "nb_convulsions",
+  "group": "newborn",
+  "official_wording": "\"Convulsions\" (M7, FIMNCI, MCP); \"Seizures\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "M7; INT26; MCP; FIMNCI",
+  "page": "M7 p.56; INT26 p.46; MCP pdf p.28; FIMNCI chart p.1"
+ },
+ {
+  "id": "nb_jaundice_severe",
+  "group": "newborn",
+  "official_wording": "\"Has yellow palms and soles\" (MCP); \"Becomes yellow (jaundice) on first day or jaundice persists after 14 days\" (M7); \"Palms and soles yellow or age < 24 hours or age 14 days or more\" = SEVERE JAUNDICE (FIMNCI)",
+  "threshold": "yellow palms or soles; OR any jaundice in the first 24 h; OR jaundice lasting ≥ 14 days",
+  "urgency": "refer_immediately",
+  "source": "FIMNCI; M7; MCP; INT26; HBNCH",
+  "page": "FIMNCI chart p.1; M7 p.56; MCP pdf p.28; INT26 p.46; HBNCH p.22 C4"
+ },
+ {
+  "id": "nb_blood_in_stool",
+  "group": "newborn",
+  "official_wording": "\"Has blood in stool(s)\" (MCP, INT26)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "MCP; INT26",
+  "page": "MCP pdf p.28; INT26 p.46"
+ },
+ {
+  "id": "nb_bleeding_any_site",
+  "group": "newborn",
+  "official_wording": "\"Bleeding from nose, mouth or anus\" (M7); \"Is umbilical cord bleeding\" (HBNCH)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "M7; HBNCH",
+  "page": "M7 p.56; HBNCH p.19 Part II Q3"
+ },
+ {
+  "id": "nb_umbilical_infection",
+  "group": "newborn",
+  "official_wording": "\"Umbilical cord is swollen, red or has pus discharge\" (INT26); \"Pus on umbilicus\" (HBNCH)",
+  "threshold": "none",
+  "urgency": "refer",
+  "urgency_conflict": "FIMNCI classifies 'umbilicus red or draining pus' alone as LOCAL BACTERIAL INFECTION (home treatment, follow-up in 2 days), not urgent referral. HBNCH lists it as a sepsis sign (refer immediately). INT26 says report immediately to CHO/MPW.",
+  "source": "INT26; HBNCH; FIMNCI",
+  "page": "INT26 p.8, p.46; HBNCH p.23 E8; FIMNCI chart p.1"
+ },
+ {
+  "id": "nb_skin_pustules",
+  "group": "newborn",
+  "official_wording": "\"More than 10 pustules over body or one large boil\" (INT26); \"10 or more skin pustules or a big boil\" (FIMNCI)",
+  "threshold": "≥ 10 pustules (FIMNCI) or > 10 (INT26), or one big boil",
+  "urgency": "refer_immediately",
+  "source": "INT26; FIMNCI",
+  "page": "INT26 p.46; FIMNCI chart p.1"
+ },
+ {
+  "id": "nb_no_urine_stool",
+  "group": "newborn",
+  "official_wording": "\"Inability to pass stools and urine\" (INT26)",
+  "threshold": "Normal: urine within 24 h, meconium within 24–48 h, urine 6–8 times/day (INT26 p.8). HBNCH: urine < 6 times/day → feeding advice.",
+  "urgency": "refer",
+  "source": "INT26; HBNCH",
+  "page": "INT26 p.8, p.46; HBNCH p.20 A6"
+ },
+ {
+  "id": "nb_abdominal_distension_vomiting",
+  "group": "newborn",
+  "official_wording": "\"Distended abdomen or mother says baby vomits often\" (HBNCH)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "HBNCH",
+  "page": "HBNCH p.23 Annex 1c E4 (sepsis sign)"
+ },
+ {
+  "id": "nb_diarrhoea",
+  "group": "newborn",
+  "official_wording": "\"Diarrhoea\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer",
+  "source": "INT26",
+  "page": "INT26 p.46"
+ },
+ {
+  "id": "nb_eye_discharge",
+  "group": "newborn",
+  "official_wording": "\"Eyes are red and infected\" (INT26); \"Are the eyes swollen or with pus\" (HBNCH)",
+  "threshold": "none",
+  "urgency": "refer",
+  "source": "INT26; HBNCH",
+  "page": "INT26 p.46–47; HBNCH p.21 C1"
+ },
+ {
+  "id": "nb_very_low_birth_weight",
+  "group": "newborn",
+  "official_wording": "\"If the weight is less than 1.8 kg then refer the baby to Sick New born care unit\" (HBNCH); baby \"not gaining weight → refer to SNCU\" (HBNCH)",
+  "threshold": "< 1.8 kg → refer; < 2.5 kg = LBW needing extra care and visits",
+  "urgency": "refer",
+  "source": "HBNCH",
+  "page": "HBNCH p.21 Annex 1c C2"
+ },
+ {
+  "id": "nb_tetanus_stiffness",
+  "group": "newborn",
+  "official_wording": "\"Tetanus (stiffness after the fourth day), unable to suckle or open mouth\" (M7)",
+  "threshold": "after day 4",
+  "urgency": "refer_immediately",
+  "source": "M7",
+  "page": "M7 p.56"
+ },
+ {
+  "id": "nb_bulging_fontanelle",
+  "group": "newborn",
+  "official_wording": "\"Bulging fontanelle\" (FIMNCI)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "FIMNCI",
+  "page": "FIMNCI chart p.1"
+ },
+ {
+  "id": "nb_birth_asphyxia",
+  "group": "newborn",
+  "official_wording": "\"no cry or a weak cry ... no breathing or weak breathing or gasping ... Asphyxia\" (M6)",
+  "threshold": "at birth / first minutes",
+  "urgency": "refer_immediately",
+  "note": "M7 teaches ASHA resuscitation. The app should only flag it and refer.",
+  "source": "M6; M7",
+  "page": "M6 p.44 step 5; M7 Part C asphyxia section (page not re-checked: UNVERIFIED)"
+ },
+ {
+  "id": "ch_unable_to_drink",
+  "group": "child_u5",
+  "official_wording": "\"Not able to drink or breastfeed\" (M7, INT26)",
+  "threshold": "cannot suck or swallow when offered",
+  "urgency": "refer_immediately",
+  "source": "M7; INT26; FIMNCI",
+  "page": "M7 p.20 (pdf p.22); INT26 p.123, p.126"
+ },
+ {
+  "id": "ch_vomits_everything",
+  "group": "child_u5",
+  "official_wording": "\"Vomits everything\" (M7); \"Persistent vomiting\" (INT26)",
+  "threshold": "cannot keep anything down",
+  "urgency": "refer_immediately",
+  "source": "M7; INT26",
+  "page": "M7 p.20; INT26 p.123, p.126"
+ },
+ {
+  "id": "ch_convulsions",
+  "group": "child_u5",
+  "official_wording": "\"Has convulsions\" (M7); \"Convulsions/fits\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "M7; INT26",
+  "page": "M7 p.20; INT26 p.123–124, p.126"
+ },
+ {
+  "id": "ch_lethargic_unconscious",
+  "group": "child_u5",
+  "official_wording": "\"Is lethargic or unconscious\" (M7)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "M7; INT26",
+  "page": "M7 p.20; INT26 p.123"
+ },
+ {
+  "id": "ch_chest_indrawing",
+  "group": "child_u5",
+  "official_wording": "\"A child with any chest indrawing should be referred to the hospital\" (M7)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "M7; INT26",
+  "page": "M7 p.29; INT26 p.123"
+ },
+ {
+  "id": "ch_fast_breathing",
+  "group": "child_u5",
+  "official_wording": "\"Fast breathing\" (M7, INT26); \"rapid and/or difficult breathing\" (MCP)",
+  "threshold": "2–12 months: ≥ 50/min; 12 months–5 years: ≥ 40/min (exactly 12 months uses 40)",
+  "urgency": "refer",
+  "note": "Official modules classify fast breathing alone (no danger sign, no chest indrawing) as PNEUMONIA with ASHA-level antibiotic. The app must not suggest treatment, so it flags 'refer to PHC'.",
+  "source": "M7; INT26; MCP",
+  "page": "M7 p.29 (pdf p.31); INT26 p.123, p.126; MCP pdf p.25"
+ },
+ {
+  "id": "ch_fever_persistent",
+  "group": "child_u5",
+  "official_wording": "\"fever has been present every day for more than seven days\" (M7); \"fever ... present every day for more than two days\" (INT26); \"If the child has high fever take her/him to the health centre\" (MCP)",
+  "threshold": "Fever = axillary ≥ 37.5 °C / 99.5 °F (INT26 p.124). Duration: > 7 days (M7) vs > 2 days (INT26): CONFLICT. M7: cough with fever > 3 days → refer.",
+  "urgency": "refer_immediately",
+  "source": "INT26; M7; MCP",
+  "page": "INT26 p.124; M7 p.22 (pdf p.24), p.29; MCP pdf p.25"
+ },
+ {
+  "id": "ch_stiff_neck",
+  "group": "child_u5",
+  "official_wording": "\"Stiff neck\" (M7, INT26)",
+  "threshold": "none",
+  "urgency": "refer_immediately",
+  "source": "M7; INT26",
+  "page": "M7 p.22; INT26 p.124"
+ },
+ {
+  "id": "ch_severe_dehydration",
+  "group": "child_u5",
+  "official_wording": "\"Severe Dehydration\" — two of: lethargic or unconscious; sunken eyes; not able to drink or drinking poorly; skin pinch goes back very slowly (M7)",
+  "threshold": "any 2 of the 4 signs",
+  "urgency": "refer_immediately",
+  "source": "M7; INT26",
+  "page": "M7 p.25 (pdf p.27); INT26 p.124"
+ },
+ {
+  "id": "ch_persistent_diarrhoea",
+  "group": "child_u5",
+  "official_wording": "\"Diarrhoea for 14 days or more\" (M7)",
+  "threshold": "≥ 14 days",
+  "urgency": "refer",
+  "source": "M7",
+  "page": "M7 p.25"
+ },
+ {
+  "id": "ch_blood_in_stool",
+  "group": "child_u5",
+  "official_wording": "\"Blood in the stool\" = Dysentery (M7)",
+  "threshold": "none",
+  "urgency": "refer",
+  "note": "M7: 'Referral if possible' or ASHA-level antibiotic. App: refer.",
+  "source": "M7; INT26",
+  "page": "M7 p.25; INT26 p.123"
+ },
+ {
+  "id": "ch_chronic_cough",
+  "group": "child_u5",
+  "official_wording": "\"cough, even if mild, for more than 30 days\" (M7)",
+  "threshold": "> 30 days; or cough + fever > 3 days",
+  "urgency": "refer",
+  "source": "M7",
+  "page": "M7 p.29"
+ },
+ {
+  "id": "ch_severe_acute_malnutrition",
+  "group": "child_u5",
+  "official_wording": "\"Oedema of both feet\"; \"Weight for Age/Length < -3 SD (red color on MCP card)\" (INT26); \"visible severe wasting ... urgent treatment and referral\" (M7)",
+  "threshold": "< -3 SD / red zone on the MCP growth chart; bilateral pedal oedema",
+  "urgency": "refer_immediately",
+  "source": "INT26; M7; MCP",
+  "page": "INT26 p.124; M7 Part A nutrition (pdf p.~14, page not re-checked: UNVERIFIED); MCP growth chart pdf p.24–25 ('Very Dangerous — Talk to the AWW/ANM immediately')"
+ },
+ {
+  "id": "ch_severe_pallor",
+  "group": "child_u5",
+  "official_wording": "\"Severe palmar pallor\" (INT26)",
+  "threshold": "none",
+  "urgency": "refer",
+  "source": "INT26",
+  "page": "INT26 p.124"
+ },
+ {
+  "id": "ch_aefi_serious",
+  "group": "child_u5",
+  "official_wording": "\"Refer immediately ... High fever; Convulsions; Excessive crying; Swelling of face or difficulty in breathing; Baby becomes pale and limp\" (INT26, AEFI)",
+  "threshold": "after any vaccination",
+  "urgency": "refer_immediately",
+  "source": "INT26",
+  "page": "INT26 p.102 (pdf p.112)"
+ }
+]

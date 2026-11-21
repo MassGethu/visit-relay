@@ -1,0 +1,3166 @@
+{
+ "anc_vaginal_bleeding": {
+  "hi": [
+   {
+    "script": "योनि से खून का बहना (रक्तस्राव)",
+    "roman": "yoni se khoon ka behna (raktasrav)",
+    "provenance": "OFFICIAL-M6HI p.30"
+   },
+   {
+    "script": "खून आ रहा है",
+    "roman": "khoon aa raha hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "नीचे से खून जा रहा है",
+    "roman": "neeche se khoon ja raha hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "कपड़े पर दाग / धब्बे लग रहे",
+    "roman": "kapde par daag / dhabbe lag rahe",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "महीने जैसा खून",
+    "roman": "mahine jaisa khoon",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ರಕ್ತಸ್ರಾವ ಆಗ್ತಿದೆ",
+    "roman": "raktasraava aagtide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ರಕ್ತ ಹೋಗ್ತಾ ಇದೆ",
+    "roman": "rakta hogta ide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕೆಳಗಡೆಯಿಂದ ರಕ್ತ ಬರ್ತಿದೆ",
+    "roman": "kelagadeyinda rakta bartide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮುಟ್ಟಿನ ಹಾಗೆ ರಕ್ತ",
+    "roman": "muttina haage rakta",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "bleeding ho rahi hai",
+    "roman": "bleeding ho rahi hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "spotting hai thoda",
+    "roman": "spotting hai thoda",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "bleeding aagtide / blood bartide",
+    "roman": "bleeding aagtide / blood bartide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "खून नहीं आ रहा",
+    "roman": "khoon nahi aa raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "bleeding nahi hai / koi daag nahi",
+    "roman": "bleeding nahi hai / koi daag nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ರಕ್ತ ಹೋಗ್ತಿಲ್ಲ",
+    "roman": "rakta hogtilla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "bleeding illa",
+    "roman": "bleeding illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "'bleeding band ho gaya' / 'rakta nintide' = stopped → still record and refer if it happened in pregnancy"
+  ]
+ },
+ "anc_reduced_fetal_movement": {
+  "hi": [
+   {
+    "script": "भ्रूण का हिलना-डुलना बंद हो जाना",
+    "roman": "bhroon ka hilna-dulna band ho jana",
+    "provenance": "OFFICIAL-M6HI p.30"
+   },
+   {
+    "script": "हाथ-पैर मारना बंद कर दे",
+    "roman": "haath-pair maarna band kar de",
+    "provenance": "OFFICIAL-M6HI p.30"
+   },
+   {
+    "script": "बच्चा पेट में हिल नहीं रहा",
+    "roman": "bachcha pet mein hil nahi raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "बच्चा लात नहीं मार रहा",
+    "roman": "bachcha laat nahi maar raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "कल से हलचल कम है",
+    "roman": "kal se halchal kam hai",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಹೊಟ್ಟೆಯಲ್ಲಿ ಮಗು ಅಲ್ಲಾಡ್ತಿಲ್ಲ",
+    "roman": "hotteyalli magu allaadtilla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಗು ಒದೀತಿಲ್ಲ",
+    "roman": "magu odeetilla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಗುವಿನ ಚಲನೆ ಕಡಿಮೆ ಆಗಿದೆ",
+    "roman": "maguvina chalane kadime aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "baby movement kam hai / feel nahi ho raha",
+    "roman": "baby movement kam hai / feel nahi ho raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "movement kammi ide / baby move aagtilla",
+    "roman": "movement kammi ide / baby move aagtilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "बच्चा ठीक से हिल रहा है",
+    "roman": "bachcha theek se hil raha hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "laat maar raha hai, movement normal hai",
+    "roman": "laat maar raha hai, movement normal hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಗು ಚೆನ್ನಾಗಿ ಒದೀತಿದೆ",
+    "roman": "magu chennaagi odeetide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "movement chennagide",
+    "roman": "movement chennagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_severe_headache_blurred_vision": {
+  "hi": [
+   {
+    "script": "सिरदर्द/ सिर चकराना/ धुंधला दिखाई देना",
+    "roman": "sirdard / sir chakrana / dhundhla dikhai dena",
+    "provenance": "OFFICIAL-M6HI p.30"
+   },
+   {
+    "script": "आँखों के आगे धब्बे दिखाई देना",
+    "roman": "aankhon ke aage dhabbe dikhai dena",
+    "provenance": "OFFICIAL-M6HI p.30"
+   },
+   {
+    "script": "सिर फटा जा रहा है",
+    "roman": "sir phata ja raha hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "आँखों के आगे अंधेरा छा जाता है",
+    "roman": "aankhon ke aage andhera chha jata hai",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ತಲೆ ನೋವು ತುಂಬಾ ಜಾಸ್ತಿ",
+    "roman": "tale novu tumba jaasti",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕಣ್ಣು ಮಂಜು ಮಂಜಾಗಿ ಕಾಣ್ತಿದೆ",
+    "roman": "kannu manju manjaagi kaantide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕಣ್ಣು ಕತ್ತಲೆ ಬರ್ತಿದೆ",
+    "roman": "kannu kattale bartide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ತಲೆ ಸುತ್ತು",
+    "roman": "tale suttu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "severe headache hai, vision blurry",
+    "roman": "severe headache hai, vision blurry",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "headache jaasti, kannu blur aagtide",
+    "roman": "headache jaasti, kannu blur aagtide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "सिर दर्द नहीं",
+    "roman": "sir dard nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ತಲೆ ನೋವು ಇಲ್ಲ",
+    "roman": "tale novu illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "mild 'thoda sir dard' is not the official sign; classifier should require 'severe/bahut/tumba' or visual symptom"
+  ]
+ },
+ "anc_swelling_face_hands": {
+  "hi": [
+   {
+    "script": "चेहरे/हाथों में सूजन",
+    "roman": "chehre/haathon mein soojan",
+    "provenance": "OFFICIAL-M6HI p.31"
+   },
+   {
+    "script": "अंगुली से दबाने पर गड्ढे पड़ जाते हैं",
+    "roman": "anguli se dabane par gaddhe pad jaate hain",
+    "provenance": "OFFICIAL-M6HI p.31"
+   },
+   {
+    "script": "मुँह फूल गया है",
+    "roman": "munh phool gaya hai",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮುಖ ಊದಿಕೊಂಡಿದೆ",
+    "roman": "mukha oodikondide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕೈ ಬಾವು ಬಂದಿದೆ",
+    "roman": "kai baavu bandide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಒತ್ತಿದ್ರೆ ಗುಳಿ ಬೀಳುತ್ತೆ",
+    "roman": "ottidre guli beelutte",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "face pe swelling hai",
+    "roman": "face pe swelling hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "mukha swelling aagide",
+    "roman": "mukha swelling aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "सूजन नहीं",
+    "roman": "soojan nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಬಾವು ಇಲ್ಲ",
+    "roman": "baavu illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "'pair mein soojan' / 'kaalu baavu' (feet only) is common late in pregnancy and is NOT the official sign; record, don't auto-flag"
+  ]
+ },
+ "anc_convulsions": {
+  "hi": [
+   {
+    "script": "शरीर में ऐंठन / दौरा पड़ना",
+    "roman": "shareer mein ainthan / daura padna",
+    "provenance": "OFFICIAL-M6HI p.31"
+   },
+   {
+    "script": "आँखें घूम जाना, मुट्ठी भिंच जाना",
+    "roman": "aankhen ghoom jana, mutthi bhinch jana",
+    "provenance": "OFFICIAL-M6HI p.31"
+   },
+   {
+    "script": "झटके आ रहे थे",
+    "roman": "jhatke aa rahe the",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "मिर्गी जैसा दौरा",
+    "roman": "mirgi jaisa daura",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "दाँत भिंच गए, बेहोश हो गई",
+    "roman": "daant bhinch gaye, behosh ho gayi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಫಿಟ್ಸ್ ಬಂತು",
+    "roman": "fits bantu",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಸೆಳವು ಬಂತು",
+    "roman": "selavu bantu",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕೈಕಾಲು ಎಳ್ಕೊಳ್ತಿತ್ತು",
+    "roman": "kaikaalu elkoltittu",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮೂರ್ಛೆ ಹೋದಳು",
+    "roman": "moorchhe hodalu (fainted — ambiguous)",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "fits aaye / fit pada",
+    "roman": "fits aaye / fit pada",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "fits bandittu",
+    "roman": "fits bandittu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "कोई दौरा नहीं",
+    "roman": "koi daura nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "fits illa / ಸೆಳವು ಇಲ್ಲ",
+    "roman": "selavu illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_high_fever": {
+  "hi": [
+   {
+    "script": "तेज़ बुखार",
+    "roman": "tez bukhaar",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "बदन तप रहा है",
+    "roman": "badan tap raha hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ठंड लग के बुखार",
+    "roman": "thand lag ke bukhaar",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಜೋರು ಜ್ವರ",
+    "roman": "joru jvara",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮೈ ಸುಡ್ತಿದೆ",
+    "roman": "mai sudtide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಚಳಿ ಜ್ವರ",
+    "roman": "chali jvara",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "high fever hai, 102 hai",
+    "roman": "high fever hai, 102 hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "fever jaasti ide",
+    "roman": "fever jaasti ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "बुखार नहीं / बुखार उतर गया",
+    "roman": "bukhaar nahi / bukhaar utar gaya",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಜ್ವರ ಇಲ್ಲ / ಜ್ವರ ಬಿಟ್ಟಿದೆ",
+    "roman": "jvara illa / jvara bittide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_severe_abdominal_pain": {
+  "hi": [
+   {
+    "script": "पेट में बहुत तेज़ दर्द",
+    "roman": "pet mein bahut tez dard",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "लगातार पेट दर्द",
+    "roman": "lagaataar pet dard",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಹೊಟ್ಟೆ ನೋವು ತುಂಬಾ ಜಾಸ್ತಿ",
+    "roman": "hotte novu tumba jaasti",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಹೊಟ್ಟೆ ನೋವು ನಿಲ್ತಿಲ್ಲ",
+    "roman": "hotte novu niltilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "stomach pain bahut hai",
+    "roman": "stomach pain bahut hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "tummy pain continuous aagide",
+    "roman": "tummy pain continuous aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "पेट दर्द नहीं",
+    "roman": "pet dard nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಹೊಟ್ಟೆ ನೋವು ಇಲ್ಲ",
+    "roman": "hotte novu illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_breathlessness": {
+  "hi": [
+   {
+    "script": "साँस फूल रही है",
+    "roman": "saans phool rahi hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "साँस लेने में तकलीफ",
+    "roman": "saans lene mein takleef",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಉಸಿರು ಕಟ್ಟುತ್ತಿದೆ",
+    "roman": "usiru kattuttide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಏದುಸಿರು ಬರ್ತಿದೆ",
+    "roman": "edusiru bartide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ದಮ್ಮು ಬರ್ತಿದೆ",
+    "roman": "dammu bartide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "breathing problem hai",
+    "roman": "breathing problem hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "breathing kashta aagtide",
+    "roman": "breathing kashta aagtide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "साँस ठीक है",
+    "roman": "saans theek hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಉಸಿರಾಟ ಸರಿ ಇದೆ",
+    "roman": "usiraata sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_severe_anaemia": {
+  "hi": [
+   {
+    "script": "गंभीर खून की कमी",
+    "roman": "gambhir khoon ki kami",
+    "provenance": "OFFICIAL-M6HI p.31"
+   },
+   {
+    "script": "जीभ का रंग सफेद",
+    "roman": "jeebh ka rang safed",
+    "provenance": "OFFICIAL-M6HI p.31"
+   },
+   {
+    "script": "खून कम है, चक्कर आते हैं",
+    "roman": "khoon kam hai, chakkar aate hain",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "पीली पड़ गई है (=pale, NOT jaundice)",
+    "roman": "peeli pad gayi hai",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ರಕ್ತ ಕಡಿಮೆ ಇದೆ",
+    "roman": "rakta kadime ide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಬಿಳಿಚಿಕೊಂಡಿದ್ದಾಳೆ",
+    "roman": "bilichikondiddaale",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ನಾಲಿಗೆ ಬಿಳಿ",
+    "roman": "naalige bili",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "HB kam hai, HB 6 hai",
+    "roman": "HB kam hai, HB 6 hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "HB kammi ide",
+    "roman": "HB kammi ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "HB theek hai / HB 11 hai",
+    "roman": "HB theek hai / HB 11 hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "HB normal ide",
+    "roman": "HB normal ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_water_break_no_labour": {
+  "hi": [
+   {
+    "script": "पानी की थैली फट गई, दर्द नहीं",
+    "roman": "paani ki thaili phat gayi, dard nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "नीचे से पानी जा रहा है",
+    "roman": "neeche se paani ja raha hai",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ನೀರು ಹೋಯ್ತು, ನೋವು ಇಲ್ಲ",
+    "roman": "neeru hoytu, novu illa",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ನೀರಿನ ಚೀಲ ಒಡೆದಿದೆ",
+    "roman": "neerina cheela odedide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "water break ho gaya, pain nahi",
+    "roman": "water break ho gaya, pain nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "water leak aagtide",
+    "roman": "water leak aagtide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "पानी नहीं गया",
+    "roman": "paani nahi gaya",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ನೀರು ಹೋಗಿಲ್ಲ",
+    "roman": "neeru hogilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "'dard nahi'/'novu illa' here is part of the DANGER pattern, not a negation of the sign"
+  ]
+ },
+ "anc_preterm_labour": {
+  "hi": [
+   {
+    "script": "दिन पूरे होने से पहले दर्द उठ रहे हैं",
+    "roman": "din poore hone se pehle dard uth rahe hain",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "सातवें महीने में ही दर्द",
+    "roman": "saatven mahine mein hi dard",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ದಿನ ತುಂಬೋಕೆ ಮುಂಚೆನೇ ಹೆರಿಗೆ ನೋವು",
+    "roman": "dina tumboke munchene herige novu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "due date se pehle pain",
+    "roman": "due date se pehle pain",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "due date ge munche labour pain",
+    "roman": "due date ge munche labour pain",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "दर्द नहीं है",
+    "roman": "dard nahi hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಹೆರಿಗೆ ನೋವು ಇಲ್ಲ",
+    "roman": "herige novu illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_prolonged_labour": {
+  "hi": [
+   {
+    "script": "कल रात से दर्द है, बच्चा नहीं हुआ",
+    "roman": "kal raat se dard hai, bachcha nahi hua",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "बारह घंटे से ज़्यादा दर्द",
+    "roman": "baarah ghante se zyaada dard",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ನಿನ್ನೆಯಿಂದ ಹೆರಿಗೆ ನೋವು, ಇನ್ನೂ ಆಗಿಲ್ಲ",
+    "roman": "ninneyinda herige novu, innu aagilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "12 ghante se labour pain",
+    "roman": "12 ghante se labour pain",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "labour pain 12 hours inda ide",
+    "roman": "labour pain 12 hours inda ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "delivery ho gayi / ಹೆರಿಗೆ ಆಯ್ತು",
+    "roman": "herige aaytu (resolved)",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_foul_vaginal_discharge": {
+  "hi": [
+   {
+    "script": "बदबूदार सफेद पानी",
+    "roman": "badboodaar safed paani",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "नीचे से बदबू आ रही",
+    "roman": "neeche se badboo aa rahi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಕೆಟ್ಟ ವಾಸನೆ ಬಿಳಿ ಸೆರಗು",
+    "roman": "ketta vaasane bili seragu",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕೆಳಗೆ ವಾಸನೆ ಬರ್ತಿದೆ",
+    "roman": "kelage vaasane bartide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "smelly discharge hai",
+    "roman": "smelly discharge hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "white discharge smell ide",
+    "roman": "white discharge smell ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "बदबू नहीं",
+    "roman": "badboo nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ವಾಸನೆ ಇಲ್ಲ",
+    "roman": "vaasane illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_burning_urination": {
+  "hi": [
+   {
+    "script": "पेशाब में जलन",
+    "roman": "peshaab mein jalan",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "पेशाब करते समय दर्द",
+    "roman": "peshaab karte samay dard",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಉರಿ ಮೂತ್ರ",
+    "roman": "uri mootra",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮೂತ್ರ ಮಾಡುವಾಗ ಉರಿ",
+    "roman": "mootra maaduvaaga uri",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "urine mein burning",
+    "roman": "urine mein burning",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "urine burning ide",
+    "roman": "urine burning ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "जलन नहीं",
+    "roman": "jalan nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಉರಿ ಇಲ್ಲ",
+    "roman": "uri illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_high_bp": {
+  "hi": [
+   {
+    "script": "बीपी बढ़ा हुआ है",
+    "roman": "BP badha hua hai",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಬಿಪಿ ಜಾಸ್ತಿ ಇದೆ",
+    "roman": "BP jaasti ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "BP 150 by 100",
+    "roman": "BP 150 by 100",
+    "provenance": "UNSOURCED-linguistic (numbers: see 02-vocab-numbers.md)"
+   },
+   {
+    "script": "BP high ide",
+    "roman": "BP high ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "BP normal hai / BP sari ide",
+    "roman": "BP normal hai / BP sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_labour_green_liquor": {
+  "hi": [
+   {
+    "script": "हरा/भूरा पानी आया",
+    "roman": "hara/bhoora paani aaya",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಹಸಿರು ಬಣ್ಣದ ನೀರು ಹೋಯ್ತು",
+    "roman": "hasiru bannada neeru hoytu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "green colour paani",
+    "roman": "green colour paani",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "green water hoytu",
+    "roman": "green water hoytu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "पानी साफ था",
+    "roman": "paani saaf tha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ನೀರು ಕ್ಲಿಯರ್ ಇತ್ತು",
+    "roman": "neeru clear ittu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "anc_retained_placenta": {
+  "hi": [
+   {
+    "script": "आँवल/ओल नहीं निकली",
+    "roman": "aanval/ol nahi nikli",
+    "provenance": "UNSOURCED-linguistic (regional variants: 'phool', 'jer' — validate)"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮಾಸು ಬಿದ್ದಿಲ್ಲ",
+    "roman": "maasu biddilla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕಸ ಬಿದ್ದಿಲ್ಲ",
+    "roman": "kasa biddilla (colloquial for placenta — validate)",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "placenta nahi nikla",
+    "roman": "placenta nahi nikla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "placenta bandilla",
+    "roman": "placenta bandilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "आँवल निकल गई",
+    "roman": "aanval nikal gayi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಾಸು ಬಿತ್ತು",
+    "roman": "maasu bittu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_heavy_bleeding": {
+  "hi": [
+   {
+    "script": "बहुत ज्यादा खून का बहना",
+    "roman": "bahut zyaada khoon ka behna",
+    "provenance": "OFFICIAL-M6HI p.39"
+   },
+   {
+    "script": "एक दिन में पाँच से अधिक पैड बदलती है",
+    "roman": "ek din mein paanch se adhik pad badalti hai",
+    "provenance": "OFFICIAL-M6HI p.39"
+   },
+   {
+    "script": "खून के थक्के आ रहे",
+    "roman": "khoon ke thakke aa rahe",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "कपड़ा भीग जाता है",
+    "roman": "kapda bheeg jaata hai",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ತುಂಬಾ ರಕ್ತ ಹೋಗ್ತಿದೆ",
+    "roman": "tumba rakta hogtide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಗಡ್ಡೆ ಗಡ್ಡೆ ರಕ್ತ ಬರ್ತಿದೆ",
+    "roman": "gadde gadde rakta bartide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ದಿನಕ್ಕೆ ಆರು ಪ್ಯಾಡ್ ಬದಲಾಯಿಸಿದ್ಲು",
+    "roman": "dinakke aaru pad badalaayisidlu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "pad 6 change kiye aaj",
+    "roman": "pad 6 change kiye aaj",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "bleeding jaasti ide, clots bartide",
+    "roman": "bleeding jaasti ide, clots bartide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "खून कम हो गया, नॉर्मल है",
+    "roman": "khoon kam ho gaya, normal hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ರಕ್ತ ಕಡಿಮೆ ಆಗಿದೆ",
+    "roman": "rakta kadime aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "'kam ho gaya' = reducing (normal lochia pattern) but 'phir se zyaada' / 'matte jaasti' = return of heavy bleeding = DANGER (INT26 p.11)"
+  ]
+ },
+ "pnc_foul_lochia": {
+  "hi": [
+   {
+    "script": "स्राव बदबूदार है",
+    "roman": "sraav badboodaar hai",
+    "provenance": "OFFICIAL-M6HI p.39"
+   },
+   {
+    "script": "बदबूदार स्राव के साथ ज्वर, ठंड लगना, पेट में दर्द",
+    "roman": "badboodaar sraav ke saath jvar, thand lagna, pet mein dard",
+    "provenance": "OFFICIAL-M6HI p.39"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಕೆಳಗಿಂದ ಕೆಟ್ಟ ವಾಸನೆ ಬರ್ತಿದೆ",
+    "roman": "kelaginda ketta vaasane bartide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "discharge mein smell",
+    "roman": "discharge mein smell",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "smell bartide",
+    "roman": "smell bartide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "बदबू नहीं",
+    "roman": "badboo nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ವಾಸನೆ ಇಲ್ಲ",
+    "roman": "vaasane illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_fever": {
+  "hi": [
+   {
+    "script": "ज्वर / बुखार",
+    "roman": "jvar / bukhaar",
+    "provenance": "OFFICIAL-M6HI p.39 (ज्वर)"
+   },
+   {
+    "script": "ठंड लग के बुखार",
+    "roman": "thand lag ke bukhaar",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಜ್ವರ ಬಂದಿದೆ",
+    "roman": "jvara bandide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮೈ ಬಿಸಿ ಇದೆ",
+    "roman": "mai bisi ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "fever 102 hai",
+    "roman": "fever 102 hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "fever ide",
+    "roman": "fever ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "बुखार नहीं",
+    "roman": "bukhaar nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಜ್ವರ ಇಲ್ಲ",
+    "roman": "jvara illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_convulsions_unconscious": {
+  "hi": [
+   {
+    "script": "ऐंठन होना",
+    "roman": "ainthan hona",
+    "provenance": "OFFICIAL-M6HI p.39"
+   },
+   {
+    "script": "दौरा पड़ा, बेहोश हो गई",
+    "roman": "daura pada, behosh ho gayi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "झटके",
+    "roman": "jhatke",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಫಿಟ್ಸ್ ಬಂತು",
+    "roman": "fits bantu",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಪ್ರಜ್ಞೆ ತಪ್ಪಿದಳು",
+    "roman": "prajne tappidalu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "fits aaye, unconscious ho gayi",
+    "roman": "fits aaye, unconscious ho gayi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "fits bantu, conscious illa",
+    "roman": "fits bantu, conscious illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "कोई दौरा नहीं",
+    "roman": "koi daura nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "fits illa",
+    "roman": "fits illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_headache_blurred_vision": {
+  "hi": [
+   {
+    "script": "गंभीर सिरदर्द होना और धुंधला दिखाई देना",
+    "roman": "gambhir sirdard hona aur dhundhla dikhai dena",
+    "provenance": "OFFICIAL-M6HI p.39"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ತಲೆ ನೋವು ಜಾಸ್ತಿ, ಕಣ್ಣು ಮಂಜು",
+    "roman": "tale novu jaasti, kannu manju",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "headache + blurry vision",
+    "roman": "headache + blurry vision",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "sir dard nahi / tale novu illa",
+    "roman": "sir dard nahi / tale novu illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_swelling_face_hands": {
+  "hi": [
+   {
+    "script": "चेहरे और हाथों पर सूजन",
+    "roman": "chehre aur haathon par soojan",
+    "provenance": "OFFICIAL-M6HI p.39"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮುಖ ಕೈ ಕಾಲು ಊದಿಕೊಂಡಿದೆ",
+    "roman": "mukha kai kaalu oodikondide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "face swelling hai / swelling ide",
+    "roman": "face swelling hai / swelling ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "सूजन नहीं / ಬಾವು ಇಲ್ಲ",
+    "roman": "सूजन नहीं / ಬಾವು ಇಲ್ಲ",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_breathing_difficulty": {
+  "hi": [
+   {
+    "script": "साँस फूल रही",
+    "roman": "saans phool rahi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಉಸಿರು ಕಟ್ಟುತ್ತಿದೆ",
+    "roman": "usiru kattuttide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "breathing problem",
+    "roman": "breathing problem",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "saans theek hai / usiru sari ide",
+    "roman": "saans theek hai / usiru sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_severe_abdominal_pain": {
+  "hi": [
+   {
+    "script": "पेट में तेज़ दर्द, बढ़ता जा रहा",
+    "roman": "pet mein tez dard, badhta ja raha",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಹೊಟ್ಟೆ ನೋವು ಜಾಸ್ತಿ ಆಗ್ತಿದೆ",
+    "roman": "hotte novu jaasti aagtide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "stomach pain badh raha / jaasti aagtide",
+    "roman": "stomach pain badh raha / jaasti aagtide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "pet dard nahi / hotte novu illa",
+    "roman": "pet dard nahi / hotte novu illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "mild after-pains while breastfeeding are normal (INT26 p.12)"
+  ]
+ },
+ "pnc_no_urine": {
+  "hi": [
+   {
+    "script": "डिलीवरी के बाद पेशाब नहीं हुआ",
+    "roman": "delivery ke baad peshaab nahi hua",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "पेशाब रुक गया",
+    "roman": "peshaab ruk gaya",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಹೆರಿಗೆ ಆದ್ಮೇಲೆ ಉಚ್ಚೆ ಹೋಗಿಲ್ಲ",
+    "roman": "herige aadmele uchche hogilla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮೂತ್ರ ಆಗಿಲ್ಲ",
+    "roman": "mootra aagilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "urine pass nahi hua",
+    "roman": "urine pass nahi hua",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "urine aagilla",
+    "roman": "urine aagilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "पेशाब हो गया",
+    "roman": "peshaab ho gaya",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಉಚ್ಚೆ ಹೋಯ್ತು",
+    "roman": "uchche hoytu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_urinary_burning_leg_swelling": {
+  "hi": [
+   {
+    "script": "पेशाब में जलन और पैर में सूजन-दर्द",
+    "roman": "peshaab mein jalan aur pair mein soojan-dard",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಉರಿ ಮೂತ್ರ, ಕಾಲು ಬಾವು ನೋವು",
+    "roman": "uri mootra, kaalu baavu novu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "urine burning + leg swelling",
+    "roman": "urine burning + leg swelling",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "jalan nahi / uri illa",
+    "roman": "jalan nahi / uri illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_pallor_weakness": {
+  "hi": [
+   {
+    "script": "माता का रंग पीला पड़ गया (= pale)",
+    "roman": "maata ka rang peela pad gaya",
+    "provenance": "OFFICIAL-M6HI p.39"
+   },
+   {
+    "script": "बहुत कमजोरी, चक्कर",
+    "roman": "bahut kamzori, chakkar",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ತುಂಬಾ ಸುಸ್ತು, ತಲೆ ಸುತ್ತು",
+    "roman": "tumba sustu, tale suttu",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಬಿಳಿಚಿಕೊಂಡಿದ್ದಾಳೆ",
+    "roman": "bilichikondiddaale",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "weakness bahut hai",
+    "roman": "weakness bahut hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "tumba weak aagidaale",
+    "roman": "tumba weak aagidaale",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "kamzori nahi / sustu illa",
+    "roman": "kamzori nahi / sustu illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "Hindi 'peela padna' = pallor (anaemia) here, but 'peeliya' = jaundice; do not conflate"
+  ]
+ },
+ "pnc_jaundice": {
+  "hi": [
+   {
+    "script": "आँखें पीली, पेशाब पीला",
+    "roman": "aankhen peeli, peshaab peela",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "पीलिया",
+    "roman": "peeliya",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಕಾಮಾಲೆ",
+    "roman": "kaamaale",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕಣ್ಣು ಹಳದಿ ಆಗಿದೆ",
+    "roman": "kannu haladi aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "jaundice hai / jaundice ide",
+    "roman": "jaundice hai / jaundice ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "peeliya nahi / kaamaale illa",
+    "roman": "peeliya nahi / kaamaale illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_abnormal_behaviour_harm_thoughts": {
+  "hi": [
+   {
+    "script": "उल्टा-सीधा बोल रही है",
+    "roman": "ulta-seedha bol rahi hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "बच्चे को कुछ कर दूँगी बोलती है",
+    "roman": "bachche ko kuch kar doongi bolti hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "गुमसुम रहती है, खाना-सोना नहीं",
+    "roman": "gumsum rehti hai, khaana-sona nahi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಹುಚ್ಚು ಹುಚ್ಚಾಗಿ ಮಾತಾಡ್ತಾಳೆ",
+    "roman": "huchchu huchchaagi maataadtaale",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಂಕಾಗಿದ್ದಾಳೆ, ಊಟ ನಿದ್ದೆ ಇಲ್ಲ",
+    "roman": "mankaagiddaale, oota nidde illa",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಸಾಯ್ತೀನಿ ಅಂತಾಳೆ",
+    "roman": "saayteeni antaale",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "depression jaisa lag raha",
+    "roman": "depression jaisa lag raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "tumba upset aagidaale, baby ge harm maadtini antaale",
+    "roman": "tumba upset aagidaale, baby ge harm maadtini antaale",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "khush hai, theek se baat kar rahi",
+    "roman": "khush hai, theek se baat kar rahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "chennaagi maataadtaale",
+    "roman": "chennaagi maataadtaale",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_breast_problem_fever": {
+  "hi": [
+   {
+    "script": "स्तन में गाँठ और संक्रमण",
+    "roman": "stan mein gaanth aur sankraman",
+    "provenance": "OFFICIAL-M6HI p.39 (heading)"
+   },
+   {
+    "script": "छाती में गाँठ, दर्द, बुखार",
+    "roman": "chhaati mein gaanth, dard, bukhaar",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "निप्पल फट गए",
+    "roman": "nipple phat gaye",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮೊಲೆ ಗಟ್ಟಿ ಆಗಿದೆ, ನೋವು, ಜ್ವರ",
+    "roman": "mole gatti aagide, novu, jvara",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮೊಲೆತೊಟ್ಟು ಒಡೆದಿದೆ",
+    "roman": "moletottu odedide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "breast pain + fever",
+    "roman": "breast pain + fever",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "dard nahi / novu illa",
+    "roman": "dard nahi / novu illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_perineal_infection": {
+  "hi": [
+   {
+    "script": "टाँकों में सूजन, मवाद",
+    "roman": "taankon mein soojan, mavaad",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಹೊಲಿಗೆ ಹತ್ರ ಬಾವು, ಕೀವು",
+    "roman": "holige hatra baavu, keevu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "stitches mein pus",
+    "roman": "stitches mein pus",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "stitch alli pus",
+    "roman": "stitch alli pus",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "taanke theek hain / holige sari ide",
+    "roman": "taanke theek hain / holige sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_not_eating_vomiting": {
+  "hi": [
+   {
+    "script": "कल से कुछ नहीं खाया",
+    "roman": "kal se kuch nahi khaaya",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "बार-बार उल्टी",
+    "roman": "baar-baar ulti",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ನಿನ್ನೆಯಿಂದ ಏನೂ ತಿಂದಿಲ್ಲ",
+    "roman": "ninneyinda enu tindilla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಪದೇ ಪದೇ ವಾಂತಿ",
+    "roman": "pade pade vaanti",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "food nahi le rahi",
+    "roman": "food nahi le rahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "oota maadtilla, vomiting",
+    "roman": "oota maadtilla, vomiting",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "theek se kha rahi hai",
+    "roman": "theek se kha rahi hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "chennaagi oota maadtaale",
+    "roman": "chennaagi oota maadtaale",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "pnc_stool_incontinence": {
+  "hi": [
+   {
+    "script": "टट्टी अपने आप निकल जाती",
+    "roman": "tatti apne aap nikal jaati",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮಲ ತಡೆಯೋಕೆ ಆಗ್ತಿಲ್ಲ",
+    "roman": "mala tadeyoke aagtilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "motion control nahi",
+    "roman": "motion control nahi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "control hai / control ide",
+    "roman": "control hai / control ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_fast_breathing": {
+  "hi": [
+   {
+    "script": "बच्चा तेज़-तेज़ साँस ले रहा",
+    "roman": "bachcha tez-tez saans le raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "साँस जल्दी-जल्दी चल रही",
+    "roman": "saans jaldi-jaldi chal rahi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮಗು ಬೇಗ ಬೇಗ ಉಸಿರಾಡ್ತಿದೆ",
+    "roman": "magu bega bega usiraadtide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಏದುಸಿರು ಬಿಡ್ತಿದೆ",
+    "roman": "edusiru bidtide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "breathing fast hai, 64 count kiya",
+    "roman": "breathing fast hai, 64 count kiya",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "breathing fast ide, 65 ide",
+    "roman": "breathing fast ide, 65 ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "साँस नॉर्मल है",
+    "roman": "saans normal hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಉಸಿರಾಟ ಸರಿ ಇದೆ",
+    "roman": "usiraata sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "a spoken count (e.g. 'saath se upar', 'aravattu') must be parsed: see 02-vocab-numbers.md"
+  ]
+ },
+ "nb_chest_indrawing": {
+  "hi": [
+   {
+    "script": "छाती में धंसाव",
+    "roman": "chhaati mein dhansaav",
+    "provenance": "OFFICIAL-M7HI p.55"
+   },
+   {
+    "script": "पसली चल रही है",
+    "roman": "pasli chal rahi hai",
+    "provenance": "UNSOURCED-linguistic (widely used folk term; could not verify in a source)"
+   },
+   {
+    "script": "साँस लेते समय छाती अंदर जाती है",
+    "roman": "saans lete samay chhaati andar jaati hai",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಉಸಿರಾಡುವಾಗ ಎದೆ ಒಳಗೆ ಹೋಗ್ತಿದೆ",
+    "roman": "usiraaduvaaga ede olage hogtide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಪಕ್ಕೆಲುಬು ಒಳಗೆ ಎಳೀತಿದೆ",
+    "roman": "pakkelubu olage eleetide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "chest andar ja raha",
+    "roman": "chest andar ja raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "chest indrawing ide",
+    "roman": "chest indrawing ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "छाती में धंसाव नहीं",
+    "roman": "chhaati mein dhansaav nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಎದೆ ಒಳಗೆ ಹೋಗ್ತಿಲ್ಲ",
+    "roman": "ede olage hogtilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_grunting_nasal_flaring": {
+  "hi": [
+   {
+    "script": "साँस में कराहने/घुरघुर की आवाज़",
+    "roman": "saans mein karaahne / ghurghur ki aawaaz",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "नाक फूल रही",
+    "roman": "naak phool rahi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಉಸಿರಾಡುವಾಗ ಕುಂಯ್ ಕುಂಯ್ ಶಬ್ದ",
+    "roman": "usiraaduvaaga kuny kuny shabda",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮೂಗು ಅರಳ್ತಿದೆ",
+    "roman": "moogu araltide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "grunting sound aa raha / grunting ide",
+    "roman": "grunting sound aa raha / grunting ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "koi aawaaz nahi / shabda illa",
+    "roman": "koi aawaaz nahi / shabda illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_cyanosis": {
+  "hi": [
+   {
+    "script": "होंठ नीले पड़ गए",
+    "roman": "honth neele pad gaye",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ತುಟಿ ನೀಲಿ ಆಗಿದೆ",
+    "roman": "tuti neeli aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "lips blue ho gaye / lips blue aagide",
+    "roman": "lips blue ho gaye / lips blue aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "rang theek hai, gulaabi hai / banna sari ide",
+    "roman": "rang theek hai, gulaabi hai / banna sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_apnoea_slow_breathing": {
+  "hi": [
+   {
+    "script": "साँस रुक-रुक के ले रहा",
+    "roman": "saans ruk-ruk ke le raha",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಉಸಿರು ನಿಂತು ನಿಂತು ಬರ್ತಿದೆ",
+    "roman": "usiru nintu nintu bartide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "breathing stop ho jaati hai beech mein",
+    "roman": "breathing stop ho jaati hai beech mein",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "saans theek chal rahi / usiru sari ide",
+    "roman": "saans theek chal rahi / usiru sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_fever": {
+  "hi": [
+   {
+    "script": "उसे बुखार हो",
+    "roman": "use bukhaar ho",
+    "provenance": "OFFICIAL-M7HI p.55"
+   },
+   {
+    "script": "बच्चा तप रहा है",
+    "roman": "bachcha tap raha hai",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮಗು ಮೈ ಬಿಸಿ ಇದೆ",
+    "roman": "magu mai bisi ide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಗುಗೆ ಜ್ವರ",
+    "roman": "maguge jvara",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "baby ko fever hai / baby ge fever",
+    "roman": "baby ko fever hai / baby ge fever",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "बुखार नहीं",
+    "roman": "bukhaar nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಜ್ವರ ಇಲ್ಲ",
+    "roman": "jvara illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_hypothermia": {
+  "hi": [
+   {
+    "script": "छूने से ठंडा महसूस होता हो",
+    "roman": "chhoone se thanda mehsoos hota ho",
+    "provenance": "OFFICIAL-M7HI p.55"
+   },
+   {
+    "script": "हाथ-पैर ठंडे पड़ गए",
+    "roman": "haath-pair thande pad gaye",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮಗು ತಣ್ಣಗಿದೆ",
+    "roman": "magu tannagide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕೈಕಾಲು ತಣ್ಣಗಾಗಿದೆ",
+    "roman": "kaikaalu tannagaagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "baby cold hai / baby cold aagide",
+    "roman": "baby cold hai / baby cold aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "garam hai, theek hai / bechchagide",
+    "roman": "garam hai, theek hai / bechchagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_poor_feeding": {
+  "hi": [
+   {
+    "script": "दूध पीना बंद कर दिया",
+    "roman": "doodh peena band kar diya",
+    "provenance": "OFFICIAL-M7HI p.55"
+   },
+   {
+    "script": "बच्चा दूध नहीं खींच रहा",
+    "roman": "bachcha doodh nahi kheench raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "स्तन नहीं पकड़ रहा",
+    "roman": "stan nahi pakad raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "चूसने में कमज़ोर",
+    "roman": "choosne mein kamzor",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮಗು ಹಾಲು ಕುಡೀತಿಲ್ಲ",
+    "roman": "magu haalu kudeetilla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮೊಲೆ ಚೀಪ್ತಿಲ್ಲ",
+    "roman": "mole cheeptilla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಹಾಲು ಎಳೀತಿಲ್ಲ",
+    "roman": "haalu eleetilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "feed nahi le raha / feeding kam",
+    "roman": "feed nahi le raha / feeding kam",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "feed maadtilla",
+    "roman": "feed maadtilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "अच्छे से दूध पी रहा है",
+    "roman": "achchhe se doodh pee raha hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಚೆನ್ನಾಗಿ ಹಾಲು ಕುಡೀತಿದೆ",
+    "roman": "chennaagi haalu kudeetide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_lethargy_limp": {
+  "hi": [
+   {
+    "script": "शिशु के हाथ-पैर शिथिल हो गए",
+    "roman": "shishu ke haath-pair shithil ho gaye",
+    "provenance": "OFFICIAL-M7HI p.55"
+   },
+   {
+    "script": "सुस्त या बेहोश",
+    "roman": "sust ya behosh",
+    "provenance": "OFFICIAL-M7HI p.20"
+   },
+   {
+    "script": "बच्चा ढीला पड़ गया, जगाने पर भी नहीं उठता",
+    "roman": "bachcha dheela pad gaya, jagaane par bhi nahi uthta",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮಗು ಜೋತು ಬಿದ್ದಿದೆ",
+    "roman": "magu jotu biddide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಎಬ್ಬಿಸಿದರೂ ಏಳ್ತಿಲ್ಲ",
+    "roman": "ebbisidaroo eltilla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಗು ಚುರುಕಾಗಿಲ್ಲ",
+    "roman": "magu churukaagilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "baby active nahi hai",
+    "roman": "baby active nahi hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "baby dull aagide",
+    "roman": "baby dull aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "बच्चा चुस्त है, हाथ-पैर चला रहा",
+    "roman": "bachcha chust hai, haath-pair chala raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಗು ಚುರುಕಾಗಿದೆ",
+    "roman": "magu churukaagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_weak_cry": {
+  "hi": [
+   {
+    "script": "रोना कमज़ोर / रोना बंद",
+    "roman": "rona kamzor / rona band",
+    "provenance": "UNSOURCED-linguistic (HBNC Hindi form wording not checked)"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಅಳು ಸಣ್ಣದಾಗಿದೆ",
+    "roman": "alu sannadaagide",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಗು ಅಳ್ತಾನೇ ಇಲ್ಲ",
+    "roman": "magu altaane illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "cry weak hai / cry weak ide",
+    "roman": "cry weak hai / cry weak ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "ज़ोर से रोता है",
+    "roman": "zor se rota hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಜೋರಾಗಿ ಅಳ್ತದೆ",
+    "roman": "joraagi altade",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_convulsions": {
+  "hi": [
+   {
+    "script": "शरीर में ऐंठन (कन्वल्शन)",
+    "roman": "shareer mein ainthan (convulsion)",
+    "provenance": "OFFICIAL-M7HI p.20"
+   },
+   {
+    "script": "बच्चे को झटके आ रहे",
+    "roman": "bachche ko jhatke aa rahe",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "आँखें ऊपर चढ़ गईं",
+    "roman": "aankhen upar chadh gayi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮಗುಗೆ ಫಿಟ್ಸ್ ಬಂತು",
+    "roman": "maguge fits bantu",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕಣ್ಣು ಮೇಲೆ ಮಾಡ್ತಿತ್ತು, ಕೈಕಾಲು ಅದುರ್ತಿತ್ತು",
+    "roman": "kannu mele maadtittu, kaikaalu adurtittu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "baby ko fits / baby ge fits",
+    "roman": "baby ko fits / baby ge fits",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "jhatke nahi / fits illa",
+    "roman": "jhatke nahi / fits illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_jaundice_severe": {
+  "hi": [
+   {
+    "script": "हथेली और तलवे पीले",
+    "roman": "hatheli aur talve peele",
+    "provenance": "UNSOURCED-linguistic (MCP Hindi wording not checked)"
+   },
+   {
+    "script": "बच्चा पीला पड़ गया, पीलिया",
+    "roman": "bachcha peela pad gaya, peeliya",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಅಂಗೈ ಅಂಗಾಲು ಹಳದಿ",
+    "roman": "angai angaalu haladi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಗುಗೆ ಕಾಮಾಲೆ",
+    "roman": "maguge kaamaale",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಮಗು ಹಳದಿ ಆಗಿದೆ",
+    "roman": "magu haladi aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "baby ko jaundice, palms yellow",
+    "roman": "baby ko jaundice, palms yellow",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "jaundice ide, kaalu yellow",
+    "roman": "jaundice ide, kaalu yellow",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "पीलापन नहीं",
+    "roman": "peelapan nahi",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಹಳದಿ ಇಲ್ಲ",
+    "roman": "haladi illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "Hindi 'peela pad gaya' for a newborn usually = jaundice; for a mother usually = pallor. Disambiguate by group."
+  ]
+ },
+ "nb_blood_in_stool": {
+  "hi": [
+   {
+    "script": "टट्टी में खून",
+    "roman": "tatti mein khoon",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಕಕ್ಕದಲ್ಲಿ ರಕ್ತ",
+    "roman": "kakkadalli rakta",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "potty mein blood / motion alli blood",
+    "roman": "potty mein blood / motion alli blood",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "khoon nahi / rakta illa",
+    "roman": "khoon nahi / rakta illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_bleeding_any_site": {
+  "hi": [
+   {
+    "script": "नाक/मुँह से खून",
+    "roman": "naak/munh se khoon",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "नाल से खून",
+    "roman": "naal se khoon",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮೂಗು ಬಾಯಿಂದ ರಕ್ತ",
+    "roman": "moogu baayinda rakta",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಹೊಕ್ಕುಳ ಬಳ್ಳಿಯಿಂದ ರಕ್ತ",
+    "roman": "hokkula balliyinda rakta",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "cord se bleeding / cord bleeding",
+    "roman": "cord se bleeding / cord bleeding",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "khoon nahi / rakta illa",
+    "roman": "khoon nahi / rakta illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_umbilical_infection": {
+  "hi": [
+   {
+    "script": "नाभि लाल है, मवाद आ रहा",
+    "roman": "naabhi laal hai, mavaad aa raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "नाल पक गई",
+    "roman": "naal pak gayi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಹೊಕ್ಕುಳ ಕೆಂಪಾಗಿದೆ, ಕೀವು",
+    "roman": "hokkula kempaagide, keevu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "cord mein pus / cord alli pus",
+    "roman": "cord mein pus / cord alli pus",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "naabhi sookhi aur saaf / hokkula onagide",
+    "roman": "naabhi sookhi aur saaf / hokkula onagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_skin_pustules": {
+  "hi": [
+   {
+    "script": "शरीर पर बहुत सी फुंसियाँ, बड़ा फोड़ा",
+    "roman": "shareer par bahut si phunsiyaan, bada phoda",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮೈ ಮೇಲೆ ಕೀವು ಗುಳ್ಳೆ, ದೊಡ್ಡ ಕುರು",
+    "roman": "mai mele keevu gulle, dodda kuru",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "pus wale daane / pus gulle",
+    "roman": "pus wale daane / pus gulle",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "koi phunsi nahi / gulle illa",
+    "roman": "koi phunsi nahi / gulle illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_no_urine_stool": {
+  "hi": [
+   {
+    "script": "पेशाब-टट्टी नहीं हुई",
+    "roman": "peshaab-tatti nahi hui",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಉಚ್ಚೆ ಕಕ್ಕ ಮಾಡಿಲ್ಲ",
+    "roman": "uchche kakka maadilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "urine pass nahi kiya / urine motion aagilla",
+    "roman": "urine pass nahi kiya / urine motion aagilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "peshaab theek kar raha",
+    "roman": "peshaab theek kar raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "uchche maadtide",
+    "roman": "uchche maadtide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_abdominal_distension_vomiting": {
+  "hi": [
+   {
+    "script": "पेट फूल गया, बार-बार उल्टी",
+    "roman": "pet phool gaya, baar-baar ulti",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಹೊಟ್ಟೆ ಉಬ್ಬಿದೆ, ಪದೇ ಪದೇ ವಾಂತಿ",
+    "roman": "hotte ubbide, pade pade vaanti",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "stomach bloated, vomiting",
+    "roman": "stomach bloated, vomiting",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "pet naram hai / hotte sari ide",
+    "roman": "pet naram hai / hotte sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "small spit-ups after feeds are normal"
+  ]
+ },
+ "nb_diarrhoea": {
+  "hi": [
+   {
+    "script": "पतले दस्त",
+    "roman": "patle dast",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಭೇದಿ ಆಗ್ತಿದೆ, ನೀರು ನೀರಾಗಿ ಕಕ್ಕ",
+    "roman": "bhedi aagtide, neeru neeraagi kakka",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "loose motion",
+    "roman": "loose motion",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "dast nahi / bhedi illa",
+    "roman": "dast nahi / bhedi illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "breastfed newborns pass frequent soft stools normally"
+  ]
+ },
+ "nb_eye_discharge": {
+  "hi": [
+   {
+    "script": "आँख में कीचड़/मवाद, सूजन",
+    "roman": "aankh mein keechad/mavaad, soojan",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಕಣ್ಣಲ್ಲಿ ಪಿಸುರು/ಕೀವು, ಕೆಂಪು",
+    "roman": "kannalli pisuru/keevu, kempu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "eye se pus / eye red ide",
+    "roman": "eye se pus / eye red ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "aankh saaf hai / kannu sari ide",
+    "roman": "aankh saaf hai / kannu sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_very_low_birth_weight": {
+  "hi": [
+   {
+    "script": "बच्चा बहुत कम वज़न का",
+    "roman": "bachcha bahut kam vazan ka",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮಗು ತೂಕ ತುಂಬಾ ಕಡಿಮೆ",
+    "roman": "magu tooka tumba kadime",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "weight 1.6 kg / 1600 gram",
+    "roman": "weight 1.6 kg / 1600 gram",
+    "provenance": "UNSOURCED-linguistic (numeric parse)"
+   }
+  ],
+  "negations": [
+   {
+    "script": "weight theek hai, 3 kilo / tooka sari ide",
+    "roman": "weight theek hai, 3 kilo / tooka sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_tetanus_stiffness": {
+  "hi": [
+   {
+    "script": "मुँह नहीं खोल रहा, शरीर अकड़ गया",
+    "roman": "munh nahi khol raha, shareer akad gaya",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಬಾಯಿ ತೆಗೀತಿಲ್ಲ, ಮೈ ಗಟ್ಟಿ ಆಗಿದೆ",
+    "roman": "baayi tegeetilla, mai gatti aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "body stiff, mouth open nahi / body stiff aagide",
+    "roman": "body stiff, mouth open nahi / body stiff aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "body naram hai / mai sadila (CAUTION: 'sadila' = limp, could itself be a danger sign)",
+    "roman": "body naram hai / mai sadila (CAUTION: 'sadila' = limp, could itself be a danger sign)",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_bulging_fontanelle": {
+  "hi": [
+   {
+    "script": "तालू उभरा हुआ",
+    "roman": "taaloo ubhra hua",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ನೆತ್ತಿ ಉಬ್ಬಿದೆ",
+    "roman": "netti ubbide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "head pe soft spot phoola / soft spot ubbide",
+    "roman": "head pe soft spot phoola / soft spot ubbide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "taaloo theek / netti sari ide",
+    "roman": "taaloo theek / netti sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "nb_birth_asphyxia": {
+  "hi": [
+   {
+    "script": "पैदा होते ही रोया नहीं, साँस नहीं",
+    "roman": "paida hote hi roya nahi, saans nahi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಹುಟ್ಟಿದ ತಕ್ಷಣ ಅಳಲಿಲ್ಲ, ಉಸಿರಾಡಲಿಲ್ಲ",
+    "roman": "huttida takshana alalilla, usiraadalilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "birth pe cry nahi kiya / cry maadlilla",
+    "roman": "birth pe cry nahi kiya / cry maadlilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "turant roya / takshana attu",
+    "roman": "turant roya / takshana attu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_unable_to_drink": {
+  "hi": [
+   {
+    "script": "कुछ भी पीने या स्तनपान करने में असमर्थ",
+    "roman": "kuch bhi peene ya stanpaan karne mein asamarth",
+    "provenance": "OFFICIAL-M7HI p.20"
+   },
+   {
+    "script": "कुछ भी नहीं पी रहा",
+    "roman": "kuch bhi nahi pee raha",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಏನೂ ಕುಡೀತಿಲ್ಲ, ಹಾಲೂ ಕುಡೀತಿಲ್ಲ",
+    "roman": "enu kudeetilla, haaloo kudeetilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "kuch drink nahi kar raha / drink maadtilla",
+    "roman": "kuch drink nahi kar raha / drink maadtilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "पानी-दूध पी रहा है",
+    "roman": "paani-doodh pee raha hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಕುಡೀತಿದೆ",
+    "roman": "kudeetide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_vomits_everything": {
+  "hi": [
+   {
+    "script": "जो भी पीने को दिया जाय वह उल्टी कर देता है",
+    "roman": "jo bhi peene ko diya jaay vah ulti kar deta hai",
+    "provenance": "OFFICIAL-M7HI p.20"
+   },
+   {
+    "script": "सब उल्टी कर देता है",
+    "roman": "sab ulti kar deta hai",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಕುಡಿದಿದ್ದೆಲ್ಲಾ ವಾಂತಿ ಮಾಡ್ತಿದೆ",
+    "roman": "kudididdellaa vaanti maadtide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "jo bhi do vomit / yen kottru vomit",
+    "roman": "jo bhi do vomit / yen kottru vomit",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "ulti nahi / vaanti illa",
+    "roman": "ulti nahi / vaanti illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "'ek do baar ulti' (vomits sometimes) is NOT this sign"
+  ]
+ },
+ "ch_convulsions": {
+  "hi": [
+   {
+    "script": "शरीर में ऐंठन (कन्वल्शन)",
+    "roman": "shareer mein ainthan (convulsion)",
+    "provenance": "OFFICIAL-M7HI p.20"
+   },
+   {
+    "script": "झटके / मिर्गी जैसा",
+    "roman": "jhatke / mirgi jaisa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಫಿಟ್ಸ್ ಬಂತು / ಸೆಳವು",
+    "roman": "fits bantu / selavu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "fits aaye / fits bantu",
+    "roman": "fits aaye / fits bantu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "jhatke nahi / fits illa",
+    "roman": "jhatke nahi / fits illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_lethargic_unconscious": {
+  "hi": [
+   {
+    "script": "सुस्त या बेहोश",
+    "roman": "sust ya behosh",
+    "provenance": "OFFICIAL-M7HI p.20"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮಂಕಾಗಿ ಮಲಗಿದೆ, ಪ್ರಜ್ಞೆ ಇಲ್ಲ",
+    "roman": "mankaagi malagide, prajne illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "baby unconscious hai / response illa",
+    "roman": "baby unconscious hai / response illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "खेल रहा है, चुस्त है",
+    "roman": "khel raha hai, chust hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಆಟ ಆಡ್ತಿದೆ",
+    "roman": "aata aadtide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_chest_indrawing": {
+  "hi": [
+   {
+    "script": "पसली चल रही / छाती अंदर धंस रही",
+    "roman": "pasli chal rahi / chhaati andar dhans rahi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಎದೆ ಒಳಗೆ ಹೋಗ್ತಿದೆ",
+    "roman": "ede olage hogtide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "chest indrawing hai / ide",
+    "roman": "chest indrawing hai / ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "chhaati nahi dhans rahi / ede olage hogtilla",
+    "roman": "chhaati nahi dhans rahi / ede olage hogtilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_fast_breathing": {
+  "hi": [
+   {
+    "script": "तेज़ साँस / साँस फूलना",
+    "roman": "tez saans / saans phoolna",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "निमोनिया (lay umbrella term)",
+    "roman": "nimoniya",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಬೇಗ ಬೇಗ ಉಸಿರು",
+    "roman": "bega bega usiru",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ನ್ಯುಮೋನಿಯಾ",
+    "roman": "nyumoniya",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "breathing fast, 52 count / breathing fast ide",
+    "roman": "breathing fast, 52 count / breathing fast ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "saans normal / usiraata sari",
+    "roman": "saans normal / usiraata sari",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_fever_persistent": {
+  "hi": [
+   {
+    "script": "तीन दिन से रोज़ बुखार",
+    "roman": "teen din se roz bukhaar",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "हफ़्ते भर से बुखार नहीं उतर रहा",
+    "roman": "hafte bhar se bukhaar nahi utar raha",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಮೂರು ದಿನದಿಂದ ಜ್ವರ ಬಿಟ್ಟಿಲ್ಲ",
+    "roman": "mooru dinadinda jvara bittilla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "fever 3 din se / fever 3 days inda",
+    "roman": "fever 3 din se / fever 3 days inda",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "बुखार उतर गया",
+    "roman": "bukhaar utar gaya",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "ಜ್ವರ ಬಿಟ್ಟಿದೆ",
+    "roman": "jvara bittide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "notes": [
+   "'bukhaar nahi utar raha' / 'jvara bittilla' contain negators but mean fever PERSISTS = danger"
+  ]
+ },
+ "ch_stiff_neck": {
+  "hi": [
+   {
+    "script": "गर्दन अकड़ गई, मुड़ नहीं रही",
+    "roman": "gardan akad gayi, mud nahi rahi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಕುತ್ತಿಗೆ ಬಿಗಿದಿದೆ, ತಿರುಗಿಸೋಕೆ ಆಗಲ್ಲ",
+    "roman": "kuttige bigidide, tirugisoke aagalla",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "neck stiff hai / neck stiff ide",
+    "roman": "neck stiff hai / neck stiff ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "gardan theek ghoom rahi / kuttige sari tirugatte",
+    "roman": "gardan theek ghoom rahi / kuttige sari tirugatte",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_severe_dehydration": {
+  "hi": [
+   {
+    "script": "आँखें धँस गईं, बहुत सुस्त, पानी नहीं पी पा रहा",
+    "roman": "aankhen dhans gayi, bahut sust, paani nahi pee pa raha",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "चमड़ी खींचने पर धीरे लौटती",
+    "roman": "chamdi kheenchne par dheere lautti",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಕಣ್ಣು ಗುಳಿ ಬಿದ್ದಿದೆ, ತುಂಬಾ ಸುಸ್ತು",
+    "roman": "kannu guli biddide, tumba sustu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "dehydration lag raha, eyes sunken / eyes sunken aagide",
+    "roman": "dehydration lag raha, eyes sunken / eyes sunken aagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "aankhen theek, paani pee raha / kannu sari ide",
+    "roman": "aankhen theek, paani pee raha / kannu sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_persistent_diarrhoea": {
+  "hi": [
+   {
+    "script": "दो हफ़्ते से दस्त",
+    "roman": "do hafte se dast",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಎರಡು ವಾರದಿಂದ ಭೇದಿ",
+    "roman": "eradu vaaradinda bhedi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "loose motion 14 din se / 2 weeks inda",
+    "roman": "loose motion 14 din se / 2 weeks inda",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "dast band / bhedi nintide",
+    "roman": "dast band / bhedi nintide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_blood_in_stool": {
+  "hi": [
+   {
+    "script": "दस्त में खून",
+    "roman": "dast mein khoon",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "आँव-खून",
+    "roman": "aanv-khoon",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಭೇದಿಯಲ್ಲಿ ರಕ್ತ",
+    "roman": "bhediyalli rakta",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "motion mein blood / motion alli blood",
+    "roman": "motion mein blood / motion alli blood",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "khoon nahi / rakta illa",
+    "roman": "khoon nahi / rakta illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_chronic_cough": {
+  "hi": [
+   {
+    "script": "महीने भर से खाँसी",
+    "roman": "mahine bhar se khaansi",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಒಂದು ತಿಂಗಳಿಂದ ಕೆಮ್ಮು",
+    "roman": "ondu tingalinda kemmu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "cough 1 month se / cough 1 month inda",
+    "roman": "cough 1 month se / cough 1 month inda",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "khaansi nahi / kemmu illa",
+    "roman": "khaansi nahi / kemmu illa",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_severe_acute_malnutrition": {
+  "hi": [
+   {
+    "script": "दोनों पैरों में सूजन, बहुत दुबला",
+    "roman": "dono pairon mein soojan, bahut dubla",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "लाल पट्टी में / कार्ड पर लाल",
+    "roman": "laal patti mein / card par laal",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಎರಡೂ ಕಾಲು ಬಾವು, ತುಂಬಾ ಸಣ್ಣಗಿದೆ",
+    "roman": "eradoo kaalu baavu, tumba sannagide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "MUAC red / red zone alli ide",
+    "roman": "MUAC red / red zone alli ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "green mein hai / green zone",
+    "roman": "green mein hai / green zone",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_severe_pallor": {
+  "hi": [
+   {
+    "script": "हथेली बिल्कुल सफेद",
+    "roman": "hatheli bilkul safed",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಅಂಗೈ ತುಂಬಾ ಬಿಳಿ",
+    "roman": "angai tumba bili",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "palm white hai / palm bili ide",
+    "roman": "palm white hai / palm bili ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "hatheli gulaabi / angai kempu",
+    "roman": "hatheli gulaabi / angai kempu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ },
+ "ch_aefi_serious": {
+  "hi": [
+   {
+    "script": "टीके के बाद तेज़ बुखार/झटके/बहुत रोना",
+    "roman": "teeke ke baad tez bukhaar/jhatke/bahut rona",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "kn": [
+   {
+    "script": "ಲಸಿಕೆ ಆದ್ಮೇಲೆ ಜೋರು ಜ್ವರ, ಫಿಟ್ಸ್, ನಿಲ್ಲದ ಅಳು",
+    "roman": "lasike aadmele joru jvara, fits, nillada alu",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "injection ke baad fits / vaccine aadmele fits",
+    "roman": "injection ke baad fits / vaccine aadmele fits",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "teeke ke baad theek hai / lasike aadmele sari ide",
+    "roman": "teeke ke baad theek hai / lasike aadmele sari ide",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ]
+ }
+}

@@ -1,0 +1,10 @@
+anc_reduced_fetal_movement
+anc_retained_placenta
+ch_fever_persistent
+ch_lethargic_unconscious
+ch_unable_to_drink
+nb_birth_asphyxia
+nb_no_urine_stool
+nb_poor_feeding
+nb_weak_cry
+pnc_no_urine
