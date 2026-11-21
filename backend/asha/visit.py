@@ -162,8 +162,7 @@ class Visit:
             log.info("visit already saved; ignoring: %r", text)
             return []
         if is_commit(text):
-            self._drain(wait=True)              # nothing the LLM found may be lost by saving
-            return self._take_unspoken() + self._save()
+            return self.confirm()
         words = [t.text for t in tokens(text)]
         if len(words) <= DISCREET_MAX_WORDS and set(words) & DISCREET_WORDS:
             self.discreet = True
@@ -184,6 +183,38 @@ class Visit:
             reply = self._answer_safety(text, words)
             if reply is not None:
                 return self._take_unspoken() + reply
+        return self._hear_content(text, language_code, words, flag)
+
+    def add_note(self, text: str, language_code: str) -> list[str]:
+        """Process a typed or imported note without treating it as a voice command."""
+        self.transcript.append({"at": now(), "text": text, "lang": language_code})
+        return self._hear_content(text, language_code, [t.text for t in tokens(text)], False)
+
+    def confirm(self) -> list[str]:
+        self._drain(wait=True)
+        return self._take_unspoken() + self._save()
+
+    def answer_checklist(self, sign: str, answer: str) -> list[str]:
+        """Apply an explicit answer linked to the question displayed on the phone."""
+        idx = len(self.danger.utterances)
+        text = f"{spoken_sign(sign, self.lang)}: {answer}"
+        self.danger.utterances.append(text)
+        self.transcript.append({"at": now(), "text": text, "lang": f"{self.lang}-IN"})
+        pending = bool(self._safety_pending and self._safety_pending[0] == sign)
+        if sign in self._safety_pending:
+            self._safety_pending.remove(sign)
+        lines = []
+        if answer == "yes":
+            if self.danger.add_external(sign, text, idx, phrase="safety_answer"):
+                lines = self._alerts([sign])
+        else:
+            status = RULED_OUT if answer == "no" else NOT_CHECKED
+            self.danger.states[sign].evidence.append(Evidence(status, text, idx, phrase="safety_answer"))
+        if pending:
+            lines += self._continue_safety()
+        return lines
+
+    def _hear_content(self, text, language_code, words, flag):
         self._drain(wait=False)
         llm_job = None
         if self.use_llm:                        # start first so it runs while the rules work
@@ -272,7 +303,8 @@ class Visit:
                              if self.danger.states[sign].status != PRESENT]
             self._safety_pending = disagreements + [
                 sign for sign in preview if sign not in disagreements
-                and (self.danger.states[sign].status == NOT_CHECKED
+                and ((self.danger.states[sign].status == NOT_CHECKED
+                      and not any(e.phrase == "safety_answer" for e in self.danger.states[sign].evidence))
                      or self.danger.states[sign].needs_confirmation)
             ]
         return self._continue_safety()

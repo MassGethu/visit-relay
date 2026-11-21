@@ -97,6 +97,42 @@ async def upload(socket, pcm):
     await socket.send(COMMIT_MESSAGE)
 
 
+async def transcribe_clip(headers, pcm):
+    """Stream a bounded PCM import on its own socket, collecting final segments."""
+    async with connect(PRISMA, additional_headers=headers, open_timeout=8) as socket:
+        ready = json.loads(await asyncio.wait_for(socket.recv(), 8))
+        if ready.get("type") != "connected":
+            raise RuntimeError("Prisma rejected the recording")
+        sender = asyncio.create_task(upload(socket, pcm))
+        segments = []
+        open_utterances = set()
+        try:
+            async with asyncio.timeout(len(pcm) / (RATE * 2) + 20):
+                while True:
+                    try:
+                        timeout = 4 if sender.done() and segments and not open_utterances else 15
+                        event = json.loads(await asyncio.wait_for(socket.recv(), timeout))
+                    except TimeoutError:
+                        if not sender.done():
+                            continue
+                        await sender
+                        if not segments or open_utterances:
+                            raise RuntimeError("The recording could not be fully transcribed")
+                        return segments
+                    if event.get("type") == "error":
+                        raise RuntimeError("Prisma could not transcribe the recording")
+                    utterance = event.get("utterance_id")
+                    if event.get("type") == "speech_start" and utterance:
+                        open_utterances.add(utterance)
+                    if event.get("type") == "transcript":
+                        open_utterances.discard(utterance)
+                        if text := event.get("text", "").strip():
+                            segments.append(text)
+        finally:
+            sender.cancel()
+            await asyncio.gather(sender, return_exceptions=True)
+
+
 async def transcribe(headers, pcm):
     async with connect(PRISMA, additional_headers=headers, open_timeout=8) as socket:
         ready = json.loads(await asyncio.wait_for(socket.recv(), 8))

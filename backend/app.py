@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import asyncio
+import base64
+import binascii
 import csv
 import json
 import logging
@@ -27,7 +29,7 @@ from asha.danger import DangerChecker
 from asha.speak import Speaker
 from store import default_store
 from llm import understand
-from stt import PrismaRelay
+from stt import PrismaRelay, transcribe_clip
 from tts import Timbre, VisitSpeech
 
 BACKEND = Path(__file__).resolve().parent
@@ -36,6 +38,7 @@ FRAME_SECONDS = FRAME_BYTES / (16000 * 2)
 LANGUAGES = {"hi", "kn", "en"}
 VISIT_TYPES = {"anc", "pnc", "hbnc", "hbyc"}
 DRAFT_TIMEOUT = 60 * 60
+MAX_CLIP_BYTES = 60 * 16000 * 2
 DEMO_BENEFICIARIES = [
     {"id": "demo-anc", "name": "Sunita Devi", "visit_type": "anc"},
     {"id": "demo-hbnc", "name": "Baby of Kavya", "visit_type": "hbnc"},
@@ -103,13 +106,21 @@ class VisitDraft:
         self.turn_number = 0
         self.expiry = None
         self.attached = False
+        self.synced = set()
+        self.answered_offline = set()
 
     def remember(self, events):
         saved = []
         for event in events:
+            if event["type"] == "visit_type":
+                event = {**event, "checklist": self.checklist()}
             saved.append({**event, "seq": len(self.events) + 1})
             self.events.append(saved[-1])
         return saved
+
+    def checklist(self):
+        return [{"sign": sign, "text": self.visit.speaker.safety_question(sign)}
+                for sign in self.visit.danger.guided_questions()]
 
     def close(self):
         if self.expiry:
@@ -136,6 +147,7 @@ class VisitTurn:
         self.committed = False
         self.timer = None
         self.ended = False
+        self.sync_task = None
 
     def mark(self, number, stage):
         point = (number, stage)
@@ -189,7 +201,74 @@ class VisitTurn:
         events = [{"type": "transcript", "text": text, "lang": detected}, *self.visit.events()]
         return lines, self.draft.remember(events)
 
+    async def sync_entry(self, entry, headers):
+        entry_id = entry.get("id")
+        if not isinstance(entry_id, str) or len(entry_id) > 64:
+            return
+        error = None
+        if entry_id not in self.draft.synced:
+            try:
+                kind = entry.get("kind")
+                text = entry.get("text")
+                if kind == "audio":
+                    encoded = entry.get("pcm")
+                    if not isinstance(encoded, str) or len(encoded) > MAX_CLIP_BYTES * 4 // 3:
+                        raise ValueError("The recording exceeds 60 seconds.")
+                    pcm = base64.b64decode(encoded, validate=True)
+                    if not pcm or len(pcm) % 2 or len(pcm) > MAX_CLIP_BYTES:
+                        raise ValueError("The recording format is invalid.")
+                    text = ". ".join(await transcribe_clip(headers, pcm))
+                elif kind == "note":
+                    if not isinstance(text, str) or not text.strip() or len(text) > 4000:
+                        raise ValueError("Enter a note of up to 4,000 characters.")
+                elif kind not in ("answer", "save"):
+                    raise ValueError("Unknown offline entry.")
+                async with self.visit_lock:
+                    work = asyncio.create_task(self.apply_entry(entry, text))
+                    try:
+                        lines, events = await asyncio.shield(work)
+                    except asyncio.CancelledError:
+                        await work
+                        raise
+                    await self.emit(lines, events)
+            except binascii.Error:
+                error = "The recording format is invalid."
+            except ValueError as failure:
+                error = str(failure)
+            except (WebSocketException, OSError, RuntimeError, TimeoutError):
+                error = "Sync failed. Try again when speech service is available."
+        await self.phone.send_json({"type": "offline_synced", "id": entry_id, "error": error})
+
+    async def apply_entry(self, entry, text):
+        if self.visit.saved:
+            raise ValueError("This visit was already confirmed.")
+        events = []
+        if entry["kind"] == "save":
+            lines = await asyncio.to_thread(self.visit.confirm)
+            if not self.visit.saved:
+                raise ValueError("The report could not be saved. Retry sync.")
+        elif entry["kind"] == "answer":
+            sign, answer = entry.get("sign"), entry.get("answer")
+            if sign not in self.visit.danger.guided_questions() or answer not in ("yes", "no", "not sure"):
+                raise ValueError("This question is unavailable in the current visit.")
+            lines = self.visit.answer_checklist(sign, answer)
+            self.draft.answered_offline.add(sign)
+        else:
+            locale = f"{self.visit.lang}-IN"
+            lines = await asyncio.to_thread(self.visit.add_note, text, locale)
+            events.append({"type": "transcript", "text": text, "lang": locale})
+        self.draft.has_transcript = True
+        if not self.draft.readback_done:
+            self.draft.readback_done = True
+            lines += self.visit.readback()
+        events = self.draft.remember([*events, *self.visit.events()])
+        self.draft.synced.add(entry["id"])
+        return lines, events
+
     async def close(self):
+        if self.sync_task:
+            self.sync_task.cancel()
+            await asyncio.gather(self.sync_task, return_exceptions=True)
         if self.timer:
             self.timer.cancel()
             await asyncio.gather(self.timer, return_exceptions=True)
@@ -297,7 +376,7 @@ def patient_history(beneficiary_id: str, response: Response):
         return [report_view(store, visit, patient) for visit in store.history(beneficiary_id)]
 
 
-async def send_audio(phone: WebSocket, prisma, turn: VisitTurn) -> None:
+async def send_audio(phone: WebSocket, prisma, turn: VisitTurn, headers) -> None:
     loop = asyncio.get_running_loop()
     next_frame = loop.time()
     while True:
@@ -326,6 +405,9 @@ async def send_audio(phone: WebSocket, prisma, turn: VisitTurn) -> None:
                 return
             if event.get("type") == "ping":
                 await phone.send_json({"type": "pong"})
+            elif event.get("type") == "offline_entry":
+                if not turn.sync_task or turn.sync_task.done():
+                    turn.sync_task = asyncio.create_task(turn.sync_entry(event, headers))
             elif event.get("type") == "commit":
                 await asyncio.sleep(max(0, next_frame - loop.time()))
                 if not turn.holding and not turn.hands_free:
@@ -464,12 +546,15 @@ async def visit_socket(phone: WebSocket) -> None:
                     await phone.send_json(event)
                 if token:
                     await phone.send_json({"type": "visit_ready", "resumed": resumed,
-                                           "turn": draft.turn_number, "speaking_next": bool(lines)})
+                                           "turn": draft.turn_number, "speaking_next": bool(lines),
+                                           "saved": visit.saved,
+                                           "answered_offline": sorted(draft.answered_offline),
+                                           "checklist": draft.checklist()})
                 turn.queue(lines, 0)
                 if resumed and draft.has_transcript and not draft.readback_done:
                     turn.committed = True
                     turn.schedule_readback(0.25)
-                upload = asyncio.create_task(send_audio(phone, prisma, turn))
+                upload = asyncio.create_task(send_audio(phone, prisma, turn, headers))
                 download = asyncio.create_task(send_transcripts(phone, prisma, locale, turn))
                 tasks = [upload, download, asyncio.create_task(turn.send_late_replies())]
                 done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)

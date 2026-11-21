@@ -45,6 +45,10 @@ class PhoneSocket:
         self.disconnected = True
         self.incoming.put_nowait({"type": "websocket.disconnect"})
 
+    def send_entry(self, entry):
+        self.incoming.put_nowait({"type": "websocket.receive",
+                                  "text": relay.json.dumps({"type": "offline_entry", **entry})})
+
     async def next_event(self):
         return await asyncio.wait_for(self.outgoing.get(), 2)
 
@@ -186,5 +190,44 @@ def test_reconnect_replays_alert_from_transcript_processed_during_disconnect(pho
                 assert (await socket.receive_until("transcript"))["text"] == "thoda khoon aa raha hai"
                 assert (await socket.receive_until("alert"))["sign"] == "anc_vaginal_bleeding"
                 assert (await socket.receive_until("visit_ready"))["resumed"]
+
+    asyncio.run(exercise())
+
+
+def test_offline_entries_sync_and_retry_without_duplicates(phone, monkeypatch):
+    connect, start, _ = phone
+    note = {"id": "note", "kind": "note", "text": "wajan baavan kilo"}
+    recording = {"id": "audio", "kind": "audio", "pcm": "AAA="}
+
+    async def transcribe(headers, pcm):
+        assert pcm == b"\0\0"
+        return ["hb das"]
+
+    monkeypatch.setattr(relay, "transcribe_clip", transcribe)
+
+    async def exercise():
+        async with relay.lifespan(relay.app):
+            async with connect(start) as socket:
+                ready = await socket.receive_until("visit_ready")
+                assert ready["checklist"]
+                socket.send_entry(note)
+                assert (await socket.receive_until("record"))["fields"] == {"weight_kg": 52.0}
+                assert (await socket.receive_until("offline_synced"))["error"] is None
+
+            async with connect({**start, "type": "resume_visit"}) as socket:
+                await socket.receive_until("visit_ready")
+                socket.send_entry(note)
+                assert (await socket.next_event())["type"] == "offline_synced"
+                socket.send_entry(recording)
+                assert (await socket.receive_until("record"))["fields"]["hb"] == 10.0
+                assert (await socket.receive_until("offline_synced"))["error"] is None
+                socket.send_entry({"id": "answer", "kind": "answer", "sign": "anc_vaginal_bleeding", "answer": "yes"})
+                assert (await socket.receive_until("alert"))["sign"] == "anc_vaginal_bleeding"
+                assert (await socket.receive_until("offline_synced"))["error"] is None
+                socket.send_entry({"id": "save", "kind": "save"})
+                await socket.receive_until("saved")
+                assert (await socket.receive_until("offline_synced"))["error"] is None
+                draft, = relay.app.state.drafts.values()
+                assert [item["text"] for item in draft.visit.transcript].count(note["text"]) == 1
 
     asyncio.run(exercise())

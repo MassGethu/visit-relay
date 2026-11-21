@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="cards.css">
   <script defer src="cards.js"></script>
   <script defer src="audio-player.js"></script>
+  <script defer src="offline-visit.js"></script>
   <script defer src="app.js"></script>
   <style>
     :root { color: #173e43; background: #fff8ee; font: 100%/1.5 system-ui, sans-serif; }
@@ -42,6 +43,11 @@
     .transcript-tabs button[aria-selected="true"] { background: #0f4c5c; color: white; }
     .transcript-tabs button:focus-visible { outline: 3px solid #0f4c5c; outline-offset: 2px; }
     .voice-transcript p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+    #offline-visit { order: 3; margin: .75rem 0; }
+    #offline-visit textarea { box-sizing: border-box; width: 100%; font: inherit; }
+    #offline-visit fieldset { margin: .8rem 0; border: 1px solid #a0b4b5; }
+    #offline-visit input[type="file"] { max-width: 100%; }
+    #offline-alert { font-weight: 700; color: #9b3025; }
   </style>
 </head>
 <body>
@@ -59,14 +65,32 @@
       </select>
       <label><input id="hands-free" type="checkbox"> Hands-free listening</label>
       <button id="enable-mic" type="button">Enable microphone</button>
+      <button id="start-typing" type="button">Start without microphone</button>
       <button id="talk" type="button" aria-pressed="false" disabled>Hold to talk</button>
-      <button id="end-voice" type="button" hidden>End voice session</button>
+      <button id="end-voice" type="button" hidden>End visit session</button>
       <a id="debug-audio" download="prisma-input.wav" hidden>Download last turn audio</a>
     </div>
     <div class="voice-meta">
       <p id="voice-status" role="status">Enable your microphone to start.</p>
       <p id="latency">Prisma latency · —</p>
     </div>
+    <section id="offline-visit" class="c-card" aria-labelledby="offline-title" hidden>
+      <h2 id="offline-title">Notes and checklist</h2>
+      <p id="offline-status" role="status"></p>
+      <p>While offline, notes and recordings are checked for danger signs when they sync.</p>
+      <form id="offline-note">
+        <label for="note-text">Visit note</label>
+        <textarea id="note-text" rows="3" maxlength="4000" required></textarea>
+        <button class="c-button" type="submit">Add note</button>
+      </form>
+      <p><label for="offline-audio">Import an MP3 recording (up to 60 seconds)</label><br>
+        <input id="offline-audio" type="file" accept=".mp3,audio/mpeg"></p>
+      <div id="offline-questions"></div>
+      <p id="offline-alert" role="alert" hidden></p>
+      <ul id="offline-queue"></ul>
+      <button id="retry-offline" class="c-button" type="button" hidden>Retry sync</button>
+      <button id="confirm-offline" class="c-button" type="button" disabled>Confirm and save visit</button>
+    </section>
     <section class="voice-transcript" aria-labelledby="transcript-title">
       <h2 id="transcript-title">Transcript</h2>
       <div class="transcript-tabs" role="tablist" aria-label="Transcript speaker">

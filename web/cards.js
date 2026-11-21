@@ -519,7 +519,7 @@
       const list = Array.isArray(data) ? data : data.beneficiaries || [];
       state.people = list.map(p => ({ ...p, id: String(p.id ?? p.beneficiary_id) }))
         .filter(p => p.id && p.id !== "undefined");
-      choose(state.people[0]?.id);
+      if (!state.started && !state.sessionId) choose(state.people[0]?.id);
     } catch (error) {
       console.warn("cards: could not load beneficiaries:", error);
       drawVisit();
@@ -543,7 +543,16 @@
 
   document.querySelector("#speech-language").addEventListener("change", loadChecklist);
   window.Cards = {
-    handle, endSession, assistantTranscriptText, startSession: id => { state.sessionId = id; },
+    handle, endSession, assistantTranscriptText,
+    startSession: (id, person) => {
+      state.sessionId = id;
+      if (person) {
+        state.person = person;
+        state.visitType = person.visit_type;
+        state.started = true;
+        drawVisit();
+      }
+    },
     // The chosen beneficiary and visit type, for app.js's start_visit message.
     beneficiary: () => (state.person ? { ...state.person, visit_type: state.visitType } : null),
   };
