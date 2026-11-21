@@ -2,6 +2,7 @@
 
 const enable = document.querySelector("#enable-mic");
 const talk = document.querySelector("#talk");
+const handsFree = document.querySelector("#hands-free");
 const language = document.querySelector("#speech-language");
 const status = document.querySelector("#voice-status");
 const transcript = document.querySelector("#transcript");
@@ -19,6 +20,7 @@ function reset(current, message) {
   if (session !== current) return;
   session = null;
   current.socket?.close();
+  clearTimeout(current.slowTimer);
   current.player?.stop();
   current.stream?.getTracks().forEach(track => track.stop());
   if (current.context?.state !== "closed") current.context?.close().catch(() => {});
@@ -29,6 +31,8 @@ function reset(current, message) {
   enable.disabled = false;
   enable.hidden = false;
   language.disabled = false;
+  handsFree.disabled = false;
+  talk.hidden = false;
   status.textContent = message;
 }
 
@@ -66,6 +70,7 @@ async function connectVisit(current, lang) {
 
   const url = new URL("/ws", location.href);
   url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  if (current.handsFree) url.searchParams.set("hands_free", "1");
   const socket = new WebSocket(url);
   current.socket = socket;
   socket.binaryType = "arraybuffer";
@@ -76,25 +81,30 @@ async function connectVisit(current, lang) {
   socket.addEventListener("message", ({ data }) => {
     if (session !== current) return;
     if (typeof data !== "string") {
-      if (!current.muted) current.player.push(data);
+      if (!current.muted) {
+        clearTimeout(current.slowTimer);
+        current.player.push(data);
+      }
       return;
     }
     const event = JSON.parse(data);
     if (event.type === "speaking") {
       current.speaking = event.on;
+      if (current.handsFree && event.on) current.mic.port.postMessage("pause");
       if (event.on && activePress === null && !stopping) {
         current.muted = false;
         current.player.start();
         status.textContent = "Speaking. Hold to interrupt.";
       } else if (!event.on && !current.muted) {
         current.player.finish();
-        if (activePress === null && !stopping) status.textContent = "Hold to talk.";
+        if (!current.handsFree && activePress === null && !stopping) status.textContent = "Hold to talk.";
       }
     } else if (event.type === "transcript") {
+      clearTimeout(current.slowTimer);
       if (!current.hasTranscript) transcript.textContent = "";
       transcript.append(document.createTextNode((current.hasTranscript ? "\n" : "") + event.text));
       current.hasTranscript = true;
-      if (activePress === null && !current.interrupted) status.textContent = "Ready to talk.";
+      if (!current.handsFree && activePress === null && !current.interrupted) status.textContent = "Ready to talk.";
     } else if (event.type === "latency") {
       latency.textContent = `Prisma latency · ${Math.round(event.ms)} ms`;
     }
@@ -115,15 +125,21 @@ enable.addEventListener("click", async () => {
     status.textContent = "Open this page over HTTPS in a browser with microphone access.";
     return;
   }
-  const current = {};
+  const current = { handsFree: handsFree.checked };
   session = current;
   enable.disabled = true;
   language.disabled = true;
+  handsFree.disabled = true;
   status.textContent = "Opening microphone…";
   try {
     const context = new AudioContext();
     current.context = context;
-    current.player = new VisitAudioPlayer(context);
+    current.player = new VisitAudioPlayer(context, () => {
+      if (session === current && current.handsFree && !current.speaking) {
+        current.mic.port.postMessage("resume");
+        status.textContent = "Listening hands-free…";
+      }
+    });
     await context.resume();
     current.stream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: false, autoGainControl: false },
@@ -161,9 +177,10 @@ enable.addEventListener("click", async () => {
     transcript.textContent = "Your words will appear here.";
     latency.textContent = "Prisma latency · —";
     enable.hidden = true;
-    talk.disabled = false;
-    status.textContent = "Ready to talk.";
-    talk.focus();
+    talk.disabled = current.handsFree;
+    talk.hidden = current.handsFree;
+    status.textContent = current.handsFree ? "Waiting for the AI disclosure…" : "Ready to talk.";
+    if (!current.handsFree) talk.focus();
   } catch (error) {
     reset(current, error.name === "NotAllowedError"
       ? "Allow microphone access in your browser and try again."
@@ -173,6 +190,7 @@ enable.addEventListener("click", async () => {
 
 function startTalk(press) {
   if (!session || stopping || activePress !== null) return false;
+  clearTimeout(session.slowTimer);
   activePress = press;
   if (session.speaking || session.player.playing) {
     session.muted = true;
@@ -198,6 +216,10 @@ function stopTalk(press, interrupted = false) {
   session.mic.port.postMessage("stop");
   talk.setAttribute("aria-pressed", "false");
   status.textContent = "Sending audio…";
+  const current = session;
+  current.slowTimer = setTimeout(() => {
+    if (session === current && !current.interrupted) status.textContent = "Slow network. Still waiting for speech recognition…";
+  }, 3000);
 }
 
 talk.addEventListener("pointerdown", event => {

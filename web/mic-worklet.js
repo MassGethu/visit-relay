@@ -11,7 +11,12 @@ class VisitMicrophone extends AudioWorkletProcessor {
     this.recording = false;
 
     this.port.onmessage = ({ data }) => {
-      if (data === "start") {
+      if (data === "resume" || data === "pause") {
+        this.recording = data === "resume";
+        this.history = [];
+        this.frame = new DataView(new ArrayBuffer(1024));
+        this.offset = 0;
+      } else if (data === "start") {
         this.recording = true;
         for (const buffer of this.history) this.send(buffer);
         this.history = [];

@@ -1,8 +1,9 @@
 "use strict";
 
 class VisitAudioPlayer {
-  constructor(context) {
+  constructor(context, onDrain = () => {}) {
     this.context = context;
+    this.onDrain = onDrain;
     this.batch = null;
   }
 
@@ -39,7 +40,10 @@ class VisitAudioPlayer {
     source.connect(batch.gain);
     source.onended = () => {
       batch.sources.delete(source);
-      if (!batch.sources.size && batch.ended) batch.gain.disconnect();
+      if (!batch.sources.size && batch.ended) {
+        batch.gain.disconnect();
+        if (this.batch === batch) this.onDrain();
+      }
     };
     batch.sources.add(source);
     batch.next = Math.max(batch.next, this.context.currentTime + 0.005);
@@ -51,7 +55,10 @@ class VisitAudioPlayer {
     if (!this.batch) return;
     this.flush(this.batch);
     this.batch.ended = true;
-    if (!this.batch.sources.size) this.batch.gain.disconnect();
+    if (!this.batch.sources.size) {
+      this.batch.gain.disconnect();
+      this.onDrain();
+    }
   }
 
   stop() {

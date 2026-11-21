@@ -11,16 +11,15 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from websockets.asyncio.client import connect
 from websockets.exceptions import WebSocketException
 
 from asha.gnani import COMMIT_MESSAGE, FRAME_BYTES, stt_headers, visit_keyterms
 from asha.visit import Visit
+from stt import PrismaRelay
 from tts import Timbre, VisitSpeech
 
 BACKEND = Path(__file__).resolve().parent
 ROOT = BACKEND.parent
-PRISMA = "wss://api.vachana.ai/stt/v3/stream"
 FRAME_SECONDS = FRAME_BYTES / (16000 * 2)
 LANGUAGES = {"hi", "kn", "en"}
 VISIT_TYPES = {"anc", "pnc", "hbnc", "hbyc"}
@@ -47,8 +46,9 @@ app = FastAPI(lifespan=lifespan)
 
 
 class VisitTurn:
-    def __init__(self, phone, visit, speech):
+    def __init__(self, phone, visit, speech, hands_free):
         self.phone = phone
+        self.hands_free = hands_free
         self.visit = visit
         self.speech = speech
         self.holding = False
@@ -106,7 +106,7 @@ async def send_audio(phone: WebSocket, prisma, turn: VisitTurn) -> None:
             return
         frame = message.get("bytes")
         if frame is not None:
-            if not turn.holding:
+            if not turn.hands_free and not turn.holding:
                 turn.holding = True
                 turn.schedule_readback(0)
             if len(frame) != FRAME_BYTES:
@@ -130,8 +130,7 @@ async def send_audio(phone: WebSocket, prisma, turn: VisitTurn) -> None:
 
 
 async def send_transcripts(phone: WebSocket, prisma, locale: str, turn: VisitTurn) -> None:
-    async for message in prisma:
-        event = json.loads(message)
+    async for event in prisma:
         if event.get("type") == "error":
             raise RuntimeError("Prisma reported an error")
         if event.get("type") == "transcript" and event.get("text", "").strip():
@@ -144,6 +143,8 @@ async def send_transcripts(phone: WebSocket, prisma, locale: str, turn: VisitTur
             if isinstance(latency, (int, float)):
                 await phone.send_json({"type": "latency", "ms": latency})
             turn.has_transcript = True
+            if turn.hands_free:
+                turn.committed = True
             await turn.emit(turn.visit.hear(event["text"], event.get("detected_language_code") or locale))
             turn.schedule_readback(0.35)
 
@@ -168,9 +169,10 @@ async def visit_socket(phone: WebSocket) -> None:
                       beneficiary_id=start["beneficiary_id"])
         terms = visit_keyterms(start["visit_type"], start["lang"])
         headers = stt_headers(key, [locale], keyterms=terms)
-        async with connect(PRISMA, additional_headers=headers) as prisma:
+        async with PrismaRelay(headers) as prisma:
             timbre = phone.app.state.timbre
-            turn = VisitTurn(phone, visit, VisitSpeech(timbre, phone, start["lang"]))
+            turn = VisitTurn(phone, visit, VisitSpeech(timbre, phone, start["lang"]),
+                             hands_free=phone.query_params.get("hands_free") == "1")
             await turn.emit(visit.start())
             upload = asyncio.create_task(send_audio(phone, prisma, turn))
             download = asyncio.create_task(send_transcripts(phone, prisma, locale, turn))

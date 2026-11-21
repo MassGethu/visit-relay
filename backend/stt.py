@@ -16,6 +16,76 @@ from asha.gnani import COMMIT_MESSAGE, FRAME_BYTES, Reframer, stt_headers, visit
 from smoke_gnani import PRISMA, ROOT, RATE, FRAME_SECONDS
 
 
+class PrismaRelay:
+    """Replace expired upstream sockets without restarting the phone visit."""
+
+    def __init__(self, headers):
+        self.headers = headers
+        self.socket = None
+        self.lock = asyncio.Lock()
+
+    async def __aenter__(self):
+        await self.connection()
+        return self
+
+    async def __aexit__(self, *_):
+        if self.socket:
+            await self.socket.close()
+
+    async def connection(self):
+        async with self.lock:
+            if self.socket is None:
+                for attempt in range(3):
+                    try:
+                        socket = await connect(PRISMA, additional_headers=self.headers,
+                                               open_timeout=5, close_timeout=0.25)
+                        break
+                    except (OSError, TimeoutError):
+                        if attempt == 2:
+                            raise
+                        await asyncio.sleep(0.25 * (attempt + 1))
+                try:
+                    ready = json.loads(await asyncio.wait_for(socket.recv(), 5))
+                    if ready.get("type") != "connected":
+                        raise RuntimeError("Prisma rejected session setup")
+                except BaseException:
+                    await socket.close()
+                    raise
+                self.socket = socket
+            return self.socket
+
+    async def invalidate(self, socket):
+        async with self.lock:
+            if self.socket is socket:
+                self.socket = None
+                await socket.close()
+
+    async def send(self, data):
+        socket = await self.connection()
+        try:
+            await socket.send(data)
+        except ConnectionClosed:
+            await self.invalidate(socket)
+            socket = await self.connection()
+            await socket.send(data)
+
+    async def __aiter__(self):
+        while True:
+            socket = await self.connection()
+            try:
+                message = await socket.recv()
+            except ConnectionClosed:
+                await self.invalidate(socket)
+                continue
+            event = json.loads(message)
+            if event.get("type") == "error":
+                reason = str(event.get("message", "")).lower()
+                if any(word in reason for word in ("idle", "maximum session", "session limit")):
+                    await self.invalidate(socket)
+                    continue
+            yield event
+
+
 async def upload(socket, pcm):
     frames = Reframer()
     for frame in frames.push(pcm):
