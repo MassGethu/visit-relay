@@ -8,9 +8,10 @@
     hbnc: "HBNC · newborn", hbyc: "HBYC · young child" };
   const SWITCH_WAIT_MS = 4000;           // no reply from the backend: put the dropdown back
   const STATUS_TEXT = { present: "Present", ruled_out: "Ruled out", not_checked: "Not checked" };
-  const VITALS = ["gestational_month", "weight_kg", "bp", "hb", "temperature", "breaths_per_min"];
+  const VITALS = ["gestational_month", "gestational_trimester", "weight_kg", "bp", "hb", "temperature", "breaths_per_min"];
   const FIELDS = {
     gestational_month: ["Pregnancy month", v => String(v)],
+    gestational_trimester: ["Pregnancy trimester", v => String(v)],
     weight_kg: ["Weight", v => `${v} kg`],
     bp: ["BP", v => `${v[0]}/${v[1]}`],
     hb: ["Hb", v => `${v} g/dL`],
@@ -355,10 +356,19 @@
     return text;
   }
 
-  const MEASURED = ["gestational_month", ...VITALS.filter(field => field !== "gestational_month"), "next_visit_date"];
+  const MEASURED = [...VITALS, "next_visit_date"];
 
   function drawMeasurements() {
-    const fields = MEASURED.filter(field => field !== "gestational_month" || state.visitType === "anc");
+    const fields = MEASURED.filter(field => {
+      if (field === "gestational_trimester") {
+        return state.visitType === "anc" && state.record.gestational_trimester != null;
+      }
+      if (field === "gestational_month") {
+        return state.visitType === "anc" && (state.record.gestational_month != null
+          || state.record.gestational_trimester == null);
+      }
+      return true;
+    });
     const done = fields.filter(field => state.record[field] != null).length;
     return el("section", { class: "c-card c-template c-measure", "aria-label": "Measurements" },
       el("div", { class: "c-head" }, el("h2", { text: "Measurements" }),

@@ -293,12 +293,27 @@
     "script": "severe abdomen pain",
     "roman": "severe abdominal pain",
     "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "persistent abdominal pain",
+    "roman": "continuous abdominal pain",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "abdominal pain is severe",
+    "roman": "abdominal pain is continuous",
+    "provenance": "UNSOURCED-linguistic"
    }
   ],
   "negations": [
    {
     "script": "no severe abdomen pain",
     "roman": "no severe abdominal pain",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "no abdomen pain",
+    "roman": "no abdominal pain",
     "provenance": "UNSOURCED-linguistic"
    }
   ]

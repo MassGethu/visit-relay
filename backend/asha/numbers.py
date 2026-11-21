@@ -174,6 +174,9 @@ def _parse_at(toks: list[str], i: int) -> Number | None:
         elif t in THOUSAND or t in LAKH:
             total += (current or 1) * (1000 if t in THOUSAND else 100000)
             current, last_was_unit = 0.0, False
+        elif t == "and" and j > i and toks[j - 1] in {"hundred", "thousand"} \
+                and j + 1 < len(toks) and toks[j + 1] in ENGLISH:
+            pass  # "hundred and ten" is one number, not a BP pair
         elif u is not None and "." in t:
             if last_was_unit:
                 break
@@ -230,13 +233,14 @@ def _decimals(toks: list[str], k: int) -> tuple[tuple[str, bool] | None, int]:
 # ───────────────────────── measurements ─────────────────────────
 
 WEIGHT_WORDS = {"wajan", "vajan", "vazan", "wazan", "weight", "tooka", "ತೂಕ", "वजन", "वज़न"}
-KILO = {"kilo", "kg", "kgs", "kilogram", "kejee", "kiloo", "किलो", "ಕಿಲೋ", "ಕೆಜಿ"}
+KILO = {"kilo", "kilos", "kg", "kgs", "kilogram", "kilograms", "kejee", "kiloo", "किलो", "ಕಿಲೋ", "ಕೆಜಿ"}
 GRAM = {"gram", "graam", "gm", "grams", "ग्राम", "ಗ್ರಾಂ"}
 BP_WORDS = {"bp", "बीपी", "ಬಿಪಿ", "pressure"}
 BY = {"by", "over", "बाई", "ಬೈ", "upon"}
 HB_WORDS = {"hb", "hemoglobin", "haemoglobin", "हीमोग्लोबिन", "एचबी", "ಹಿಮೋಗ್ಲೋಬಿನ್"}
 TEMP_WORDS = {"temperature", "temp", "tapman", "taapmaan", "तापमान", "degree", "digri", "ಡಿಗ್ರಿ", "डिग्री"}
 BREATH_WORDS = {"saans", "breath", "breathing", "usiru", "ಉಸಿರು", "साँस", "सांस"}
+TEMP_UNITS = {"celsius": "C", "fahrenheit": "F", "centigrade": "C"}
 
 
 def extract_measurements(text: str, subject: str = "mother") -> dict:
@@ -245,10 +249,14 @@ def extract_measurements(text: str, subject: str = "mother") -> dict:
     A number followed by a repair word ("2.6 nahi nahi 2.8") is dropped: her last
     value wins. Returns {"doubts": [(field, value, reason)]} alongside the values.
     """
+    text = re.sub(r"\bb[.\s]+p\b", "bp", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bh[.\s]+b\b", "hb", text, flags=re.IGNORECASE)
     toks = [t.text for t in tokens(text)]
-    nums = [n for n in parse_numbers(text)
-            if not (n.end + 1 < len(toks) and toks[n.end + 1] in REPAIR
-                    and any(m.start > n.end for m in parse_numbers(text)))]
+    parsed = parse_numbers(text)
+    nums = [n for n in parsed
+            if toks[n.end + 1:n.end + 3] not in (["year", "old"], ["years", "old"])
+            and not (n.end + 1 < len(toks) and toks[n.end + 1] in REPAIR
+                     and any(m.start > n.end for m in parsed))]
     out: dict = {"doubts": []}
 
     def near(keywords: set[str], n: Number, before: int = 4) -> bool:
@@ -266,23 +274,30 @@ def extract_measurements(text: str, subject: str = "mother") -> dict:
     for idx, n in enumerate(nums):
         nxt = toks[n.end + 1] if n.end + 1 < len(toks) else ""
         # BP: "X by Y" or two numbers after "BP"
-        if idx + 1 < len(nums) and (nxt in BY or (near(BP_WORDS, n) and nums[idx + 1].start == n.end + 1)):
+        if idx in used:
+            continue
+        temp_unit_at = n.end + (2 if nxt in {"degree", "degrees"} else 1)
+        spoken_unit = TEMP_UNITS.get(toks[temp_unit_at]) if temp_unit_at < len(toks) else None
+        if idx + 1 < len(nums) and (
+            (nxt in BY and nums[idx + 1].start == n.end + 2)
+            or (near(BP_WORDS, n) and nums[idx + 1].start == n.end + 1)
+        ):
             sys_, dia = n.value, nums[idx + 1].value
             # "bees assi" after BP = 120/80. Research/02 rule 7 says "second less than the
             # first"; that only holds after expansion (80 < 120), so compare with sys + 100.
-            if sys_ < 100 and dia < sys_ + 100 and near(BP_WORDS, n):
+            if (sys_ < dia < 100 and nxt not in BY and near(BP_WORDS, n)
+                    and not toks[n.start].isdigit()):
                 sys_ += 100
                 out["doubts"].append(("bp", (int(sys_), int(dia)), "hundreds were dropped"))
             out["bp"] = (int(sys_), int(dia))
             used |= {idx, idx + 1}
             continue
-        if idx in used:
-            continue
         # Several field words may sit before a number ("wajan baavan kilo, hb saadhe nau"):
         # the nearest one decides. A unit right after the number counts as distance 0.
         dists = {"weight_kg": 0 if nxt in KILO else distance(WEIGHT_WORDS, n),
                  "hb": distance(HB_WORDS, n),
-                 "temperature": 0 if nxt in TEMP_WORDS else distance(TEMP_WORDS, n),
+                 "bp_partial": distance(BP_WORDS, n),
+                 "temperature": 0 if nxt in TEMP_WORDS or spoken_unit else distance(TEMP_WORDS, n),
                  "breaths_per_min": distance(BREATH_WORDS, n, before=6)}
         found = {f: d for f, d in dists.items() if d is not None}
         field_ = min(found, key=found.get) if found else None      # ties: dict order above
@@ -300,8 +315,10 @@ def extract_measurements(text: str, subject: str = "mother") -> dict:
                 out["doubts"].append(("weight_kg", value, "decimal heard as a two-digit word"))
         elif field_ == "hb":
             out["hb"] = n.value
+        elif field_ == "bp_partial":
+            out["bp_partial"] = n.value
         elif field_ == "temperature":
-            unit = "F" if n.value > 50 else "C"
+            unit = spoken_unit or ("F" if n.value > 50 else "C")
             out["temperature"] = (n.value, unit)
         elif field_ == "breaths_per_min":
             out["breaths_per_min"] = int(n.value)

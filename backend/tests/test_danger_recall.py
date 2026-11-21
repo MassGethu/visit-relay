@@ -189,6 +189,26 @@ def test_reported_danger_sign_phrases(visit_type, text, expected):
     assert DangerChecker(visit_type).add_utterance(text) == expected
 
 
+@pytest.mark.parametrize("text,alert,ask_abdomen", [
+    ("severe headache slight abdominal pain", "anc_severe_headache_blurred_vision", True),
+    ("severe lower abdominal pain", "anc_severe_abdominal_pain", False),
+    ("no headache her abdominal pain is severe", "anc_severe_abdominal_pain", False),
+    ("no abdominal pain now but severe abdominal pain yesterday", "anc_severe_abdominal_pain", False),
+])
+def test_severity_does_not_move_to_another_symptom(text, alert, ask_abdomen):
+    checker = DangerChecker("anc")
+    assert checker.add_utterance(text, "en-IN") == [alert]
+    assert ("anc_severe_abdominal_pain" in checker.to_ask) is ask_abdomen
+
+
+def test_blood_pressure_does_not_reverse_a_bleeding_denial():
+    checker = DangerChecker("anc")
+    assert checker.add_utterance(
+        "No vaginal bleeding. Blood pressure is ninety-nine over seventy.", "en-IN"
+    ) == []
+    assert checker.states["anc_vaginal_bleeding"].status == "ruled_out"
+
+
 def test_affirmed_abdominal_pain_is_not_negated_by_earlier_denials():
     checker = DangerChecker("anc")
     signs = checker.add_utterance(

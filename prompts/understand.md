@@ -40,6 +40,11 @@ Rules:
    General reassurance ("abhi bimar nahi hai", "koi dikkat nahi", "sab theek hai") names no danger sign.
    Indirect descriptions count ("kapde pe laal daag" in pregnancy = bleeding; "baby dheela pad gaya" = limp).
    Use "status": "absent" for an explicit denial of a named sign, such as "headache nahi hai".
+   Evaluate each symptom's own words even when commas are missing. "No vaginal bleeding but yes for
+   severe headache and no abdominal pain" means bleeding absent, headache present, abdominal pain absent.
+   Quote the words for each symptom, including its own yes/no words.
+   For the severe abdominal pain sign, mild pain or pain without a severity or persistence description
+   is unclear. Do not label it severe or continuous without those details.
    "status": "past" when it happened but has stopped ("pehle tha, ab nahi") — this still needs referral.
    Some signs are expressed with "nahi": "doodh nahi pee raha" means the poor-feeding sign is PRESENT.
 5. Never give advice, a diagnosis, a medicine or a dose. You only extract.

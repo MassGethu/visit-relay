@@ -80,3 +80,18 @@ def test_bp_with_other_roman_spellings(said, bp):
 def test_weight_is_not_overwritten_by_a_bp_reading():
     m = extract_measurements("wajan baavan kilo, BP ek sau chalis by nabbe")
     assert m["weight_kg"] == 52.0 and m["bp"] == (140, 90)
+
+
+def test_several_measurements_with_spaced_speech_abbreviations():
+    m = extract_measurements("B P is 99 over 70, H B is 10, 52 kilograms")
+    assert (m["bp"], m["hb"], m["weight_kg"]) == ((99, 70), 10.0, 52.0)
+
+
+@pytest.mark.parametrize("text", [
+    "Patient is two hundred years old with a BP of hundred and ten",
+    "Patient has a BP of 110. 40 years old.",
+])
+def test_spoken_hundreds_and_age_do_not_fill_missing_blood_pressure(text):
+    m = extract_measurements(text)
+    assert m["bp_partial"] == 110.0
+    assert "bp" not in m

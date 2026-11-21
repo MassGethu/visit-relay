@@ -46,6 +46,21 @@ TEMPLATES = {
         "kn": "ಸರಿಯಾದ ಅಳತೆಯನ್ನು ಹೇಳಿ.",
         "en": "Please say the correct value.",
     },
+    "bp_both_values": {
+        "hi": "BP ke dono number boliye.",
+        "kn": "ಬಿ ಪಿಯ ಎರಡೂ ಸಂಖ್ಯೆಗಳನ್ನು ಹೇಳಿ.",
+        "en": "Please say both blood pressure numbers.",
+    },
+    "temperature_repeat": {
+        "hi": "Taapmaan phir se boliye, aur Celsius ya Fahrenheit bhi boliye.",
+        "kn": "ತಾಪಮಾನವನ್ನು ಮತ್ತೆ ಹೇಳಿ. ಸೆಲ್ಸಿಯಸ್ ಅಥವಾ ಫ್ಯಾರನ್‌ಹೀಟ್ ಎಂದೂ ಹೇಳಿ.",
+        "en": "Please repeat the temperature and say Celsius or Fahrenheit.",
+    },
+    "trimester_repeat": {
+        "hi": "Pehli, doosri ya teesri timaahi boliye.",
+        "kn": "ಮೊದಲ, ಎರಡನೇ ಅಥವಾ ಮೂರನೇ ತ್ರೈಮಾಸಿಕ ಎಂದು ಹೇಳಿ.",
+        "en": "Please say first, second, or third trimester.",
+    },
     "safety_retry": {
         "hi": "Is sawaal ka ek hi jawab dijiye. Haan, nahi ya pata nahi.",
         "kn": "ಈ ಪ್ರಶ್ನೆಗೆ ಒಂದು ಉತ್ತರ ನೀಡಿ. ಹೌದು, ಇಲ್ಲ ಅಥವಾ ಗೊತ್ತಿಲ್ಲ.",

@@ -9,6 +9,104 @@ from asha.visit import Visit
 TODAY = dt.date(2026, 11, 13)
 
 
+@pytest.mark.parametrize("repeat", ["99 over 70", "99/70", "99 70"])
+def test_trimester_and_partial_blood_pressure(repeat):
+    visit = Visit("anc", lang="en", use_store=False, understand=lambda *_: {
+        "ok": True, "fields": {"bp_systolic": 199, "bp_diastolic": 70},
+    })
+    visit.start()
+    visit.hear("The patient is in her third trimester, BP is 99", "en-IN")
+    visit.followup()
+    assert visit.record == {"gestational_trimester": 3}
+    assert visit.readback() == ["Please say both blood pressure numbers."]
+    visit.hear(repeat, "en-IN")
+    visit.followup()
+    assert visit.record["bp"] == (99, 70)
+    assert not any(event["type"] == "alert" for event in visit.events())
+
+
+@pytest.mark.parametrize("text", [
+    "There seems to be no vaginal bleeding, but yes for severe headache and no abdominal pain.",
+    "There seems to be no vaginal bleeding but yes for severe headache and no abdominal pain",
+    "No vaginal bleeding yes severe headache no abdominal pain",
+    "Yes severe headache, no vaginal bleeding, no abdominal pain",
+])
+def test_mixed_symptom_answers_keep_their_own_polarity(text):
+    bleeding = "anc_vaginal_bleeding"
+    headache = "anc_severe_headache_blurred_vision"
+    abdomen = "anc_severe_abdominal_pain"
+    visit = Visit("anc", lang="en", use_store=False, understand=lambda *_: {
+        "ok": True, "danger_signs": [
+            {"id": bleeding, "status": "present"}, {"id": abdomen, "status": "past"},
+            {"id": headache, "status": "absent"},
+        ],
+    })
+    visit.start()
+    visit.hear(text, "en-IN")
+    visit.followup()
+    assert [event["sign"] for event in visit.events() if event["type"] == "alert"] == [headache]
+    assert visit.danger.states[bleeding].status == "ruled_out"
+    assert visit.danger.states[abdomen].status == "ruled_out"
+
+
+def test_sixth_month_and_unclear_readings_keep_the_bleeding_alert():
+    visit = Visit("anc", lang="en", use_llm=False, use_store=False)
+    visit.start()
+    visit.add_note("Patient is in the sixth month. Her BP is twenty five. Her temperature is thirty "
+                   "degrees Celsius. No abdominal pain. Yes for vaginal bleeding. No for headache.", "en-IN")
+    assert visit.record == {"gestational_month": 6}
+    assert visit.danger.present() == ["anc_vaginal_bleeding"]
+    assert visit.danger.states["anc_severe_headache_blurred_vision"].status == "ruled_out"
+    assert visit.danger.states["anc_severe_abdominal_pain"].status == "ruled_out"
+    assert visit.readback() == ["Please say both blood pressure numbers."]
+    assert visit.hear("not sure", "en-IN") == ["Please repeat the temperature and say Celsius or Fahrenheit."]
+    visit.hear("36.8 degrees Celsius", "en-IN")
+    assert visit.record == {"gestational_month": 6, "temperature": (36.8, "C")}
+
+
+@pytest.mark.parametrize("text", [
+    "The patient is 200 years old. BP of 110. She is in her fourth trimester and she is fine. "
+    "No signs of vaginal bleeding. No signs of headache. But there are signs of abdominal pain.",
+    "The patient is 200 years old with a BP of 110 she is in her fourth trimester and she is fine "
+    "no signs of vaginal bleeding no signs of headache but there are signs of abdominal pain",
+    "Patient is two hundred years old with a BP of hundred and ten. She is in her fourth prime minister. "
+    "No signs of vaginal bleeding. No signs of. Headache. But there is signs of. Abdominal pain.",
+])
+def test_invalid_stage_and_mixed_denials_prompt_without_false_alert(text):
+    abdomen = "anc_severe_abdominal_pain"
+    visit = Visit("anc", lang="en", use_store=False, understand=lambda *_: {
+        "ok": True, "danger_signs": [{"id": abdomen, "status": "present"}],
+    })
+    visit.start()
+    visit.add_note(text, "en-IN")
+    visit.followup()
+    assert visit.record == {}
+    assert visit.danger.present() == []
+    assert visit.danger.states["anc_severe_headache_blurred_vision"].status == "ruled_out"
+    assert visit.danger.states["anc_vaginal_bleeding"].status == "ruled_out"
+    assert visit.readback() == ["Please say both blood pressure numbers."]
+    assert visit.hear("not sure", "en-IN") == ["Please say first, second, or third trimester."]
+    visit.hear("not sure", "en-IN")
+    assert visit._safety_pending[0] == abdomen
+
+
+@pytest.mark.parametrize("severity,alert", [("slight", False), ("continuous", True), ("severe", True)])
+def test_abdominal_pain_qualifier_controls_alert(severity, alert):
+    abdomen = "anc_severe_abdominal_pain"
+    visit = Visit("anc", lang="en", use_llm=False, use_store=False)
+    visit.start()
+    visit.add_note(f"Her BP is 90. Patient has a weight of forty. Patient has a bit of fever. "
+                   f"No headache. No vaginal bleeding. She has {severity} abdominal pain. "
+                   "Another person is watching television.", "en-IN")
+    assert visit.record == {"weight_kg": 40.0}
+    assert visit.danger.states["anc_high_fever"].needs_confirmation
+    assert visit.danger.states["anc_severe_headache_blurred_vision"].status == "ruled_out"
+    assert visit.danger.states["anc_vaginal_bleeding"].status == "ruled_out"
+    assert (abdomen in visit.danger.present()) == alert
+    if not alert:
+        assert abdomen in visit.danger.to_ask
+
+
 def make(visit_type="anc", subject="mother", **kw) -> Visit:
     kw.setdefault("use_llm", False)
     kw.setdefault("use_store", False)

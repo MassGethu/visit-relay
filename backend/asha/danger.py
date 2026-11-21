@@ -49,7 +49,9 @@ CORE_SIGNS = {
                  "ch_lethargic_unconscious", "ch_chest_indrawing", "ch_fast_breathing"],
 }
 
+CLAUSE_MARK = "_clause_"
 STOPWORDS = {
+    CLAUSE_MARK,
     # Hindi auxiliaries, postpositions, light verbs
     "hai", "hain", "h", "tha", "thi", "the", "ho", "raha", "rahi", "rahe", "rha", "rhi",
     "ka", "ki", "ke", "ko", "se", "mein", "me", "main", "par", "pe", "ek", "bhi", "to", "ji",
@@ -70,9 +72,19 @@ HEDGES = [("thoda", "thoda"), ("kabhi", "kabhi"), ("swalpa",), ("ಸ್ವಲ್
 RESOLVED = [("ab", "nahi"), ("ab", "nahin"), ("iga", "illa"), ("ivaga", "illa"), ("band", "ho"),
             ("ruk", "gaya"), ("ruk", "gayi"), ("nintide",), ("nintu",), ("ನಿಂತಿದೆ",),
             ("अब", "नहीं"), ("बंद", "हो"), ("ಈಗ", "ಇಲ್ಲ")]
-CLAUSE_BREAKS = {"lekin", "magar", "par", "but", "aur", "and", "mattu", "aadre", "phir",
+CLAUSE_BREAKS = {CLAUSE_MARK, "lekin", "magar", "par", "but", "aur", "and", "mattu", "aadre", "phir", "yes",
                  "लेकिन", "और", "ಆದರೆ", "ಮತ್ತು"}
 SPAN_BREAKS = CLAUSE_BREAKS - {"par"}        # "dabane par" (on pressing) is not a clause break
+ABDOMINAL_SIGN = "anc_severe_abdominal_pain"
+ENGLISH_ABDOMINAL_PHRASES = {"severe abdominal pain", "severe abdomen pain", "persistent abdominal pain",
+                            "continuous abdominal pain", "abdominal pain is severe", "abdominal pain is continuous"}
+ABDOMINAL_QUALIFIER = re.compile(
+    r"\b(?:(?:severe|persistent|continuous) (?:(?:lower|upper) )?(?:abdominal|abdomen) pain"
+    r"|(?:abdominal|abdomen) pain is (?:severe|persistent|continuous))\b"
+)
+ENGLISH_SIGN_DENIAL = re.compile(
+    r"\bno signs? of[.\s]+(?=vaginal bleeding|headache|(?:severe )?(?:abdominal|abdomen) pain\b)", re.IGNORECASE
+)
 
 
 # research/01 note: feet-only swelling is common late in pregnancy and is NOT the official
@@ -407,6 +419,7 @@ class DangerChecker:
                                      | ALWAYS_GENERIC)
         self.utterances: list[str] = []
         self.denied_signs: dict[int, set[str]] = {}
+        self.uncertain_signs: dict[int, set[str]] = {}
         self.to_ask: list[str] = []   # mentioned in a way that is not the official sign: ask once
 
     # one final transcript in, newly present signs out (these must alert at once)
@@ -416,6 +429,9 @@ class DangerChecker:
         # Expand English negation before matching both signs and denials.
         expanded = re.sub(r"\b(do|does|did|is|are|was|were|has|have|had)n['’]t\b",
                           r"\1 not", text, flags=re.IGNORECASE)
+        expanded = ENGLISH_SIGN_DENIAL.sub("no ", expanded)
+        # Retain sentence boundaries without treating decimal points as breaks.
+        expanded = re.sub(r"(?<!\d)\.|\.(?!\d)|[;!?।॥]", f" {CLAUSE_MARK} ", expanded)
         toks = tokens(expanded)
         words = [t.text for t in toks]
         lang_ok = language_code.split("-")[0] in self.tested
@@ -447,23 +463,36 @@ class DangerChecker:
         matches = [m for m in matches if not folded.isdisjoint(_SENTENCE_KEY_FOLDED.get(m.sign, folded))]
         danger = _by_subject([
             m for m in matches if not m.negation_phrase
+            and not (m.sign in {"anc_vaginal_bleeding", "pnc_heavy_bleeding", "ch_blood_in_stool"}
+                     and m.start == m.end and words[m.start:m.start + 2] == ["blood", "pressure"])
+            and ("headache" not in m.phrase.split()
+                 or any(similar(word, "headache") for word in words[m.start:m.end + 1]))
+            and (m.phrase not in ENGLISH_ABDOMINAL_PHRASES
+                 or ABDOMINAL_QUALIFIER.search(" ".join(words[m.start:m.end + 1])))
             and (m.sign != "anc_water_break_no_labour"
                  or any(fold(word) in _WATER_BREAK_WORDS for word in words[m.start:m.end + 1]))
         ], words)
-        starts = sorted({m.start for m in danger if not is_negator(words[m.start])})
+        abdominal_starts = {i for i, word in enumerate(words[:-1])
+                            if ABDOMINAL_SIGN in scope and word in {"abdominal", "abdomen"} and words[i + 1] == "pain"}
+        starts = sorted({m.start for m in danger if not is_negator(words[m.start])}
+                        | {a + 1 for _, a, b in neg_spans if a < b and words[a] == "no"}
+                        | abdominal_starts)
 
         newly: list[str] = []
         before = {s: self.states[s].status for s in scope}
         per_sign: dict[str, list[Evidence]] = {}
         for m in danger:
-            covered = any(s == m.sign and a <= m.start and m.end <= b for s, a, b in neg_spans)
+            covered = any(
+                s == m.sign and (a <= m.start or (words[a] == "no" and a <= m.end)) and m.end <= b
+                for s, a, b in neg_spans
+            )
             if covered:
                 continue
-            quote = " ".join(words[max(0, m.start - 2): m.end + 4])
+            quote = " ".join(word for word in words[max(0, m.start - 2): m.end + 4] if word != CLAUSE_MARK)
             ev = self._polarity(m, words, starts, idx, quote)
             per_sign.setdefault(m.sign, []).append(ev)
         for sign, a, b in neg_spans:
-            quote = " ".join(words[max(0, a - 2): b + 3])
+            quote = " ".join(word for word in words[max(0, a - 2): b + 3] if word != CLAUSE_MARK)
             per_sign.setdefault(sign, []).append(Evidence(RULED_OUT, quote, idx, phrase="negation"))
 
         # A combined Kannada segment can contain these explicit Hindi denials,
@@ -499,6 +528,12 @@ class DangerChecker:
         for s in scope:
             if before[s] != PRESENT and self.states[s].status == PRESENT:
                 newly.append(s)
+        if (abdominal_starts and ABDOMINAL_SIGN not in self.denied_signs.get(idx, ())
+                and not any(e.status == PRESENT for e in per_sign.get(ABDOMINAL_SIGN, ()))):
+            # The woman reported pain. Ask about severity/persistence before marking this sign present.
+            self.uncertain_signs[idx] = {ABDOMINAL_SIGN}
+            if ABDOMINAL_SIGN not in self.to_ask:
+                self.to_ask.append(ABDOMINAL_SIGN)
         return newly
 
     def _polarity(self, m: Match, words: list[str], starts: list[int], idx: int,
@@ -508,6 +543,9 @@ class DangerChecker:
         # look for a negator just before or just after the phrase, inside the clause,
         # and not past the start of another sign's phrase
         barrier = next((s for s in starts if s > m.end), len(words))
+        if m.end + 1 < barrier < len(words) and words[barrier - 1] == "no":
+            # "Severe headache, no vaginal bleeding": the 'no' introduces the next sign.
+            barrier -= 1
         lo = m.start
         for _ in range(2):
             if lo - 1 >= 0 and words[lo - 1] not in CLAUSE_BREAKS:
@@ -544,7 +582,12 @@ class DangerChecker:
                               if words[j] in CLAUSE_BREAKS), min(hedge_end, barrier))
         if any(_has_seq(words[lo:hedge_end], h) for h in HEDGES):
             return Evidence(PRESENT, quote, idx, partial=m.partial, phrase=m.phrase)
-        return Evidence(RULED_OUT, quote, idx, partial=m.partial or not m.specific, phrase=m.phrase)
+        explicit_no_headache = (
+            m.sign == "anc_severe_headache_blurred_vision" and m.start > 0
+            and words[m.start - 1:m.start + 1] == ["no", "headache"]
+        )
+        return Evidence(RULED_OUT, quote, idx, partial=(m.partial or not m.specific) and not explicit_no_headache,
+                        phrase=m.phrase)
 
     # ───────── outputs ─────────
 

@@ -41,6 +41,11 @@ KANNADA_MONTH_ORDINALS = {
     "ಆರನೇ": 6, "ಏಳನೇ": 7, "ಎಳನೇ": 7, "ಎಲೆನೇ": 7, "ಎಲ್ನಿ": 7, "ಎಲ್ನೇ": 7, "elane": 7,
     "ಎಂಟನೇ": 8, "ಒಂಬತ್ತನೇ": 9,
 }
+ENGLISH_ORDINALS = {word: i for i, word in enumerate(
+    ("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth"), 1
+)}
+MEASUREMENT_PROMPTS = {"bp": "bp_both_values", "temperature": "temperature_repeat",
+                       "gestational_trimester": "trimester_repeat"}
 DISCREET_WORDS = {"dheere", "dhire", "dheere-dheere", "धीरे", "ಮೆಲ್ಲಗೆ", "quietly"}
 DISCREET_MAX_WORDS = 3                # longer sentences with "dheere" are content, not a command
 # Never read aloud in discreet mode (the screen still shows them). Danger signs are always read.
@@ -51,6 +56,7 @@ LLM_WAIT_S = 15.0                    # upper bound; llm.py's own timeouts are 3 
 # Narrow answer vocabulary: "okay" may acknowledge the question without asserting a symptom.
 YES_ANSWERS = {"yes", "haan", "han", "ha", "हाँ", "हां", "हा", "ಹೌದು", "howdu", "haudu"}
 NO_ANSWERS = {"no", "nahi", "nahin", "नहीं", "नही", "illa", "ಇಲ್ಲ"}
+SKIP_ANSWERS = {("not", "sure"), ("skip",), ("pata", "nahi"), ("पता", "नहीं"), ("ಗೊತ್ತಿಲ್ಲ",)}
 ANSWER_FILLERS = {"ji", "जी", "hai", "है", "hain", "हैं", "please"}
 
 log = logging.getLogger("asha.visit")
@@ -110,6 +116,7 @@ class Visit:
         self._asked_context: set[str] = set()   # never ask about the same other visit twice
         self._replied: set[int] = set()         # utterances already given an out-of-scope / context reply
         self._readback_done = False
+        self._measurement_repeats: set[str] = set()
         self._pending_doubt: Doubt | None = None
         self._safety_pending: list[str] = []
         self._safety_disagreements: list[str] = []
@@ -141,6 +148,8 @@ class Visit:
                 prompt = self.speaker.choice(doubt.field, doubt.value, doubt.alternative, doubt.value)
             else:
                 prompt = self.speaker.confirm(doubt.field, doubt.value)
+        elif self._measurement_repeats:
+            prompt = self._measurement_prompt()
         elif self._safety_started:
             prompt = (self._spoken_safety_question(self._safety_pending[0]) if self._safety_pending
                       else self.speaker.say("summary", summary=self._summary()))
@@ -179,6 +188,11 @@ class Visit:
             reply = self._answer_doubt(text, words)
             if reply is not None:
                 return self._take_unspoken() + reply
+        if self._readback_done and self._measurement_repeats and tuple(words) in SKIP_ANSWERS:
+            self._measurement_repeats.remove(self._next_measurement())
+            if self._measurement_repeats:
+                return self._take_unspoken() + self._question(self._measurement_prompt())
+            return self._take_unspoken() + self._start_safety()
         if self._safety_pending:
             reply = self._answer_safety(text, words)
             if reply is not None:
@@ -224,20 +238,49 @@ class Visit:
         new = self.danger.add_utterance(text, language_code)
         idx = len(self.danger.utterances) - 1
         m = extract_measurements(text, self.subject)
+        if "bp" in self._measurement_repeats and "bp" not in m:
+            values = parse_numbers(text)
+            if (len(values) == 2 and values[0].start == 0 and values[1].end == len(words) - 1
+                    and values[1].start == values[0].end + 1):
+                m = extract_measurements("BP " + text, self.subject)
         changed = False
+        previous_repeats = self._measurement_repeats.copy()
         if self.visit_type == "anc":
-            for ordinal, unit in zip(words, words[1:]):
+            for i, (ordinal, unit) in enumerate(zip(words, words[1:])):
+                digits = ordinal.removesuffix("st").removesuffix("nd").removesuffix("rd").removesuffix("th")
+                stage = ENGLISH_ORDINALS.get(ordinal) or (int(digits) if len(digits) <= 2 and digits.isdecimal() else None)
+                if (stage is not None and i >= 2 and words[i - 2:i] == ["in", "her"]
+                        and words[i + 1:i + 3] == ["prime", "minister"]):
+                    # Observed recognition error in a pregnancy-stage phrase. Ask her to repeat.
+                    self._measurement_repeats.add("gestational_trimester")
+                elif unit == "trimester" and stage is not None:
+                    if stage in (1, 2, 3):
+                        self._set("gestational_trimester", stage, text)
+                        self._measurement_repeats.discard("gestational_trimester")
+                        changed = True
+                    else:
+                        self._measurement_repeats.add("gestational_trimester")
+                if unit == "month" and stage in range(1, 10) and (ordinal in ENGLISH_ORDINALS or ordinal != digits):
+                    self._set("gestational_month", stage, text)
+                    changed = True
                 if unit in {"ತಿಂಗಳು", "tingalu"} and ordinal in KANNADA_MONTH_ORDINALS:
                     self._set("gestational_month", KANNADA_MONTH_ORDINALS[ordinal], text)
                     changed = True
-                    break
+        invalid = {f for f, _, reason in m["doubts"]
+                   if f in ("bp", "temperature") and reason == "outside plausible range"}
+        self._measurement_repeats.difference_update(({"bp", "temperature"} & m.keys()) - invalid)
+        self._measurement_repeats.update(invalid)
+        if "bp_partial" in m and "bp" not in m:
+            self._measurement_repeats.add("bp")
         for key in RULE_FIELDS:
-            if key in m:
+            if key in m and key not in invalid:
                 self._set(key, m[key], text)
                 changed = True
         if llm_job:
-            self._pending.append((llm_job, text, len(self.danger.utterances) - 1,
-                                  {k for k in RULE_FIELDS if k in m}))
+            rule_fields = {k for k in RULE_FIELDS if k in m}
+            if "bp_partial" in m:
+                rule_fields.add("bp")
+            self._pending.append((llm_job, text, idx, rule_fields))
         for f, v, reason in m["doubts"]:
             if reason != "outside plausible range":     # range doubts are found again by readback
                 self.extra_doubts.append(Doubt(f, v, "approximate"))
@@ -264,6 +307,21 @@ class Visit:
         if checked:
             self._safety_pending = [sign for sign in self._safety_pending if sign not in checked]
             steer += self._continue_safety()
+        if self._safety_started:
+            for sign in self.danger.uncertain_signs.get(idx, ()):
+                if sign not in self._safety_pending and self.danger.states[sign].status == NOT_CHECKED:
+                    if self._safety_pending:
+                        self._safety_pending.insert(1, sign)
+                    else:
+                        self._safety_pending.append(sign)
+                        steer += self._continue_safety()
+        if (self._readback_done and not self._pending_doubt
+                and (previous_repeats != self._measurement_repeats
+                     or (self._measurement_repeats and ("bp_partial" in m or invalid)))):
+            if self._measurement_repeats:
+                steer += self._question(self._measurement_prompt())
+            else:
+                steer += self._start_safety()
         return alerts + concern + steer + self._take_unspoken()
 
     def followup(self) -> list[str]:
@@ -278,6 +336,8 @@ class Visit:
         if self._readback_done or self.saved:
             return out
         self._readback_done = True
+        if self._measurement_repeats:
+            return out + self._question(self._measurement_prompt())
         doubts = [d for d in find_doubts(self.record, self.subject, self.today, self.extra_doubts)
                   if d.field in FIELD_NAMES and not (self.discreet and d.field in SENSITIVE_FIELDS)]
         question = plan({}, self.subject, self.today, [], extras=doubts).question
@@ -294,6 +354,12 @@ class Visit:
         self._events.append({"type": "question", "text": line})
         return [line]
 
+    def _measurement_prompt(self) -> str:
+        return self.speaker.say(MEASUREMENT_PROMPTS[self._next_measurement()])
+
+    def _next_measurement(self) -> str:
+        return next(field for field in MEASUREMENT_PROMPTS if field in self._measurement_repeats)
+
     def _start_safety(self) -> list[str]:
         if not self._safety_started:
             self._safety_started = True
@@ -301,6 +367,8 @@ class Visit:
             preview = self.danger.guided_questions()
             disagreements = [sign for sign in self._safety_disagreements
                              if self.danger.states[sign].status != PRESENT]
+            disagreements += [sign for sign in self.danger.to_ask
+                              if sign not in disagreements and self.danger.states[sign].status == NOT_CHECKED]
             self._safety_pending = disagreements + [
                 sign for sign in preview if sign not in disagreements
                 and ((self.danger.states[sign].status == NOT_CHECKED
@@ -340,10 +408,12 @@ class Visit:
         self._set(doubt.field, value, text)
         self._emit_record()
         alerts = self._alerts(self.danger.add_vitals({doubt.field: value}))
+        if self._measurement_repeats:
+            return alerts + self._question(self._measurement_prompt())
         return alerts + self._start_safety()
 
     def _answer_safety(self, text: str, words: list[str]) -> list[str] | None:
-        if tuple(words) in {("not", "sure"), ("skip",), ("pata", "nahi"), ("पता", "नहीं"), ("ಗೊತ್ತಿಲ್ಲ",)}:
+        if tuple(words) in SKIP_ANSWERS:
             sign = self._safety_pending.pop(0)
             idx = len(self.danger.utterances)
             self.danger.utterances.append(text)
@@ -441,7 +511,10 @@ class Visit:
             if state is None or s["status"] not in ("present", "past"):
                 continue
             denied = sign in self.danger.denied_signs.get(idx, ())
-            if general_denial or (denied and s["status"] == "present"):
+            uncertain = sign in self.danger.uncertain_signs.get(idx, ())
+            if uncertain:
+                continue
+            if general_denial or denied:
                 if state.status != PRESENT and sign not in self._safety_disagreements:
                     self._safety_disagreements.append(sign)
                     if self._safety_started and sign not in self._safety_pending:

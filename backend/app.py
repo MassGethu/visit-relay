@@ -219,7 +219,9 @@ class VisitTurn:
                     pcm = base64.b64decode(encoded, validate=True)
                     if not pcm or len(pcm) % 2 or len(pcm) > MAX_CLIP_BYTES:
                         raise ValueError("The recording format is invalid.")
-                    text = ". ".join(await transcribe_clip(headers, pcm))
+                    segments = await transcribe_clip(headers, pcm)
+                    text = " ".join(segment if segment.endswith((".", "?", "!", "।")) else segment + "."
+                                    for segment in segments)
                 elif kind == "note":
                     if not isinstance(text, str) or not text.strip() or len(text) > 4000:
                         raise ValueError("Enter a note of up to 4,000 characters.")
@@ -316,7 +318,8 @@ def checklist(visit_type: Literal["anc", "pnc", "hbnc", "hbyc"], lang: Literal["
             for number, sign in enumerate(DangerChecker(visit_type).guided_questions(), 1)]
 
 
-REPORT_MEASUREMENTS = ("weight_kg", "gestational_month", "hb", "breaths_per_min", "bp", "temperature")
+REPORT_MEASUREMENTS = ("weight_kg", "gestational_month", "gestational_trimester", "hb",
+                       "breaths_per_min", "bp", "temperature")
 
 
 def report_measurements(record):

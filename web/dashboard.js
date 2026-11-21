@@ -25,7 +25,8 @@
   const STEPS = [["flagged", "Flagged"], ["referred", "Referred"], ["reached_phc", "Reached PHC"], ["closed", "Closed"]];
   const STEP_ACTION = { referred: "Mark referred", reached_phc: "Mark reached PHC", closed: "Mark closed" };
   const TYPES = { anc: "Antenatal", pnc: "Postnatal", hbnc: "Newborn", hbyc: "Young child" };
-  const FIELDS = { gestational_month: "Pregnancy month", weight_kg: "Weight", hb: "Hb", bp: "BP",
+  const FIELDS = { gestational_month: "Pregnancy month", gestational_trimester: "Pregnancy trimester",
+    weight_kg: "Weight", hb: "Hb", bp: "BP",
     temperature: "Temperature", breaths_per_min: "Breathing", next_visit_date: "Next visit",
     ifa_taking: "IFA tablets", vaccinations_given: "Vaccines given", vaccinations_due: "Vaccines due" };
   const AUDIT = { flag: "Danger flag", concern_noted: "Concern noted", concern_flagged: "Concern flagged for ANM",

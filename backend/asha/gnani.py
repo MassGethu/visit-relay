@@ -144,7 +144,7 @@ def select_keyterms(latin: int = 100, kannada: int = 60, devanagari: int = 40) -
 
 # Bias clinical vocabulary and measurements without forcing a danger phrase into a transcript.
 _VISIT_TERMS = {
-    "anc": ("ANC", "gestational age", "MCP card", "IFA", "HB", "BP", "weight"),
+    "anc": ("ANC", "gestational age", "trimester", "Celsius", "Fahrenheit", "MCP card", "IFA", "HB", "BP", "weight"),
     "pnc": ("PNC", "MCP card", "breastfeeding", "birth weight", "HB", "BP", "weight"),
     "hbnc": ("HBNC", "breastfeeding", "birth weight", "weight", "MCP card"),
     "hbyc": ("HBYC", "complementary feeding", "weight", "MCP card", "vaccination", "ORS"),
