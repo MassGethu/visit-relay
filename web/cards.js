@@ -103,8 +103,19 @@
       el("div", { class: "c-source", text: `Source: ${event.source || "—"}${event.page ? `, ${event.page}` : ""}` })));
   }
 
+  // Her concerns outside the checklist, verbatim. They never change a checklist state.
+  const concernsOf = record => (Array.isArray(record.worker_concerns) ? record.worker_concerns : []);
+
+  function concernItem(concern) {
+    return el("li", { class: "c-concern" },
+      el("span", { class: "c-quote", text: `“${concern.quote}”` }),
+      el("span", { class: `c-flag${concern.flagged ? " on" : ""}`,
+        text: concern.flagged ? "Flagged for ANM" : "Noted — say “ANM ko batao” to flag" }));
+  }
+
   function drawLive() {
-    const names = Object.keys(state.record);
+    const names = Object.keys(state.record).filter(name => name !== "worker_concerns");
+    const concerns = concernsOf(state.record);
     const rows = names.map(name => {
       const [label, value] = fieldText(name, state.record[name]);
       const said = state.evidence[name];
@@ -118,7 +129,10 @@
     const record = el("section", { class: "c-card", "aria-label": "Visit record" },
       el("h2", { text: "Visit record" }),
       rows.length ? el("dl", { class: "c-fields" }, rows)
-        : el("p", { class: "c-empty", text: "Fields fill in as she speaks." }));
+        : el("p", { class: "c-empty", text: "Fields fill in as she speaks." }),
+      concerns.length && el("div", { class: "c-concerns" },
+        el("h3", { text: "Worker concerns (her words)" }),
+        el("ul", {}, concerns.map(concernItem))));
     liveBox.replaceChildren(...[question, record].filter(Boolean));
     state.changed.clear();
   }
@@ -155,6 +169,7 @@
   function drawAnm() {
     const person = state.person;
     const present = (state.receipt || []).filter(r => r.status === "present");
+    const flagged = concernsOf(state.record).filter(c => c.flagged);
     const vitals = VITALS.filter(f => f in state.record).map(f => fieldText(f, state.record[f]).join(": "));
     return el("section", { class: "c-card c-anm", "aria-label": "ANM referral card" },
       el("h2", { text: "ANM / PHC card" }),
@@ -163,7 +178,10 @@
       present.length ? present.map(r => [
         el("p", { class: "c-sign", text: `${r.label} — refer to PHC` }),
         r.quote && el("p", { class: "c-quote", text: `ASHA said: “${r.quote}”` }),
-      ]) : el("p", { class: "c-empty", text: "No danger sign present." }),
+      ]) : el("p", { class: "c-empty", text: "No checklist signs flagged." }),
+      flagged.length && el("div", { class: "c-concerns" },
+        el("h3", { text: "Worker concern — ASHA asked ANM to review" }),
+        flagged.map(c => el("p", { class: "c-quote", text: `ASHA said: “${c.quote}”` }))),
       vitals.length && el("p", { text: `Recorded: ${vitals.join(" · ")}` }),
       el("p", { class: "c-note", text: "No diagnosis made by AI. Synthetic data." }));
   }

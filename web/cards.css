@@ -72,6 +72,16 @@
 @keyframes c-flash { from { background: var(--saffron); } to { background: transparent; } }
 .c-empty { color: var(--muted); margin: 0; }
 
+/* worker concerns (outside the checklist) */
+.c-concerns { margin-top: .8rem; padding-top: .6rem; border-top: 1px dashed #c9d3d3; }
+#cards .c-concerns h3 { font-size: .9rem; margin: 0 0 .4rem; color: var(--teal); }
+.c-concerns ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+.c-concern { display: grid; gap: .2rem; }
+.c-concern .c-quote { font-style: italic; }
+.c-flag { justify-self: start; border-radius: 999px; padding: .1rem .6rem; font-size: .75rem;
+  font-weight: 600; background: var(--grey-soft); color: var(--muted); }
+.c-flag.on { background: var(--saffron); color: #362505; }
+
 /* agent question */
 .c-question { border-left: .35rem solid var(--saffron); }
 .c-question p { margin: 0; font-size: 1.05rem; }

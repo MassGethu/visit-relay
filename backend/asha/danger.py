@@ -71,6 +71,7 @@ RESOLVED = [("ab", "nahi"), ("ab", "nahin"), ("iga", "illa"), ("ivaga", "illa"),
             ("अब", "नहीं"), ("बंद", "हो"), ("ಈಗ", "ಇಲ್ಲ")]
 CLAUSE_BREAKS = {"lekin", "magar", "par", "but", "aur", "and", "mattu", "aadre", "phir",
                  "लेकिन", "और", "ಆದರೆ", "ಮತ್ತು"}
+SPAN_BREAKS = CLAUSE_BREAKS - {"par"}        # "dabane par" (on pressing) is not a clause break
 
 
 # research/01 note: feet-only swelling is common late in pregnancy and is NOT the official
@@ -226,14 +227,20 @@ class Match:
 
 
 def _find(phrase: Phrase, content: list[int], hits: dict[str, set[int]],
-          generic: frozenset[str]) -> Match | None:
-    """Best occurrence of the phrase in the content tokens (indices into the token list)."""
+          generic: frozenset[str], breaks: list[int] = ()) -> Match | None:
+    """Best occurrence of the phrase in the content tokens (indices into the token list).
+    It never spans a clause break ("khana kam deti hai, aur thoda khoon" is not "khoon kam"),
+    unless the phrase itself has one ("chehre aur haathon mein soojan")."""
     k = len(phrase.slots)
+    if any(t.text in SPAN_BREAKS for t in tokens(phrase.source_text)):
+        breaks = ()
     slot_pos = [set().union(*(hits.get(w, set()) for w in slot)) for slot in phrase.slots]
     anchors = sorted(set().union(*slot_pos))
     best: Match | None = None
     for a in anchors:
-        span = set(c for c in content[content.index(a): content.index(a) + k + 3])
+        stop = next((b for b in breaks if b > a), None)
+        span = set(c for c in content[content.index(a): content.index(a) + k + 3]
+                   if stop is None or c < stop)
         used: set[int] = set()
         found: list[int | None] = []
         for pos in slot_pos:
@@ -367,9 +374,10 @@ class DangerChecker:
 
         hits = _token_hits(self.lex, toks)
         content = [t.index for t in toks if t.text not in STOPWORDS]
+        breaks = [t.index for t in toks if t.text in SPAN_BREAKS]
         candidates = sorted({n for w in hits for n in self.lex.by_word[w]})
         matches = [m for n in candidates if (p := self.lex.phrases[n]).sign in scope
-                   if (m := _find(p, content, hits, self.generic))]
+                   if (m := _find(p, content, hits, self.generic, breaks))]
         # A "normal" phrase for an inverted sign ("bachcha theek se hil raha") only counts
         # if no negator sits inside it; otherwise it is the danger phrase misheard as normal.
         # "Absent" phrases are not trusted when she hedges or says it stopped

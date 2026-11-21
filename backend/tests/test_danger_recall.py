@@ -116,3 +116,10 @@ def test_hbnc_sign_goes_to_whoever_the_sentence_is_about(text, want, not_want):
 def test_baby_and_mother_signs_in_one_sentence_both_count():
     got = present("hbnc", "baby ko bukhaar hai aur maa ko bahut zyada khoon ja raha hai")
     assert {"nb_fever", "pnc_heavy_bleeding"} <= got
+
+
+def test_a_phrase_never_spans_a_clause_break():
+    # "kam ... aur thoda khoon" was read as "khoon kam" (severe anaemia)
+    d = DangerChecker("anc")
+    d.add_utterance("saas usko khana kam deti hai, aur thoda khoon aa raha hai")
+    assert set(d.present()) == {"anc_vaginal_bleeding"}

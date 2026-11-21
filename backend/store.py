@@ -38,9 +38,9 @@ CREATE TABLE IF NOT EXISTS audit (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     visit_id INTEGER NOT NULL REFERENCES visits(id),
     at TEXT NOT NULL,
-    kind TEXT NOT NULL,                          -- 'flag' | 'saved' | 'undone'
+    kind TEXT NOT NULL,              -- 'flag' | 'concern_noted' | 'concern_flagged' | 'saved' | 'undone'
     sign TEXT,
-    flagged_by TEXT,                             -- 'rules' | 'llm'
+    flagged_by TEXT,                             -- 'rules' | 'llm' | 'asha' (worker concern)
     quote BLOB
 );
 """
@@ -74,7 +74,8 @@ class Store:
     # ---------- writes ----------
 
     def save_visit(self, *, beneficiary_id: str, visit_type: str, lang: str, saved_at: str,
-                   record: dict, transcript: list, receipt: list, flags: list[dict]) -> int:
+                   record: dict, transcript: list, receipt: list, flags: list[dict],
+                   concerns: list[dict] = ()) -> int:
         with self._lock, self.db:
             cur = self.db.execute(
                 "INSERT INTO visits (beneficiary_id, visit_type, lang, saved_at, record, transcript, receipt)"
@@ -85,6 +86,10 @@ class Store:
             self.db.executemany(
                 "INSERT INTO audit (visit_id, at, kind, sign, flagged_by, quote) VALUES (?, ?, 'flag', ?, ?, ?)",
                 [(visit_id, f["at"], f["sign"], f["by"], self._seal(f["quote"])) for f in flags])
+            self.db.executemany(
+                "INSERT INTO audit (visit_id, at, kind, flagged_by, quote) VALUES (?, ?, ?, 'asha', ?)",
+                [(visit_id, c["at"], "concern_flagged" if c["flagged"] else "concern_noted", self._seal(c["quote"]))
+                 for c in concerns])
             self.db.execute("INSERT INTO audit (visit_id, at, kind) VALUES (?, ?, 'saved')", (visit_id, saved_at))
         return visit_id
 

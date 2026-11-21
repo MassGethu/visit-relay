@@ -59,6 +59,21 @@ TEMPLATES = {
         "kn": "ನೀವು {name}, ID {id} ಬಗ್ಗೆ ಹೇಳುತ್ತಿದ್ದೀರಾ?",
         "en": "Do you mean {name}, ID {id}?",
     },
+    "concern_noted": {
+        "hi": "Yeh baat aapke shabdon mein likh li. ANM ko dikhani ho to 'ANM ko batao' boliye.",
+        "kn": "ಈ ವಿಷಯವನ್ನು ನಿಮ್ಮ ಮಾತಿನಲ್ಲೇ ಬರೆದುಕೊಂಡೆ. ANM ಗೆ ತೋರಿಸಲು 'ANM ಗೆ ತಿಳಿಸಿ' ಅನ್ನಿ.",
+        "en": "I noted this in your words. Say 'tell ANM' to flag it for the ANM.",
+    },
+    "concern_flagged": {
+        "hi": "Theek hai, yeh baat ANM ke card par jaayegi.",
+        "kn": "ಸರಿ, ಈ ವಿಷಯ ANM ಕಾರ್ಡ್‌ನಲ್ಲಿ ಬರುತ್ತದೆ.",
+        "en": "Okay, this goes on the ANM card.",
+    },
+    "concern_missing": {
+        "hi": "ANM ko kaun si baat batani hai? Apne shabdon mein boliye.",
+        "kn": "ANM ಗೆ ಯಾವ ವಿಷಯ ತಿಳಿಸಬೇಕು? ನಿಮ್ಮ ಮಾತಿನಲ್ಲಿ ಹೇಳಿ.",
+        "en": "What should the ANM know? Say it in your words.",
+    },
     "save_failed": {
         "hi": "Record save nahi hua. Dobara 'record pakka' boliye.",
         "kn": "ರೆಕಾರ್ಡ್ ಉಳಿಸಲು ಆಗಲಿಲ್ಲ. ಮತ್ತೆ 'record pakka' ಅನ್ನಿ.",

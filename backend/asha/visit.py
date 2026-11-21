@@ -19,6 +19,7 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
+from .concern import carries_content, is_flag_request, is_worry
 from .correction import apply_correction, is_commit, is_undo
 from .danger import DangerChecker, sign_label
 from .dates import resolve
@@ -125,10 +126,14 @@ class Visit:
             self.discreet = True
             self._events.append({"type": "discreet", "on": True})
             return self._take_unspoken() + [self.speaker.say("discreet_on")]
+        flag = is_flag_request(words)
+        if flag and not carries_content(words):     # "ANM ko batao": flag the concern she just said
+            return self._take_unspoken() + [self._flag_last_concern()]
         self._drain(wait=False)
         llm_job = None
         if self.use_llm:                        # start first so it runs while the rules work
-            llm_job = _POOL.submit(self.understand, text, self.visit_type, jsonable(self.record))
+            llm_job = _POOL.submit(self.understand, text, self.visit_type, jsonable(
+                {k: v for k, v in self.record.items() if k != "worker_concerns"}))   # not LLM input
         new = self.danger.add_utterance(text, language_code)
         m = extract_measurements(text, self.subject)
         changed = False
@@ -154,7 +159,9 @@ class Visit:
                 self.extra_doubts.append(Doubt("next_visit_date", None, "date"))
         if changed:
             self._emit_record()
-        return self._alerts(new) + self._take_unspoken()     # rule alerts first, never deferred
+        alerts = self._alerts(new)                           # rule alerts first, never deferred
+        concern = self._add_concern(text, flag) if flag or is_worry(words) else []
+        return alerts + concern + self._take_unspoken()
 
     def followup(self) -> list[str]:
         """Wait for the LLM's reading of the last sentences; return anything new to speak
@@ -254,6 +261,23 @@ class Visit:
 
     # ---------- internals ----------
 
+    # ---------- worker concerns (outside the checklist; never change a checklist state) ----------
+
+    def _add_concern(self, text: str, flagged: bool) -> list[str]:
+        self.record.setdefault("worker_concerns", []).append(
+            {"quote": text, "at": now(), "flagged": flagged})      # her words, verbatim
+        self._emit_record()
+        return [self.speaker.say("concern_flagged" if flagged else "concern_noted")]
+
+    def _flag_last_concern(self) -> str:
+        concerns = self.record.get("worker_concerns", [])
+        if not concerns:
+            return self.speaker.say("concern_missing")
+        target = next((c for c in reversed(concerns) if not c["flagged"]), concerns[-1])
+        target["flagged"] = True
+        self._emit_record()
+        return self.speaker.say("concern_flagged")
+
     def _set(self, key: str, value, words: str) -> None:
         if key in self.record and self.record[key] != value:     # a new reading replaces old doubts
             self.extra_doubts = [d for d in self.extra_doubts if d.field != key]
@@ -295,7 +319,7 @@ class Visit:
                 self.visit_id = self.store.save_visit(
                     beneficiary_id=self.beneficiary_id, visit_type=self.visit_type, lang=self.lang,
                     saved_at=now(), record=jsonable(self.record), transcript=self.transcript,
-                    receipt=rows, flags=self.flags)
+                    receipt=rows, flags=self.flags, concerns=self.record.get("worker_concerns", []))
             except Exception:                   # never claim "saved" when the disk write failed
                 log.exception("saving the visit failed")
                 return [self.speaker.say("save_failed")]
