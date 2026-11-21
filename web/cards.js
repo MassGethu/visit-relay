@@ -95,6 +95,114 @@
   const endBox = el("div", { class: "c-end" });
   root.append(visitCard, alertBox, liveBox, endBox);
 
+  // ---------- patient picker: type, then pick from a short list (never a list of everyone) ----------
+
+  const MAX_MATCHES = 6;
+  const fold = text => String(text ?? "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+  const picker = (() => {
+    const input = el("input", { id: "c-person", type: "search", role: "combobox", autocomplete: "off",
+      spellcheck: "false", enterkeyhint: "search", "aria-autocomplete": "list", "aria-expanded": "false",
+      "aria-controls": "c-person-list", placeholder: "Search name, ID or village" });
+    const list = el("ul", { id: "c-person-list", class: "c-pick-list", role: "listbox",
+      "aria-label": "Suggestions", hidden: true });
+    const node = el("div", { class: "c-pick" },
+      el("label", { for: "c-person", text: "Who are you visiting?" }),
+      el("div", { class: "c-pick-field" }, glass(), input),
+      list);
+    let found = [];
+    let active = -1;
+
+    function glass() {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("aria-hidden", "true");
+      svg.innerHTML = '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>';
+      return svg;
+    }
+
+    // Her own name, ID or spoken name ranks above her village or her husband's name.
+    function search(query) {
+      const q = fold(query.trim());
+      if (!q) return [];
+      const score = text => {
+        const t = fold(text);
+        if (!t.includes(q)) return 0;
+        return t.startsWith(q) ? 3 : t.split(/\s+/).some(word => word.startsWith(q)) ? 2 : 1;
+      };
+      return state.people.map(p => {
+        const spoken = (p.spoken_names || []).find(n => score(n));
+        const own = Math.max(score(p.name), score(p.id), spoken ? score(spoken) : 0);
+        const near = Math.max(score(p.village), score(p.relation_name));
+        const via = own ? (score(p.name) || score(p.id) ? null : spoken)
+          : score(p.village) ? null : p.relation_name;
+        return { p, rank: own ? own + 1 : near ? 1 : 0, via };
+      }).filter(m => m.rank > 0).sort((a, b) => b.rank - a.rank).slice(0, MAX_MATCHES);
+    }
+
+    function marked(text, query) {
+      const at = fold(text).indexOf(fold(query.trim()));
+      if (at < 0) return [document.createTextNode(text)];
+      const end = at + query.trim().length;
+      return [text.slice(0, at), el("mark", { text: text.slice(at, end) }), text.slice(end)];
+    }
+
+    function row({ p, via }, index, query) {
+      const meta = [`ID ${p.id}`, p.village].filter(Boolean).join(" · ");
+      return el("li", { id: `c-person-${index}`, class: "c-pick-row", role: "option",
+        "aria-selected": String(index === active), "data-no-i18n": "",
+        onmousedown: e => e.preventDefault(),       // keep focus until the click lands
+        onclick: () => pick(p.id) },
+        el("span", { class: "c-pick-name" }, marked(p.name, query)),
+        el("span", { class: "c-pick-meta" }, via ? [el("span", {}, marked(via, query)), " · "] : null, meta));
+    }
+
+    function draw() {
+      const query = input.value;
+      found = search(query);
+      active = Math.min(active, found.length - 1);
+      const open = Boolean(query.trim());
+      list.hidden = !open;
+      input.setAttribute("aria-expanded", String(open));
+      input.setAttribute("aria-activedescendant", active >= 0 ? `c-person-${active}` : "");
+      list.replaceChildren(...(found.length ? found.map((m, i) => row(m, i, query))
+        : [el("li", { class: "c-pick-empty", text: "No patient found. Try a name, ID or village." })]));
+    }
+
+    function close() {
+      active = -1;
+      list.hidden = true;
+      input.setAttribute("aria-expanded", "false");
+      input.removeAttribute("aria-activedescendant");
+    }
+
+    function pick(id) {
+      input.value = "";
+      close();
+      input.blur();
+      choose(id);
+    }
+
+    input.addEventListener("input", () => { active = -1; draw(); });
+    input.addEventListener("focus", () => { if (input.value.trim()) draw(); });
+    input.addEventListener("blur", close);
+    input.addEventListener("keydown", e => {
+      if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        if (!found.length) return;
+        e.preventDefault();
+        active = (active + (e.key === "ArrowDown" ? 1 : found.length - 1)) % found.length;
+        draw();
+      } else if (e.key === "Enter") {
+        const choice = found[Math.max(active, 0)];
+        if (choice) { e.preventDefault(); pick(choice.p.id); }
+      } else if (e.key === "Escape") {
+        input.value = "";
+        close();
+      }
+    });
+    return { node };
+  })();
+
   function drawVisit() {
     const person = state.person;
     const who = el("div", { class: "c-who" },
@@ -103,12 +211,7 @@
       state.discreet && el("span", { class: "c-chip c-discreet", text: "Discreet mode" }),
       person && el("span", { class: "c-place" }, person.village && icon("pin"),
         el("span", { text: [person.village, `ID ${person.id}`].filter(Boolean).join(" · ") })));
-    const personPicker = state.started || !state.people.length ? [] : [
-      el("label", { for: "c-person", text: "Who are you visiting?" }),
-      el("select", { id: "c-person", onchange: e => choose(e.target.value) },
-        state.people.map(p => el("option", { value: p.id, selected: p === person,
-          text: `${p.name} · ID ${p.id}` }))),
-    ];
+    const personPicker = state.started || !state.people.length ? [] : [picker.node];
     // The visit type stays changeable during the visit: the fallback when she or the app got it wrong.
     const typePicker = state.saved ? [] : [
       el("label", { for: "c-type", text: "Visit type" }),

@@ -49,6 +49,17 @@ CREATE TABLE IF NOT EXISTS audit (
     flagged_by TEXT,      -- 'rules' | 'llm' | 'asha' (worker concern) | 'voice' / 'screen' (visit switch)
     quote BLOB
 );
+CREATE TABLE IF NOT EXISTS referrals (    -- each step the ANM takes on a danger flag, append-only
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    flag_key TEXT NOT NULL,               -- "flag:<visit_id>:<sign>"
+    step TEXT NOT NULL,                   -- 'referred' | 'reached_phc' | 'closed'
+    at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS review_marks ( -- "reported to ANM" / "double-checked", one per item
+    item_key TEXT PRIMARY KEY,
+    kind TEXT NOT NULL,                   -- 'reported' | 'checked'
+    at TEXT NOT NULL
+);
 """
 
 
@@ -113,7 +124,30 @@ class Store:
             self.db.execute("UPDATE visits SET status = 'undone' WHERE id = ?", (visit_id,))
             self.db.execute("INSERT INTO audit (visit_id, at, kind) VALUES (?, ?, 'undone')", (visit_id, at))
 
+    def add_referral_step(self, flag_key: str, step: str, at: str) -> None:
+        with self._lock, self.db:
+            self.db.execute("INSERT INTO referrals (flag_key, step, at) VALUES (?, ?, ?)", (flag_key, step, at))
+
+    def mark(self, item_key: str, kind: str, at: str) -> None:
+        with self._lock, self.db:
+            self.db.execute("INSERT OR IGNORE INTO review_marks (item_key, kind, at) VALUES (?, ?, ?)",
+                            (item_key, kind, at))
+
     # ---------- reads (ANM view, tests) ----------
+
+    def referrals(self) -> dict[str, list[dict]]:
+        """{flag_key: [{"step", "at"}, ...]} oldest first."""
+        with self._lock:
+            rows = self.db.execute("SELECT flag_key, step, at FROM referrals ORDER BY id").fetchall()
+        out: dict[str, list[dict]] = {}
+        for key, step, at in rows:
+            out.setdefault(key, []).append({"step": step, "at": at})
+        return out
+
+    def marks(self) -> dict[str, dict]:
+        with self._lock:
+            rows = self.db.execute("SELECT item_key, kind, at FROM review_marks").fetchall()
+        return {key: {"kind": kind, "at": at} for key, kind, at in rows}
 
     def load_visit(self, visit_id: int) -> dict | None:
         with self._lock:

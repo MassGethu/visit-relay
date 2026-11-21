@@ -5,6 +5,7 @@ import asyncio
 import base64
 import binascii
 import csv
+import datetime as dt
 import json
 import logging
 import os
@@ -22,11 +23,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from websockets.exceptions import WebSocketException
 
+from asha import dashboard as board
 from asha.context import SUBJECTS
 from asha.gnani import COMMIT_MESSAGE, FRAME_BYTES, stt_headers, visit_keyterms
 from asha.visit import Visit, now
-from asha.danger import DangerChecker
-from asha.speak import Speaker
+from asha.danger import DangerChecker, load_lexicon
+from asha.speak import Speaker, spoken_sign
 from store import default_store
 from llm import understand
 from stt import PrismaRelay, transcribe_clip
@@ -430,6 +432,99 @@ def patient_history(beneficiary_id: str, response: Response):
     patient = synthetic_patient(beneficiary_id)
     with report_store() as store:
         return list(reversed(list(report_views(store.history(beneficiary_id), patient))))
+
+
+def synthetic_patients():
+    path = BACKEND / "data" / "beneficiaries.json"
+    people = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else []
+    return [person for person in people if person.get("synthetic") is True]
+
+
+def with_sign_names(view):
+    """Add {sign: {hi, kn, en}} for every danger sign named anywhere in the view, for the page language."""
+    known, found = load_lexicon().signs, set()
+
+    def walk(value):
+        if isinstance(value, dict):
+            if value.get("sign") in known:
+                found.add(value["sign"])
+            for item in value.values():
+                walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                walk(item)
+
+    walk(view)
+    return view | {"sign_names": {sign: {lang: spoken_sign(sign, lang) for lang in ("hi", "kn", "en")}
+                                  for sign in sorted(found)}}
+
+
+def dashboard_inputs(store):
+    patients = synthetic_patients()
+    histories = {p["id"]: store.history(p["id"]) for p in patients}
+    return patients, histories, store.referrals(), store.marks()
+
+
+@app.get("/api/dashboard")
+def dashboard_view(response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    with report_store() as store:
+        return with_sign_names(board.dashboard(*dashboard_inputs(store), dt.date.today()))
+
+
+@app.get("/api/patients/{beneficiary_id}")
+def patient_view(beneficiary_id: str, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    patient = synthetic_patient(beneficiary_id)
+    with report_store() as store:
+        visits = store.history(beneficiary_id)
+        referrals, marks = store.referrals(), store.marks()
+        summary = board.patient_summary(patient, visits, referrals, marks, dt.date.today())
+        views = list(report_views(visits, patient))      # oldest first
+        audit = {v["id"]: store.audit(v["id"]) for v in visits}
+    for view in views:
+        view["audit"] = audit[view["id"]] + [
+            {"at": s["at"], "kind": f"referral_{s['step']}", "sign": key.split(":", 2)[2], "by": "anm"}
+            for key, steps in referrals.items() if key.startswith(f"flag:{view['id']}:") for s in steps]
+        view["audit"].sort(key=lambda row: row["at"])
+    return with_sign_names(summary | {"visits": list(reversed(views)), "timeline": board.timeline(patient, visits)})
+
+
+class ReferralStep(BaseModel):
+    key: str = Field(max_length=120)
+    step: Literal["referred", "reached_phc", "closed"]
+
+
+@app.post("/api/referrals")
+def referral_step(change: ReferralStep, response: Response):
+    """The ANM moves a danger flag one step along. Steps never skip and never go back."""
+    response.headers["Cache-Control"] = "no-store"
+    with report_store() as store:
+        view = board.dashboard(*dashboard_inputs(store), dt.date.today())
+        flag = next((f for f in view["flags"] if f["key"] == change.key), None)
+        if flag is None:
+            raise HTTPException(404, "Open danger flag not found")
+        if board.next_step(flag["step"]) != change.step:
+            raise HTTPException(409, "That step is not next for this flag")
+        store.add_referral_step(change.key, change.step, now())
+    return {"key": change.key, "step": change.step}
+
+
+class ReviewMark(BaseModel):
+    key: str = Field(max_length=120)
+    kind: Literal["reported", "checked"]
+
+
+@app.post("/api/review-marks")
+def review_mark(mark: ReviewMark, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    with report_store() as store:
+        view = board.dashboard(*dashboard_inputs(store), dt.date.today())
+        pending = {i["key"] for i in view["report"]} if mark.kind == "reported" else {i["key"] for i in view["checks"]}
+        if mark.key not in pending:
+            raise HTTPException(404, "Nothing waiting with that key")
+        store.mark(mark.key, mark.kind, now())
+    return {"key": mark.key, "kind": mark.kind}
 
 
 async def send_audio(phone: WebSocket, prisma, turn: VisitTurn, headers) -> None:

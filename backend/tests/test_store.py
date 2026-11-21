@@ -136,3 +136,17 @@ def test_history_only_includes_filed_or_legacy_visits_and_skips_undone(tmp_path)
         assert [row["id"] for row in store.history("4127")] == [old]
     finally:
         store.close()
+
+
+def test_referral_steps_are_kept_in_order(store):
+    store.add_referral_step("flag:1:anc_bleeding", "referred", "2026-11-21T11:00:00")
+    store.add_referral_step("flag:1:anc_bleeding", "reached_phc", "2026-11-21T15:00:00")
+
+    assert [s["step"] for s in store.referrals()["flag:1:anc_bleeding"]] == ["referred", "reached_phc"]
+
+
+def test_a_review_mark_is_written_once(store):
+    store.mark("flag:1:anc_bleeding", "reported", "2026-11-21T11:00:00")
+    store.mark("flag:1:anc_bleeding", "reported", "2026-11-22T11:00:00")
+
+    assert store.marks() == {"flag:1:anc_bleeding": {"kind": "reported", "at": "2026-11-21T11:00:00"}}
