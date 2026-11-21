@@ -11,6 +11,7 @@ TODAY = dt.date(2026, 11, 13)
 
 def make(visit_type="anc", subject="mother", **kw) -> Visit:
     kw.setdefault("use_llm", False)
+    kw.setdefault("use_store", False)
     v = Visit(visit_type, subject=subject, lang="hi", today=TODAY, **kw)
     v.start()
     return v

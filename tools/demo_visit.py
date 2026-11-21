@@ -18,7 +18,8 @@ TURNS = [
 
 
 def main() -> None:
-    v = Visit("anc", subject="mother", lang="hi", today=dt.date(2026, 11, 13), use_llm=False)
+    v = Visit("anc", subject="mother", lang="hi", today=dt.date(2026, 11, 13), use_llm=False,
+              use_store=False)
     show = lambda who, lines: [print(f"{who:>6}: {line}") for line in lines]
     show("agent", v.start())
     for t in TURNS:

@@ -54,6 +54,16 @@ TEMPLATES = {
         "kn": "ರೆಕಾರ್ಡ್ ಉಳಿಸಲಾಗಿದೆ. ಬದಲಿಸಬೇಕಾದರೆ ಐದು ಸೆಕೆಂಡಿನಲ್ಲಿ 'ruko' ಅನ್ನಿ.",
         "en": "Record saved. Say 'ruko' within five seconds to undo.",
     },
+    "confirm_beneficiary": {
+        "hi": "Kya aap {name}, ID {id} ki baat kar rahi hain?",
+        "kn": "ನೀವು {name}, ID {id} ಬಗ್ಗೆ ಹೇಳುತ್ತಿದ್ದೀರಾ?",
+        "en": "Do you mean {name}, ID {id}?",
+    },
+    "save_failed": {
+        "hi": "Record save nahi hua. Dobara 'record pakka' boliye.",
+        "kn": "ರೆಕಾರ್ಡ್ ಉಳಿಸಲು ಆಗಲಿಲ್ಲ. ಮತ್ತೆ 'record pakka' ಅನ್ನಿ.",
+        "en": "The record was not saved. Say 'record pakka' again.",
+    },
     "discreet_on": {
         "hi": "Theek hai, niji baatein zor se nahi padhungi. Khatre ke nishaan hamesha bataungi.",
         "kn": "ಸರಿ, ಖಾಸಗಿ ವಿಷಯಗಳನ್ನು ಜೋರಾಗಿ ಓದುವುದಿಲ್ಲ. ಅಪಾಯದ ಲಕ್ಷಣಗಳನ್ನು ಯಾವಾಗಲೂ ಹೇಳುತ್ತೇನೆ.",
@@ -134,6 +144,10 @@ class Speaker:
     def choice(self, field: str, heard, a, b) -> str:
         return self.say("choice", heard=value_words(field, heard, self.lang),
                         a=value_words(field, a, self.lang), b=value_words(field, b, self.lang))
+
+    def confirm_beneficiary(self, person: dict) -> str:
+        return self.say("confirm_beneficiary", name=person["name"],
+                        id=verbalize.digits(str(person["id"]), self.lang))
 
     def confirm(self, field: str, value) -> str:
         return self.say("confirm_value", field=FIELD_NAMES.get(field, {}).get(self.lang, field),

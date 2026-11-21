@@ -17,7 +17,7 @@ import logging
 import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Any, Callable
 
 from .correction import apply_correction, is_commit, is_undo
 from .danger import DangerChecker, sign_label
@@ -45,6 +45,10 @@ log = logging.getLogger("asha.visit")
 _POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="llm")
 
 
+def now() -> str:
+    return dt.datetime.now().isoformat(timespec="seconds")
+
+
 def jsonable(v):
     """Record values -> JSON for the browser: dates as ISO strings, tuples as lists."""
     if isinstance(v, dt.date):
@@ -68,6 +72,9 @@ class Visit:
     use_llm: bool = True              # False: rules only (tests, text demo)
     understand: Callable[[str, str, dict], dict] | None = None   # default: llm.understand
     clock: Callable[[], float] = time.monotonic                  # for the 5-second undo
+    beneficiary_id: str = ""
+    use_store: bool = True            # False: nothing written to disk (tests, text demo)
+    store: Any = None                 # default: store.default_store() (encrypted SQLite)
 
     def __post_init__(self):
         self.danger = DangerChecker(self.visit_type, self.tested_languages)
@@ -82,6 +89,12 @@ class Visit:
         self._events: list[dict] = []
         self._unspoken: list[str] = []          # lines found after hear() returned (LLM alerts)
         self._pending: list[tuple[Future, str, int, set[str]]] = []
+        self.transcript: list[dict] = []        # everything she said, with time (saved encrypted)
+        self.flags: list[dict] = []             # every danger flag: sign, quote, time, rules or llm
+        self.visit_id: int | None = None
+        if self.use_store and self.store is None:
+            from store import default_store     # lazy: rules-only visits never touch the disk
+            self.store = default_store()
         if self.use_llm and self.understand is None:
             from llm import understand          # lazy: rules-only visits never touch the network
             self.understand = understand
@@ -93,9 +106,13 @@ class Visit:
 
     def hear(self, text: str, language_code: str | None = None) -> list[str]:
         language_code = language_code or f"{self.lang}-IN"
+        self.transcript.append({"at": now(), "text": text, "lang": language_code})
         if self.saved:
             if is_undo(text, self.clock() - self.saved_at):
                 self.saved, self.saved_at = False, None
+                if self.store and self.visit_id is not None:
+                    self.store.mark_undone(self.visit_id, now())
+                self.visit_id = None
                 self._events.append({"type": "undo"})
                 return [self.speaker.say("undone")]
             log.info("visit already saved; ignoring: %r", text)
@@ -251,7 +268,11 @@ class Visit:
                 continue
             self.alerted.append(s)
             out.append(self.speaker.alert(s))
-            self._events.append(self._alert_event(s))
+            event = self._alert_event(s)
+            self._events.append(event)
+            last = self.danger.states[s].evidence[-1]
+            self.flags.append({"sign": s, "quote": event["quote"], "at": now(),
+                               "by": "llm" if last.phrase == "llm" else "rules"})
         return out
 
     def _alert_event(self, sign: str) -> dict:
@@ -267,9 +288,18 @@ class Visit:
                              "evidence": dict(self.evidence)})
 
     def _save(self) -> list[str]:
-        self.saved, self.saved_at = True, self.clock()
         rows = [{**r, "label": sign_label(r["sign"]), "local": spoken_sign(r["sign"], self.lang)}
                 for r in self.danger.receipt()]
+        if self.store:
+            try:
+                self.visit_id = self.store.save_visit(
+                    beneficiary_id=self.beneficiary_id, visit_type=self.visit_type, lang=self.lang,
+                    saved_at=now(), record=jsonable(self.record), transcript=self.transcript,
+                    receipt=rows, flags=self.flags)
+            except Exception:                   # never claim "saved" when the disk write failed
+                log.exception("saving the visit failed")
+                return [self.speaker.say("save_failed")]
+        self.saved, self.saved_at = True, self.clock()
         self._emit_record()
         self._events.append({"type": "receipt", "rows": rows})
         self._events.append({"type": "saved"})
