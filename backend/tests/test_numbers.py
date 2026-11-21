@@ -1,0 +1,59 @@
+import pytest
+
+from asha.numbers import extract_measurements, parse_digit_string, parse_numbers, valid_id
+
+
+@pytest.mark.parametrize("text,value", [
+    ("do point aath", 2.8), ("dhai", 2.5), ("saadhe nau", 9.5), ("paune teen", 2.75),
+    ("sava do", 2.25), ("dedh sau", 150), ("dhai sau", 250), ("ek sau bees", 120),
+    ("eraduvare", 2.5), ("ombattuvare", 9.5), ("eradoo mukkaalu", 2.75), ("ಎರಡೂ ಮುಕ್ಕಾಲು", 2.75),
+    ("onduukaalu", 1.25), ("noora ippattu", 120), ("innooru", 200), ("do hazaar chhabbees", 2026),
+    ("eradu saavirada ippattaaru", 2026), ("fifty two point five", 52.5), ("ಎರಡೂವರೆ", 2.5),
+    ("दो पॉइंट आठ", 2.8), ("baavan", 52), ("saath", 60), ("saat", 7), ("52", 52), ("2.8", 2.8),
+])
+def test_single_values(text, value):
+    nums = parse_numbers(text)
+    assert len(nums) == 1 and nums[0].value == pytest.approx(value)
+
+
+def test_two_digit_decimal_is_low_confidence():
+    n = parse_numbers("do point pachaasi")[0]
+    assert n.value == pytest.approx(2.85) and n.low_confidence
+
+
+@pytest.mark.parametrize("text,subject,key,value", [
+    ("baby ka wajan do kilo aath sau", "newborn", "weight_kg", 2.8),
+    ("do kilo aath sau gram", "newborn", "weight_kg", 2.8),
+    ("baavan kilo paanch sau gram", "mother", "weight_kg", 52.5),
+    ("aivatteradu kilo ainooru graam", "mother", "weight_kg", 52.5),
+    ("saadhe baavan kilo", "mother", "weight_kg", 52.5),
+    ("eradu point entu kilo", "newborn", "weight_kg", 2.8),
+    ("BP ek sau bees by assi", "mother", "bp", (120, 80)),
+    ("BP noora ippattu by embattu", "mother", "bp", (120, 80)),
+    ("hb saadhe nau hai", "mother", "hb", 9.5),
+    ("bukhaar ek sau ek point chaar degree", "mother", "temperature", (101.4, "F")),
+    ("saans ek minute mein saath", "newborn", "breaths_per_min", 60),
+])
+def test_measurements(text, subject, key, value):
+    m = extract_measurements(text, subject)
+    assert m[key] == (pytest.approx(value) if isinstance(value, float) else value)
+
+
+def test_dropped_hundreds_are_expanded_and_confirmed():
+    m = extract_measurements("BP bees assi")
+    assert m["bp"] == (120, 80) and m["doubts"][0][0] == "bp"
+
+
+def test_self_repair_keeps_last_value():
+    assert extract_measurements("wajan 2.6 nahi nahi 2.8 kilo", "newborn")["weight_kg"] == 2.8
+
+
+def test_out_of_range_is_a_doubt_not_a_diagnosis():
+    m = extract_measurements("wajan 28 kilo", "newborn")
+    assert m["doubts"] == [("weight_kg", 28.0, "outside plausible range")]
+
+
+def test_ids_keep_every_digit():
+    assert parse_digit_string("nau aath chaar double paanch zero") == "984550"
+    assert parse_digit_string("ek zero chaar do") == "1042"
+    assert valid_id("mobile", "9845012345") and not valid_id("mobile", "98450")

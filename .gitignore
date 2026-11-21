@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+*.db
+eval/clips/
+.DS_Store
+AGENTS.md
+HACKATHON-GUIDE.md
+KICKOFF-CODEX-PERSON-A.md
+PLAN.md
+CLAUDE.md
+
