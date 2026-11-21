@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ASHA Voice Register</title>
+  <meta name="description" content="Dictate a synthetic ASHA home-visit note.">
+  <link rel="stylesheet" href="cards.css">
+  <script defer src="cards.js"></script>
+  <script defer src="app.js"></script>
+  <style>
+    :root { color: #173e43; background: #fff8ee; font: 100%/1.5 system-ui, sans-serif; }
+    body { margin: 0; }
+    .voice-shell { max-width: 36rem; margin: auto; padding: 1.25rem clamp(1rem, 5vw, 2rem); }
+    .voice-banner { display: inline-block; background: #f2a541; color: #362505; padding: .25rem .65rem;
+      font-size: .875rem; font-weight: 750; letter-spacing: .06em; }
+    .voice-shell h1 { margin: .7rem 0 1.25rem; font-size: clamp(1.75rem, 7vw, 2.6rem); line-height: 1.1; }
+    .voice-controls { display: grid; gap: .6rem; }
+    .voice-controls select, .voice-controls button { font: inherit; min-height: 3rem;
+      border-radius: .6rem; padding: .55rem .8rem; }
+    .voice-controls select { color: inherit; border: 1px solid #799196; background: #fffdf8; }
+    .voice-controls button { color: white; border: 0; background: #0f4c5c; font-weight: 700; }
+    .voice-controls button:disabled { opacity: .6; }
+    .voice-controls #talk { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; min-height: 5.5rem; font-size: 1.25rem; }
+    .voice-controls #talk[aria-pressed="true"] { background: #173e43; box-shadow: inset 0 0 0 4px #f2a541; }
+    .voice-controls :focus-visible { outline: 3px solid #0f4c5c; outline-offset: 3px; }
+    .voice-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .35rem 1rem;
+      margin: .75rem 0 1.25rem; }
+    .voice-meta p { margin: 0; font-size: .9rem; }
+    .voice-transcript { margin: 0; padding: 1rem; border-top: 1px solid #a0b4b5; }
+    .voice-transcript h2 { font-size: 1rem; margin: 0 0 .4rem; }
+    .voice-transcript p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <section class="voice-shell" aria-labelledby="voice-title">
+    <span class="voice-banner">SYNTHETIC DATA</span>
+    <h1 id="voice-title">ASHA Voice Register</h1>
+    <div class="voice-controls">
+      <label for="speech-language">Speech language</label>
+      <select id="speech-language">
+        <option value="hi">हिन्दी</option>
+        <option value="kn">ಕನ್ನಡ</option>
+        <option value="en">English</option>
+      </select>
+      <button id="enable-mic" type="button">Enable microphone</button>
+      <button id="talk" type="button" aria-pressed="false" disabled>Hold to talk</button>
+      <a id="debug-audio" download="prisma-input.wav" hidden>Download last turn audio</a>
+    </div>
+    <div class="voice-meta">
+      <p id="voice-status" role="status">Enable your microphone to start.</p>
+      <p id="latency">Prisma latency · —</p>
+    </div>
+    <section class="voice-transcript" aria-labelledby="transcript-title">
+      <h2 id="transcript-title">Transcript</h2>
+      <p id="transcript" dir="auto" aria-live="polite">Your words will appear here.</p>
+    </section>
+    <main id="cards"></main>
+  </section>
+</body>
+</html>
