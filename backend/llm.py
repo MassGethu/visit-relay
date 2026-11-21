@@ -32,6 +32,7 @@ PROMPT_FILE = ROOT / "prompts" / "understand.md"
 load_dotenv(ROOT / ".env")
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_DEFAULT_MODEL = "openai/gpt-oss-120b"   # llama-3.3-70b-versatile is no longer offered
 GROQ_TIMEOUT_S = 3.0
 OLLAMA_TIMEOUT_S = 8.0
 MAX_TOKENS = 600
@@ -184,12 +185,12 @@ def call_groq(system: str, user: str) -> str:
     key = os.getenv("GROQ_API_KEY")
     if not key:
         raise RuntimeError("GROQ_API_KEY not set")
-    r = _http().post(GROQ_URL, timeout=GROQ_TIMEOUT_S,
-                     headers={"Authorization": f"Bearer {key}"},
-                     json={"model": os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
-                           "messages": _messages(system, user),
-                           "response_format": {"type": "json_object"},
-                           "temperature": 0, "max_tokens": MAX_TOKENS})
+    model = os.getenv("GROQ_MODEL", GROQ_DEFAULT_MODEL)
+    body = {"model": model, "messages": _messages(system, user),
+            "response_format": {"type": "json_object"}, "temperature": 0, "max_tokens": MAX_TOKENS}
+    if model.startswith("openai/gpt-oss"):          # reasoning model: keep its thinking short for speed
+        body["reasoning_effort"] = os.getenv("GROQ_REASONING", "low")
+    r = _http().post(GROQ_URL, timeout=GROQ_TIMEOUT_S, headers={"Authorization": f"Bearer {key}"}, json=body)
     r.raise_for_status()
     return r.json()["choices"][0]["message"]["content"]
 
