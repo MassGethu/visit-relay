@@ -5,7 +5,7 @@
         "unsure": [...], "correction_of": [...], "danger_signs": [...], "off_topic": False,
         "visit_context": None}
 
-Groq first (JSON mode, 3 s timeout), then local Ollama (LOCAL_MODEL). If both fail it returns
+Groq first, then Gemini Flash-Lite, then local Ollama (if configured). If all fail it returns
 {"ok": False, "error": ...} and the visit carries on with rules only. The LLM never writes speech;
 everything it returns is validated here and anything that doesn't fit the schema is dropped.
 It is synchronous: callers that must not block (danger alerts) run it in a thread.
@@ -23,6 +23,7 @@ from pathlib import Path
 import httpx
 from dotenv import load_dotenv
 
+from asha.context import COVERS
 from asha.danger import VISIT_GROUPS
 from asha.text import DATA
 
@@ -35,6 +36,9 @@ load_dotenv(ROOT / ".env")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_DEFAULT_MODEL = "openai/gpt-oss-120b"   # llama-3.3-70b-versatile is no longer offered
 GROQ_TIMEOUT_S = 3.0
+GEMINI_MODEL = "gemini-3.5-flash-lite"
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+GEMINI_TIMEOUT_S = 4.0
 OLLAMA_TIMEOUT_S = 8.0
 MAX_TOKENS = 600
 
@@ -200,6 +204,37 @@ def call_groq(system: str, user: str) -> str:
     return r.json()["choices"][0]["message"]["content"]
 
 
+def call_gemini(system: str, user: str) -> str:
+    key = os.getenv("GEMINI_API_KEY")
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY not set")
+    body = {
+        "systemInstruction": {"parts": [{"text": system}]},
+        "contents": [{"role": "user", "parts": [{"text": user}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0,
+            "maxOutputTokens": 4096,
+            "thinkingConfig": {"thinkingLevel": "LOW"},
+        },
+    }
+    client = _http()
+    headers = {"x-goog-api-key": key}
+    deadline = time.monotonic() + GEMINI_TIMEOUT_S
+    r = client.post(GEMINI_URL, timeout=GEMINI_TIMEOUT_S, headers=headers, json=body)
+    if r.status_code == 503 and "retry-after" not in r.headers:
+        remaining = deadline - time.monotonic()
+        if remaining > 0:
+            r = client.post(GEMINI_URL, timeout=remaining, headers=headers, json=body)
+    r.raise_for_status()
+    candidates = r.json().get("candidates", [])
+    if not candidates or candidates[0].get("finishReason") != "STOP":
+        raise ValueError("Gemini did not return a complete answer")
+    parts = candidates[0].get("content", {}).get("parts", [])
+    return "".join(part["text"] for part in parts
+                   if not part.get("thought") and isinstance(part.get("text"), str))
+
+
 def call_ollama(system: str, user: str) -> str:
     model = os.getenv("LOCAL_MODEL")
     if not model:
@@ -213,13 +248,13 @@ def call_ollama(system: str, user: str) -> str:
     return r.json()["message"]["content"]
 
 
-PROVIDERS = ("groq", "ollama")      # tried in this order
+PROVIDERS = ("groq", "gemini", "ollama")      # tried in this order
 
 
 def understand(transcript: str, visit_type: str, current_record: dict) -> dict:
     system = system_prompt(visit_type)
     user = user_message(transcript, visit_type, current_record)
-    calls = {"groq": call_groq, "ollama": call_ollama}
+    calls = {"groq": call_groq, "gemini": call_gemini, "ollama": call_ollama}
     errors = []
     for name in PROVIDERS:
         call = calls[name]
@@ -231,5 +266,10 @@ def understand(transcript: str, visit_type: str, current_record: dict) -> dict:
             errors.append(f"{name}: {type(e).__name__}: {e}")
             log.warning("llm %s failed: %s", name, errors[-1])
             continue
+        other = result["visit_context"]
+        if name == "gemini" and other and other != visit_type and other not in COVERS.get(visit_type, ()):
+            # Keep the suggestion to switch visits. These model findings belong
+            # to another visit, while this visit still runs its own danger rules.
+            result.update(fields={}, evidence={}, danger_signs=[], unsure=[], correction_of=[])
         return {"ok": True, "provider": name, "ms": round((time.perf_counter() - t0) * 1000), **result}
     return {"ok": False, "error": "; ".join(errors)}

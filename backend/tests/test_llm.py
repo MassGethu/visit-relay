@@ -1,9 +1,11 @@
-"""LLM layer: prompt building, schema validation and Groq -> Ollama fallback (no network)."""
+"""LLM layer: prompt building, schema validation and provider fallback without network calls."""
 import json
 
+import httpx
 import pytest
 
 import llm
+from asha.visit import Visit
 
 
 def ok_json(**extra) -> str:
@@ -91,35 +93,112 @@ def boom(*_):
 
 def test_groq_answer_is_used_first(monkeypatch):
     monkeypatch.setattr(llm, "call_groq", lambda s, u: ok_json(fields={"hb": 9.5}))
+    monkeypatch.setattr(llm, "call_gemini", lambda s, u: pytest.fail("Gemini should not be called"))
     monkeypatch.setattr(llm, "call_ollama", lambda s, u: pytest.fail("ollama should not be called"))
     out = llm.understand("hb saadhe nau", "anc", {})
     assert out["ok"] and out["provider"] == "groq" and out["fields"] == {"hb": 9.5}
 
 
-def test_falls_back_to_ollama_when_groq_fails(monkeypatch):
+@pytest.mark.parametrize("groq", [boom, lambda s, u: "not json"])
+def test_gemini_is_first_fallback(monkeypatch, groq):
+    monkeypatch.setattr(llm, "call_groq", groq)
+    monkeypatch.setattr(llm, "call_gemini", lambda s, u: ok_json(fields={"weight_kg": 52}))
+    monkeypatch.setattr(llm, "call_ollama", lambda s, u: pytest.fail("Ollama should not be called"))
+    out = llm.understand("wajan baavan kilo", "anc", {})
+    assert out["ok"] and out["provider"] == "gemini" and out["fields"] == {"weight_kg": 52}
+
+
+def test_falls_back_to_ollama_when_both_hosted_providers_fail(monkeypatch):
     monkeypatch.setattr(llm, "call_groq", boom)
+    monkeypatch.setattr(llm, "call_gemini", boom)
     monkeypatch.setattr(llm, "call_ollama", lambda s, u: ok_json(fields={"weight_kg": 52}))
     out = llm.understand("wajan baavan kilo", "anc", {})
     assert out["ok"] and out["provider"] == "ollama" and out["fields"] == {"weight_kg": 52}
 
 
-def test_falls_back_when_groq_returns_broken_json(monkeypatch):
-    monkeypatch.setattr(llm, "call_groq", lambda s, u: "not json")
-    monkeypatch.setattr(llm, "call_ollama", lambda s, u: ok_json())
-    assert llm.understand("x", "anc", {})["provider"] == "ollama"
-
-
-def test_both_fail_returns_not_ok_with_reasons(monkeypatch):
+def test_all_providers_fail_returns_not_ok_with_reasons(monkeypatch):
     monkeypatch.setattr(llm, "call_groq", boom)
+    monkeypatch.setattr(llm, "call_gemini", boom)
     monkeypatch.setattr(llm, "call_ollama", boom)
     out = llm.understand("x", "anc", {})
-    assert out == {"ok": False, "error": "groq: RuntimeError: down; ollama: RuntimeError: down"}
+    assert out == {"ok": False, "error": "groq: RuntimeError: down; gemini: RuntimeError: down; ollama: RuntimeError: down"}
 
 
 def test_missing_keys_fail_fast_without_network(monkeypatch):
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.delenv("LOCAL_MODEL", raising=False)
     with pytest.raises(RuntimeError, match="GROQ_API_KEY"):
         llm.call_groq("s", "u")
+    with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+        llm.call_gemini("s", "u")
     with pytest.raises(RuntimeError, match="LOCAL_MODEL"):
         llm.call_ollama("s", "u")
+
+
+def test_gemini_retries_a_503_within_its_timeout_and_reads_final_json(monkeypatch):
+    seen = []
+    text = ok_json(fields={"hb": 9.5})
+
+    def respond(request):
+        seen.append(request.extensions["timeout"]["read"])
+        assert str(request.url) == llm.GEMINI_URL
+        assert request.headers["x-goog-api-key"] == "synthetic-key"
+        body = json.loads(request.content)
+        assert body["systemInstruction"] == {"parts": [{"text": "s"}]}
+        assert body["contents"] == [{"role": "user", "parts": [{"text": "u"}]}]
+        assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "LOW"}
+        assert body["generationConfig"]["responseMimeType"] == "application/json"
+        if len(seen) == 1:
+            return httpx.Response(503)
+        return httpx.Response(200, json={"candidates": [{
+            "finishReason": "STOP", "content": {"parts": [{"text": "ignored", "thought": True}, {"text": text}]},
+        }]})
+
+    monkeypatch.setenv("GEMINI_API_KEY", "synthetic-key")
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        monkeypatch.setattr(llm, "_http", lambda: client)
+        assert llm.call_gemini("s", "u") == text
+    assert len(seen) == 2
+    assert 0 < seen[1] <= seen[0] == llm.GEMINI_TIMEOUT_S
+
+
+@pytest.mark.parametrize(("status", "headers"), [(429, {}), (503, {"Retry-After": "30"})])
+def test_gemini_passes_quota_or_retry_after_failure_to_the_next_provider(monkeypatch, status, headers):
+    seen = []
+
+    def respond(request):
+        seen.append(request)
+        return httpx.Response(status, headers=headers)
+
+    monkeypatch.setenv("GEMINI_API_KEY", "synthetic-key")
+    monkeypatch.setattr(llm, "call_groq", boom)
+    monkeypatch.setattr(llm, "call_ollama", lambda s, u: ok_json())
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        monkeypatch.setattr(llm, "_http", lambda: client)
+        assert llm.understand("note", "anc", {})["provider"] == "ollama"
+    assert len(seen) == 1
+
+
+def test_gemini_wrong_visit_findings_do_not_override_local_danger_rules(monkeypatch):
+    monkeypatch.setattr(llm, "call_groq", boom)
+    monkeypatch.setattr(llm, "call_gemini", lambda s, u: ok_json(
+        visit_context="hbnc",
+        fields={"temperature": {"value": 102, "unit": "F"}},
+        danger_signs=[{"id": "anc_high_fever", "status": "present", "evidence": "baby ko bukhaar"},
+                      {"id": "anc_convulsions", "status": "present", "evidence": "baby ko bukhaar"}],
+    ))
+    result = llm.understand("baby ko bukhaar hai", "anc", {})
+    assert result["visit_context"] == "hbnc" and result["danger_signs"] == [] and result["fields"] == {}
+
+    visit = Visit("anc", lang="hi", understand=llm.understand, use_store=False)
+    visit.start()
+    visit.hear("baby ko bukhaar hai")
+    visit.followup()
+    events = visit.events()
+    assert any(event["type"] == "visit_context" for event in events)
+    assert not any(event["type"] == "alert" and event["sign"] == "anc_convulsions" for event in events)
+    assert "temperature" not in visit.record
+
+    visit.hear("thoda khoon aa raha hai")
+    assert any(event["type"] == "alert" and event["sign"] == "anc_vaginal_bleeding" for event in visit.events())

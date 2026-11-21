@@ -51,7 +51,7 @@ DISCREET_MAX_WORDS = 3                # longer sentences with "dheere" are conte
 # Never read aloud in discreet mode (the screen still shows them). Danger signs are always read.
 SENSITIVE_FIELDS = {"family_planning", "contraception", "pregnancy_loss", "abortion",
                     "miscarriage", "stillbirth"}
-LLM_WAIT_S = 15.0                    # upper bound; llm.py's own timeouts are 3 s + 8 s
+LLM_WAIT_S = 15.0                    # upper bound for waiting on the provider chain
 
 # Narrow answer vocabulary: "okay" may acknowledge the question without asserting a symptom.
 YES_ANSWERS = {"yes", "haan", "han", "ha", "हाँ", "हां", "हा", "ಹೌದು", "howdu", "haudu"}
