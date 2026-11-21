@@ -1,0 +1,210 @@
+{
+ "anc_severe_headache_blurred_vision": {
+  "hi": [
+   {
+    "script": "सिर में बहुत दर्द",
+    "roman": "sir mein bahut dard",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "सर में बहुत दर्द",
+    "roman": "sar mein bahut dard",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "सिर में तेज़ दर्द",
+    "roman": "sir mein tez dard",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "धुंधला दिख रहा",
+    "roman": "dhundhla dikh raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "anc_breathlessness": {
+  "hi": [
+   {
+    "script": "सांस फूल रही",
+    "roman": "saans phool rahi",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "pnc_no_urine": {
+  "hi": [
+   {
+    "script": "पेशाब नहीं हो रहा",
+    "roman": "pishab nahi ho raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "पेशाब नहीं आ रहा",
+    "roman": "peshab nahi aa raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "nb_poor_feeding": {
+  "hi": [
+   {
+    "script": "दूध नहीं पी रहा",
+    "roman": "doodh nahi pee raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "दूध नहीं पीता",
+    "roman": "doodh nahi peeta",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "स्तनपान नहीं कर रहा",
+    "roman": "stanpan nahi kar raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ],
+  "codemix": [
+   {
+    "script": "feed nahi kar raha",
+    "roman": "feed nahi kar raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ],
+  "negations": [
+   {
+    "script": "दूध अच्छे से पी रहा",
+    "roman": "doodh achhe se pee raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "दूध ठीक से पी रहा",
+    "roman": "doodh theek se pee raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "nb_fever": {
+  "hi": [
+   {
+    "script": "बच्चे को बुखार",
+    "roman": "bachche ko bukhaar",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "बच्चे को बुखार",
+    "roman": "baby ko bukhaar",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "बच्चे का बदन गरम",
+    "roman": "bachche ka badan garam",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "nb_hypothermia": {
+  "hi": [
+   {
+    "script": "बच्चा ठंडा पड़ गया",
+    "roman": "bachcha thanda pad gaya",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "बच्चा बिल्कुल ठंडा",
+    "roman": "baby bilkul thanda",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "हाथ पैर ठंडे",
+    "roman": "haath pair thande",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "nb_lethargy_limp": {
+  "hi": [
+   {
+    "script": "बच्चा सुस्त है",
+    "roman": "bachcha sust hai",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "बच्चा ढीला पड़ गया",
+    "roman": "bachcha dheela pad gaya",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "nb_jaundice_severe": {
+  "hi": [
+   {
+    "script": "हथेली पीली",
+    "roman": "hatheli peeli",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "तलवे पीले",
+    "roman": "talve peele",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "nb_umbilical_infection": {
+  "hi": [
+   {
+    "script": "नाल लाल है",
+    "roman": "naal laal hai",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "नाल से पस",
+    "roman": "naal se pus",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "नाल से मवाद",
+    "roman": "naal se mawaad",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "nb_cyanosis": {
+  "hi": [
+   {
+    "script": "बच्चा नीला पड़ गया",
+    "roman": "baby neela pad gaya",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "होंठ नीले",
+    "roman": "honth neele",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "ch_fever_persistent": {
+  "hi": [
+   {
+    "script": "सात दिन से बुखार",
+    "roman": "saat din se bukhaar",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "कई दिनों से बुखार",
+    "roman": "kai dinon se bukhaar",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "हफ्ते भर से बुखार",
+    "roman": "hafte bhar se bukhaar",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "दो हफ्ते से बुखार",
+    "roman": "do hafte se bukhaar",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ }
+}

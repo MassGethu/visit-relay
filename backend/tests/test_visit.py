@@ -99,8 +99,8 @@ def test_rule_alert_does_not_wait_for_a_slow_llm():
 
 def test_llm_only_danger_sign_is_spoken_by_followup():
     v = make("hbnc", "newborn", use_llm=True, understand=llm_says(
-        danger_signs=[{"id": "nb_poor_feeding", "status": "present", "evidence": "doodh nahi pee raha"}]))
-    v.hear("doodh nahi pee raha")
+        danger_signs=[{"id": "nb_poor_feeding", "status": "present", "evidence": "subah se kuch nahi liya"}]))
+    v.hear("subah se kuch nahi liya")
     lines = v.followup()
     assert len(lines) == 1 and "PHC" in lines[0]
     assert v.danger.states["nb_poor_feeding"].status == "present"
@@ -175,8 +175,8 @@ def test_llm_failure_leaves_the_rules_result():
 
 def test_save_waits_for_pending_llm_so_nothing_is_lost():
     v = make("hbnc", "newborn", use_llm=True, understand=llm_says(
-        danger_signs=[{"id": "nb_poor_feeding", "status": "present", "evidence": "doodh nahi"}]))
-    v.hear("doodh nahi pee raha")
+        danger_signs=[{"id": "nb_poor_feeding", "status": "present", "evidence": "kuch nahi liya"}]))
+    v.hear("subah se kuch nahi liya")
     lines = v.hear("record pakka")                   # no followup() call in between
     assert "PHC" in lines[0] and "save" in lines[-1]
     receipt = next(e for e in v.events() if e["type"] == "receipt")

@@ -47,3 +47,19 @@ def test_confirm_question_names_person_and_speaks_id_digits():
     sp.say("disclosure")
     line = sp.confirm_beneficiary({"id": "4127", "name": "Kavya Gowda"})
     assert line.startswith("Kya aap Kavya Gowda, ID ") and "4127" not in line
+
+
+@pytest.mark.parametrize("said, want_id", [
+    ("काव्या का बच्चा", "7409"),       # Prisma writes Hindi in Devanagari
+    ("काव्या गौड़ा", "4127"),           # whole name of the mother, not the baby
+    ("kavya gowda", "4127"),
+    ("ಕಾವ್ಯ ಗೌಡ", "4127"),
+    ("सुनीता देवी की विज़िट", "4381"),
+])
+def test_devanagari_kannada_and_full_names_are_sure(said, want_id):
+    m = find(said, PEOPLE)
+    assert m.person["id"] == want_id and m.sure
+
+
+def test_every_beneficiary_has_spoken_names():
+    assert all(p["spoken_names"] for p in PEOPLE)

@@ -152,6 +152,12 @@ class Lexicon:
 def load_lexicon() -> Lexicon:
     signs = {s["id"]: s for s in json.loads((DATA / "danger_signs.json").read_text("utf-8"))}
     lex = json.loads((DATA / "lexicon.json").read_text("utf-8"))
+    # Phrasings added from recall testing; kept apart so tools/extract_research.py never overwrites them.
+    for sign, langs in json.loads((DATA / "lexicon_extra.json").read_text("utf-8")).items():
+        if sign not in lex:
+            raise ValueError(f"lexicon_extra.json: unknown sign {sign!r}")
+        for lang, entries in langs.items():
+            lex[sign].setdefault(lang, []).extend(entries)
     inverted = frozenset((DATA / "inverted.txt").read_text("utf-8").split())
     phrases: list[Phrase] = []
     for sign, langs in lex.items():
@@ -171,7 +177,8 @@ def load_lexicon() -> Lexicon:
     return _finish(signs, inverted, phrases, generic, by_word)
 
 
-ALWAYS_GENERIC = {fold(w) for w in ("bachcha", "baccha", "baby", "magu", "maguvu", "amma", "maa",
+ALWAYS_GENERIC = {fold(w) for w in ("bachcha", "baccha", "bachche", "bacche", "baby", "magu", "maguvu",
+                                  "amma", "maa", "बच्चे", "बच्चों", "शिशु", "shishu",
                                   "thoda", "bahut", "tumba", "jaasti", "kam", "kammi", "kal",
                                   "body", "pet", "hotte", "बच्चा", "ಮಗು")}
 
@@ -255,6 +262,33 @@ def _find(phrase: Phrase, content: list[int], hits: dict[str, set[int]],
         if not partial:
             break
     return best
+
+
+# HBNC covers mother and newborn: "baby ko bukhaar" must not become the mother's fever.
+BABY_WORDS = {"baby", "bachcha", "baccha", "bachche", "bacche", "shishu", "navjaat", "magu", "maguvu",
+              "बच्चा", "बच्चे", "शिशु", "नवजात", "ಮಗು", "ಮಗುವಿಗೆ"}
+MOTHER_WORDS = {"maa", "mummy", "mother", "amma", "taayi", "माँ", "मां", "ಅಮ್ಮ", "ತಾಯಿ"}
+
+
+def _by_subject(matches: list[Match], words: list[str]) -> list[Match]:
+    """Where a newborn sign and a postnatal (mother) sign match the same words, keep the one
+    the sentence is about; if it names neither, keep a full match over a partial one."""
+    wordset = set(words)
+    baby, mother = bool(wordset & BABY_WORDS), bool(wordset & MOTHER_WORDS)
+    drop: set[int] = set()
+    for i, a in enumerate(matches):
+        for j, b in enumerate(matches):
+            if not (a.sign.startswith("nb_") and b.sign.startswith("pnc_")):
+                continue
+            if a.end < b.start or b.end < a.start:
+                continue                     # different words: both can be true
+            if baby and not mother:
+                drop.add(j)
+            elif mother and not baby:
+                drop.add(i)
+            elif a.partial != b.partial:
+                drop.add(i if a.partial else j)
+    return [m for n, m in enumerate(matches) if n not in drop]
 
 
 def _has_seq(words: list[str], seq: tuple[str, ...]) -> bool:
@@ -345,7 +379,7 @@ class DangerChecker:
                      and not hedged
                      and not (m.sign in self.lex.inverted
                               and any(is_negator(w) for w in words[m.start:m.end + 1]))}
-        danger = [m for m in matches if not m.negation_phrase]
+        danger = _by_subject([m for m in matches if not m.negation_phrase], words)
         starts = sorted({m.start for m in danger if not is_negator(words[m.start])})
 
         newly: list[str] = []

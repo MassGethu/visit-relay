@@ -104,9 +104,9 @@ def test_llm_flag_is_audited_as_llm(store):
     v = Visit("hbnc", subject="newborn", lang="hi", use_llm=True, store=store, beneficiary_id="7409",
               understand=lambda *a: {"ok": True, "fields": {}, "evidence": {}, "unsure": [],
                                      "danger_signs": [{"id": "nb_poor_feeding", "status": "present",
-                                                       "evidence": "doodh nahi pee raha"}]})
+                                                       "evidence": "subah se kuch nahi liya"}]})
     v.start()
-    v.hear("doodh nahi pee raha")
+    v.hear("subah se kuch nahi liya")
     v.followup()
     v.hear("record pakka")
     flags = [a for a in store.audit(v.visit_id) if a["kind"] == "flag"]

@@ -11,7 +11,11 @@
    "date": "2026-10-24",
    "weight_kg": 52.0
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "काव्या गौड़ा",
+   "ಕಾವ್ಯ ಗೌಡ"
+  ]
  },
  {
   "id": "4381",
@@ -25,7 +29,11 @@
    "date": "2026-10-30",
    "weight_kg": 48.5
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "सुनीता देवी",
+   "ಸುನೀತಾ ದೇವಿ"
+  ]
  },
  {
   "id": "5096",
@@ -39,7 +47,11 @@
    "date": "2026-11-02",
    "weight_kg": 55.0
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "शिल्पा नायक",
+   "ಶಿಲ್ಪಾ ನಾಯಕ್"
+  ]
  },
  {
   "id": "5274",
@@ -53,7 +65,11 @@
    "date": "2026-10-19",
    "weight_kg": 50.5
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "रेखा हेगड़े",
+   "ರೇಖಾ ಹೆಗ್ಡೆ"
+  ]
  },
  {
   "id": "6013",
@@ -67,7 +83,11 @@
    "date": "2026-11-06",
    "weight_kg": 46.0
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "लक्ष्मी पाटिल",
+   "ಲಕ್ಷ್ಮಿ ಪಾಟೀಲ್"
+  ]
  },
  {
   "id": "6248",
@@ -81,7 +101,11 @@
    "date": "2026-11-12",
    "weight_kg": 54.0
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "आशा कुमारी",
+   "ಆಶಾ ಕುಮಾರಿ"
+  ]
  },
  {
   "id": "6735",
@@ -95,7 +119,11 @@
    "date": "2026-11-10",
    "weight_kg": 57.5
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "गीता शेट्टी",
+   "ಗೀತಾ ಶೆಟ್ಟಿ"
+  ]
  },
  {
   "id": "7152",
@@ -109,7 +137,11 @@
    "date": "2026-11-14",
    "weight_kg": 51.0
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "पूजा रेड्डी",
+   "ಪೂಜಾ ರೆಡ್ಡಿ"
+  ]
  },
  {
   "id": "7409",
@@ -123,7 +155,12 @@
    "date": "2026-11-15",
    "weight_kg": 2.8
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "काव्या गौड़ा का बच्चा",
+   "काव्या गौड़ा का बेबी",
+   "ಕಾವ್ಯ ಗೌಡ ಮಗು"
+  ]
  },
  {
   "id": "7863",
@@ -137,7 +174,12 @@
    "date": "2026-11-13",
    "weight_kg": 3.1
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "आशा कुमारी का बच्चा",
+   "आशा कुमारी का बेबी",
+   "ಆಶಾ ಕುಮಾರಿ ಮಗು"
+  ]
  },
  {
   "id": "8031",
@@ -151,7 +193,12 @@
    "date": "2026-11-11",
    "weight_kg": 2.5
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "गीता शेट्टी का बच्चा",
+   "गीता शेट्टी का बेबी",
+   "ಗೀತಾ ಶೆಟ್ಟಿ ಮಗು"
+  ]
  },
  {
   "id": "8296",
@@ -165,7 +212,12 @@
    "date": "2026-11-16",
    "weight_kg": 2.9
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "पूजा रेड्डी का बच्चा",
+   "पूजा रेड्डी का बेबी",
+   "ಪೂಜಾ ರೆಡ್ಡಿ ಮಗು"
+  ]
  },
  {
   "id": "8574",
@@ -179,7 +231,11 @@
    "date": "2026-09-20",
    "weight_kg": 8.4
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "चिन्मय",
+   "ಚಿನ್ಮಯ್"
+  ]
  },
  {
   "id": "9142",
@@ -193,7 +249,11 @@
    "date": "2026-10-05",
    "weight_kg": 10.2
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "अनन्या",
+   "ಅನನ್ಯ"
+  ]
  },
  {
   "id": "9618",
@@ -207,6 +267,10 @@
    "date": "2026-08-28",
    "weight_kg": 12.6
   },
-  "synthetic": true
+  "synthetic": true,
+  "spoken_names": [
+   "किरण",
+   "ಕಿರಣ್"
+  ]
  }
 ]
