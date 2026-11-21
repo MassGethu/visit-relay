@@ -2,19 +2,27 @@
 from __future__ import annotations
 
 import asyncio
+import csv
 import json
+import logging
 import os
+import time
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
+from threading import Lock
+from typing import Literal
+from uuid import UUID, uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 from websockets.exceptions import WebSocketException
 
 from asha.gnani import COMMIT_MESSAGE, FRAME_BYTES, stt_headers, visit_keyterms
 from asha.visit import Visit
+from llm import understand
 from stt import PrismaRelay
 from tts import Timbre, VisitSpeech
 
@@ -28,7 +36,34 @@ DEMO_BENEFICIARIES = [
     {"id": "demo-hbnc", "name": "Baby of Kavya", "visit_type": "hbnc"},
 ]
 
+LOG = logging.getLogger(__name__)
+TIMING_FILE = ROOT / "eval" / "latency.csv"
+TIMING_LOCK = Lock()
+
 load_dotenv(ROOT / ".env")
+
+
+def write_timing(session, turn, stage, timestamp_ms):
+    try:
+        with TIMING_LOCK:
+            TIMING_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with TIMING_FILE.open("a+", newline="", encoding="utf-8") as stream:
+                stream.seek(0, os.SEEK_END)
+                writer = csv.writer(stream)
+                if not stream.tell():
+                    writer.writerow(("session", "turn", "stage", "timestamp_ms"))
+                writer.writerow((session, turn, stage, f"{timestamp_ms:.3f}"))
+    except OSError:
+        LOG.warning("Could not write voice timing CSV")
+
+
+class BrowserTiming(BaseModel):
+    session: UUID
+    turn: int = Field(gt=0, le=10000)
+    stage: Literal["release", "first_audio_played"]
+    timestamp_ms: float = Field(gt=0, le=1e13)
+
+
 @asynccontextmanager
 async def lifespan(app):
     key = os.getenv("GNANI_API_KEY", "").strip()
@@ -46,8 +81,15 @@ app = FastAPI(lifespan=lifespan)
 
 
 class VisitTurn:
-    def __init__(self, phone, visit, speech, hands_free):
+    def __init__(self, phone, visit, speech, hands_free, session_id, llm_turns):
         self.phone = phone
+        self.session_id = session_id
+        self.llm_turns = llm_turns
+        self.visit_lock = asyncio.Lock()
+        self.turn_number = 0
+        self.reply_turn = 0
+        self.seen_timings = set()
+        self.open_utterances = set()
         self.hands_free = hands_free
         self.visit = visit
         self.speech = speech
@@ -58,14 +100,22 @@ class VisitTurn:
         self.readback_done = False
         self.timer = None
 
-    async def emit(self, lines):
-        events = getattr(self.visit, "events", lambda: [])
-        for event in events():
+    def mark(self, number, stage):
+        point = (number, stage)
+        if number and point not in self.seen_timings:
+            self.seen_timings.add(point)
+            write_timing(self.session_id, number, stage, time.time_ns() / 1e6)
+
+    def queue(self, lines, number):
+        self.speech.queue(lines, on_first=lambda: self.mark(number, "first_tts_byte"))
+
+    async def emit(self, lines, events, number=0):
+        for event in events:
             await self.phone.send_json(event)
         if self.holding:
             self.pending_speech.extend(lines)
         else:
-            self.speech.queue(lines)
+            self.queue(lines, number)
 
     def schedule_readback(self, delay):
         if self.readback_done:
@@ -80,13 +130,33 @@ class VisitTurn:
         # recently finalized VAD segments to arrive before the first readback.
         await asyncio.sleep(delay)
         self.readback_done = True
-        await self.emit(self.visit.readback())
+        number = self.reply_turn
+        async with self.visit_lock:
+            task = asyncio.create_task(asyncio.to_thread(self.visit.readback))
+            try:
+                done, _ = await asyncio.wait((task,), timeout=0.55)
+                if not done and (number, "first_tts_byte") not in self.seen_timings:
+                    acknowledgement = self.speech.cached_acknowledgement()
+                    if acknowledgement and not self.holding and not self.speech.busy:
+                        self.queue([acknowledgement], number)
+                lines = await task
+                await self.emit(lines, self.visit.events(), number)
+            finally:
+                if not task.done():
+                    task.cancel()
+                    await asyncio.gather(task, return_exceptions=True)
 
     async def close(self):
         if self.timer:
             self.timer.cancel()
             await asyncio.gather(self.timer, return_exceptions=True)
         await self.speech.close()
+
+
+@app.post("/api/latency", status_code=204)
+def browser_timing(point: BrowserTiming):
+    write_timing(point.session, point.turn, point.stage, point.timestamp_ms)
+    return Response(status_code=204)
 
 
 @app.get("/api/beneficiaries")
@@ -108,6 +178,7 @@ async def send_audio(phone: WebSocket, prisma, turn: VisitTurn) -> None:
         if frame is not None:
             if not turn.hands_free and not turn.holding:
                 turn.holding = True
+                turn.turn_number += 1
                 turn.schedule_readback(0)
             if len(frame) != FRAME_BYTES:
                 await phone.close(code=1008, reason="Expected 1024-byte PCM frames")
@@ -119,12 +190,16 @@ async def send_audio(phone: WebSocket, prisma, turn: VisitTurn) -> None:
             event = json.loads(message["text"])
             if isinstance(event, dict) and event.get("type") == "commit":
                 await asyncio.sleep(max(0, next_frame - loop.time()))
+                if not turn.holding and not turn.hands_free:
+                    turn.turn_number += 1
+                turn.reply_turn = turn.turn_number
+                turn.mark(turn.reply_turn, "commit_sent")
                 await prisma.send(COMMIT_MESSAGE)
                 turn.holding = False
-                turn.speech.queue(turn.pending_speech)
+                turn.queue(turn.pending_speech, turn.reply_turn)
                 turn.pending_speech.clear()
                 turn.committed = True
-                turn.schedule_readback(0.9)
+                turn.schedule_readback(0.9 if turn.open_utterances else 0.35)
             elif isinstance(event, dict) and event.get("type") == "barge_in":
                 await turn.speech.interrupt()
 
@@ -133,7 +208,18 @@ async def send_transcripts(phone: WebSocket, prisma, locale: str, turn: VisitTur
     async for event in prisma:
         if event.get("type") == "error":
             raise RuntimeError("Prisma reported an error")
+        if event.get("type") == "speech_start" and event.get("utterance_id"):
+            turn.open_utterances.add(event["utterance_id"])
+        if event.get("type") == "transcript":
+            turn.open_utterances.discard(event.get("utterance_id"))
         if event.get("type") == "transcript" and event.get("text", "").strip():
+            if turn.hands_free:
+                turn.turn_number += 1
+                turn.reply_turn = turn.turn_number
+            number = turn.turn_number
+            turn.mark(number, "transcript")
+            text = event["text"]
+            detected = event.get("detected_language_code") or locale
             await phone.send_json({
                 "type": "transcript",
                 "text": event["text"],
@@ -145,8 +231,12 @@ async def send_transcripts(phone: WebSocket, prisma, locale: str, turn: VisitTur
             turn.has_transcript = True
             if turn.hands_free:
                 turn.committed = True
-            await turn.emit(turn.visit.hear(event["text"], event.get("detected_language_code") or locale))
-            turn.schedule_readback(0.35)
+            async with turn.visit_lock:
+                turn.llm_turns[text] = number
+                lines = await asyncio.to_thread(turn.visit.hear, text, detected)
+                turn.mark(number, "rules_done")
+                await turn.emit(lines, turn.visit.events(), number)
+            turn.schedule_readback(0.7 if turn.open_utterances else 0.25)
 
 
 @app.websocket("/ws")
@@ -165,15 +255,30 @@ async def visit_socket(phone: WebSocket) -> None:
             return
         locale = f"{start['lang']}-IN"
         subject = {"hbnc": "newborn", "hbyc": "child"}.get(start["visit_type"], "mother")
+        try:
+            session_id = UUID(phone.query_params.get("timing", ""))
+        except ValueError:
+            session_id = uuid4()
+        llm_turns = {}
+
+        def timed_understand(text, visit_type, record):
+            number = llm_turns.pop(text, 0)
+            try:
+                return understand(text, visit_type, record)
+            finally:
+                if number:
+                    write_timing(session_id, number, "llm_done", time.time_ns() / 1e6)
+
         visit = Visit(start["visit_type"], subject, start["lang"],
-                      beneficiary_id=start["beneficiary_id"])
+                      beneficiary_id=start["beneficiary_id"], understand=timed_understand)
         terms = visit_keyterms(start["visit_type"], start["lang"])
         headers = stt_headers(key, [locale], keyterms=terms)
         async with PrismaRelay(headers) as prisma:
             timbre = phone.app.state.timbre
             turn = VisitTurn(phone, visit, VisitSpeech(timbre, phone, start["lang"]),
-                             hands_free=phone.query_params.get("hands_free") == "1")
-            await turn.emit(visit.start())
+                             hands_free=phone.query_params.get("hands_free") == "1",
+                             session_id=session_id, llm_turns=llm_turns)
+            await turn.emit(visit.start(), visit.events())
             upload = asyncio.create_task(send_audio(phone, prisma, turn))
             download = asyncio.create_task(send_transcripts(phone, prisma, locale, turn))
             try:

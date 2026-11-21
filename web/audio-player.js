@@ -1,9 +1,10 @@
 "use strict";
 
 class VisitAudioPlayer {
-  constructor(context, onDrain = () => {}) {
+  constructor(context, onDrain = () => {}, onStart = () => {}) {
     this.context = context;
     this.onDrain = onDrain;
+    this.onStart = onStart;
     this.batch = null;
   }
 
@@ -46,7 +47,17 @@ class VisitAudioPlayer {
       }
     };
     batch.sources.add(source);
+    const initial = !batch.next;
     batch.next = Math.max(batch.next, this.context.currentTime + 0.005);
+    if (initial) {
+      const output = this.context.getOutputTimestamp?.();
+      const delay = output?.performanceTime > 0
+        ? output.performanceTime + (batch.next - output.contextTime) * 1000 - performance.now()
+        : (batch.next - this.context.currentTime + (this.context.outputLatency || 0)) * 1000;
+      batch.startTimer = setTimeout(() => {
+        if (this.batch === batch) this.onStart(performance.now());
+      }, Math.max(0, delay));
+    }
     source.start(batch.next);
     batch.next += buffer.duration;
   }
@@ -65,6 +76,7 @@ class VisitAudioPlayer {
     const batch = this.batch;
     if (!batch) return;
     this.batch = null;
+    clearTimeout(batch.startTimer);
     batch.ended = true;
     const now = this.context.currentTime;
     batch.gain.gain.setValueAtTime(1, now);

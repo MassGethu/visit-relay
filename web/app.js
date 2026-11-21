@@ -1,6 +1,7 @@
 "use strict";
 
 const enable = document.querySelector("#enable-mic");
+const endVoice = document.querySelector("#end-voice");
 const talk = document.querySelector("#talk");
 const handsFree = document.querySelector("#hands-free");
 const language = document.querySelector("#speech-language");
@@ -10,6 +11,12 @@ const latency = document.querySelector("#latency");
 
 const debugAudio = document.querySelector("#debug-audio");
 const captureDebugAudio = new URLSearchParams(location.search).get("debug") === "1";
+function sendTiming(current, turn, stage, time) {
+  const payload = JSON.stringify({ session: current.id, turn, stage, timestamp_ms: performance.timeOrigin + time });
+  fetch("/api/latency", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: payload, keepalive: true }).catch(() => {});
+}
+
 const maxDebugFrames = 30 * 16000 * 2 / 1024;
 
 let session;
@@ -30,6 +37,7 @@ function reset(current, message) {
   talk.setAttribute("aria-pressed", "false");
   enable.disabled = false;
   enable.hidden = false;
+  endVoice.hidden = true;
   language.disabled = false;
   handsFree.disabled = false;
   talk.hidden = false;
@@ -70,6 +78,7 @@ async function connectVisit(current, lang) {
 
   const url = new URL("/ws", location.href);
   url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  url.searchParams.set("timing", current.id);
   if (current.handsFree) url.searchParams.set("hands_free", "1");
   const socket = new WebSocket(url);
   current.socket = socket;
@@ -93,20 +102,22 @@ async function connectVisit(current, lang) {
       if (current.handsFree && event.on) current.mic.port.postMessage("pause");
       if (event.on && activePress === null && !stopping) {
         current.muted = false;
+        current.audioTurn = current.disclosureStarted ? current.released : null;
+        current.disclosureStarted = true;
         current.player.start();
-        status.textContent = "Speaking. Hold to interrupt.";
+        status.textContent = current.handsFree ? "Speaking. Listening will resume." : "Speaking. Hold to interrupt.";
       } else if (!event.on && !current.muted) {
         current.player.finish();
         if (!current.handsFree && activePress === null && !stopping) status.textContent = "Hold to talk.";
       }
     } else if (event.type === "transcript") {
-      clearTimeout(current.slowTimer);
+      if (current.turn > 1) clearTimeout(current.slowTimer);
       if (!current.hasTranscript) transcript.textContent = "";
       transcript.append(document.createTextNode((current.hasTranscript ? "\n" : "") + event.text));
       current.hasTranscript = true;
       if (!current.handsFree && activePress === null && !current.interrupted) status.textContent = "Ready to talk.";
     } else if (event.type === "latency") {
-      latency.textContent = `Prisma latency · ${Math.round(event.ms)} ms`;
+      if (!current.released?.played) latency.textContent = `Prisma latency · ${Math.round(event.ms)} ms`;
     }
     window.Cards?.handle(event);
   });
@@ -125,7 +136,7 @@ enable.addEventListener("click", async () => {
     status.textContent = "Open this page over HTTPS in a browser with microphone access.";
     return;
   }
-  const current = { handsFree: handsFree.checked };
+  const current = { id: crypto.randomUUID(), handsFree: handsFree.checked, turn: 0 };
   session = current;
   enable.disabled = true;
   language.disabled = true;
@@ -139,13 +150,19 @@ enable.addEventListener("click", async () => {
         current.mic.port.postMessage("resume");
         status.textContent = "Listening hands-free…";
       }
+    }, at => {
+      const turn = current.audioTurn;
+      if (!turn || turn.played || session !== current) return;
+      turn.played = true;
+      sendTiming(current, turn.number, "first_audio_played", at);
+      latency.textContent = `First reply · ${Math.round(at - turn.at)} ms`;
     });
     await context.resume();
     current.stream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: false, autoGainControl: false },
     });
     const track = current.stream.getAudioTracks()[0];
-    const model = await navigator.userAgentData?.getHighEntropyValues(["model"]).catch(() => null);
+    const model = await navigator.userAgentData?.getHighEntropyValues?.(["model"]).catch(() => null);
     console.info("Voice capture", { model: model?.model || "unavailable", settings: track.getSettings() });
     await context.audioWorklet.addModule("mic-worklet.js");
     const input = context.createMediaStreamSource(current.stream);
@@ -177,6 +194,7 @@ enable.addEventListener("click", async () => {
     transcript.textContent = "Your words will appear here.";
     latency.textContent = "Prisma latency · —";
     enable.hidden = true;
+    endVoice.hidden = false;
     talk.disabled = current.handsFree;
     talk.hidden = current.handsFree;
     status.textContent = current.handsFree ? "Waiting for the AI disclosure…" : "Ready to talk.";
@@ -188,10 +206,16 @@ enable.addEventListener("click", async () => {
   }
 });
 
+endVoice.addEventListener("click", () => {
+  if (session) reset(session, "Voice session ended. Enable the microphone to start again.");
+});
+
 function startTalk(press) {
   if (!session || stopping || activePress !== null) return false;
   clearTimeout(session.slowTimer);
   activePress = press;
+  session.turn++;
+  session.released = null;
   if (session.speaking || session.player.playing) {
     session.muted = true;
     session.player.stop();
@@ -213,12 +237,15 @@ function stopTalk(press, interrupted = false) {
   activePress = null;
   stopping = true;
   session.interrupted = interrupted;
+  const at = performance.now();
+  session.released = { number: session.turn, at };
+  sendTiming(session, session.turn, "release", at);
   session.mic.port.postMessage("stop");
   talk.setAttribute("aria-pressed", "false");
   status.textContent = "Sending audio…";
   const current = session;
   current.slowTimer = setTimeout(() => {
-    if (session === current && !current.interrupted) status.textContent = "Slow network. Still waiting for speech recognition…";
+    if (session === current && !current.interrupted) status.textContent = "Slow network or reply. Still processing…";
   }, 3000);
 }
 

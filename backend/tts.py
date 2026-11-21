@@ -6,6 +6,7 @@ import base64
 import json
 import logging
 import os
+import re
 from collections import deque
 
 from anyio import BrokenResourceError, ClosedResourceError
@@ -14,7 +15,7 @@ from websockets.asyncio.client import connect
 from websockets.exceptions import WebSocketException
 
 from asha.gnani import tts_request
-from asha.speak import Speaker
+from asha.speak import Speaker, TEMPLATES
 
 TIMBRE = "wss://api.vachana.ai/api/v1/tts"
 LOG = logging.getLogger(__name__)
@@ -47,11 +48,14 @@ class Timbre:
         self.key = key
         self.voice = os.getenv("GNANI_TTS_VOICE", "Chetana")
         self.cache = {}
+        self.acknowledgements = {}
 
     async def prewarm(self):
         for lang in ("hi", "kn", "en"):
             speaker = Speaker(lang)
-            for phrase in ("disclosure", "saved"):
+            for phrase in ("disclosure", "saved", "confirm_short", "acknowledge"):
+                if lang not in TEMPLATES.get(phrase, {}):
+                    continue
                 text = speaker.say(phrase)
                 try:
                     socket = await open_timbre(self.key)
@@ -59,6 +63,8 @@ class Timbre:
                         pcm = b"".join([chunk async for chunk in synthesize(socket, text, lang, self.voice)])
                         if pcm:
                             self.cache[lang, text] = pcm
+                            if phrase == "acknowledge":
+                                self.acknowledgements[lang] = text
                     finally:
                         await socket.close()
                 except (WebSocketException, OSError, RuntimeError, TimeoutError, ValueError, KeyError):
@@ -75,18 +81,31 @@ class VisitSpeech:
         self.closing = False
         self.spare = asyncio.create_task(open_timbre(timbre.key))
 
-    def queue(self, lines):
-        self.lines.extend(line for line in lines if line)
-        if self.lines and (self.worker is None or self.worker.done()):
+    @property
+    def busy(self):
+        return self.worker is not None and not self.worker.done()
+
+    def cached_acknowledgement(self):
+        return self.timbre.acknowledgements.get(self.lang)
+
+    def queue(self, lines, on_first=lambda: None):
+        for line in filter(None, lines):
+            if (self.lang, line) in self.timbre.cache:
+                self.lines.append((line, on_first))
+            else:
+                for sentence in re.split(r"(?<=[.!?।])\s+", line.strip()):
+                    self.lines.append((sentence, on_first))
+        if self.lines and not self.busy:
             self.worker = asyncio.create_task(self.stream())
 
     async def stream(self):
         try:
             await self.phone.send_json({"type": "speaking", "on": True})
             while self.lines:
-                text = self.lines.popleft()
+                text, on_first = self.lines.popleft()
                 cached = self.timbre.cache.get((self.lang, text))
                 if cached:
+                    on_first()
                     for offset in range(0, len(cached), 3840):
                         await self.phone.send_bytes(cached[offset:offset + 3840])
                     continue
@@ -99,7 +118,11 @@ class VisitSpeech:
                     raise
                 self.spare = asyncio.create_task(open_timbre(self.timbre.key))
                 try:
+                    first = True
                     async for chunk in synthesize(socket, text, self.lang, self.timbre.voice):
+                        if first:
+                            on_first()
+                            first = False
                         await self.phone.send_bytes(chunk)
                 finally:
                     await socket.close()
