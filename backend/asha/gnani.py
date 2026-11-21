@@ -180,14 +180,14 @@ def tts_request(text: str, language: str, voice: str = "Chetana", speed: float =
     """
     if voice not in TIMBRE_VOICES:
         raise ConfigError(f"{voice} is not a Timbre v3.0 voice")
-    if not 0.85 <= speed <= 1.15:
-        raise ConfigError("speed must be within 0.85-1.15")
+    if speed not in {0.8, 1.0, 1.2}:
+        raise ConfigError("Timbre v3.0 speed must be 0.8, 1.0 or 1.2")
     if language.split("-")[0] not in SUPPORTED_LANGS:
         raise ConfigError("set an explicit TTS language; never rely on auto for numbers")
     if sample_rate not in TTS_SAMPLE_RATES:
         raise ConfigError("unsupported TTS sample rate")
     if re.search(r"\b\d{1,2}/\d{1,2}\b(?!/)", text):
         raise ConfigError("bare dd/mm is read as a fraction: verbalise dates first")
-    return {"text": text, "model": "timbre-v3.0", "voice": voice, "language": language.split("-")[0],
+    return {"text": text, "model": "timbre-v3.0", "voice": voice, "language": f'{language.split("-")[0]}-IN',
             "speed": speed, "audio_config": {"container": "raw", "encoding": "pcm_s16le",
                                              "sample_rate": sample_rate}}
