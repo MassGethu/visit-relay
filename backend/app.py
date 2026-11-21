@@ -7,21 +7,24 @@ import json
 import logging
 import os
 import time
-from contextlib import asynccontextmanager, suppress
+from contextlib import asynccontextmanager, closing, suppress
 from pathlib import Path
 from threading import Lock
 from typing import Literal
 from uuid import UUID, uuid4
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Response, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from websockets.exceptions import WebSocketException
 
 from asha.gnani import COMMIT_MESSAGE, FRAME_BYTES, stt_headers, visit_keyterms
-from asha.visit import Visit
+from asha.visit import Visit, now
+from asha.danger import DangerChecker
+from asha.speak import Speaker
+from store import default_store
 from llm import understand
 from stt import PrismaRelay
 from tts import Timbre, VisitSpeech
@@ -163,6 +166,92 @@ def beneficiaries():
     return DEMO_BENEFICIARIES
 
 
+def synthetic_patient(beneficiary_id):
+    path = BACKEND / "data" / "beneficiaries.json"
+    people = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else []
+    for person in people:
+        if str(person["id"]) == beneficiary_id and person.get("synthetic") is True:
+            return person
+    raise HTTPException(404, "Synthetic beneficiary not found")
+
+
+def report_store():
+    store = default_store()
+    if store is None:
+        raise HTTPException(503, "Encrypted report storage is unavailable")
+    return closing(store)
+
+
+@app.get("/api/checklist/{visit_type}")
+def checklist(visit_type: Literal["anc", "pnc", "hbnc", "hbyc"], lang: Literal["hi", "kn", "en"] = "hi"):
+    speaker = Speaker(lang)
+    speaker.say("disclosure")
+    return [{"sign": sign, "question": speaker.safety_question(sign)}
+            for sign in DangerChecker(visit_type).guided_questions()]
+
+
+def report_view(store, visit, patient):
+    previous = store.previous_visit(visit)
+    baseline = previous["record"] if previous else {}
+    date = previous["saved_at"] if previous else None
+    seeded = False
+    if not previous and visit["visit_type"] == patient.get("visit_type"):
+        baseline = patient.get("last_visit") or {}
+        date = baseline.get("date")
+        seeded = bool(date)
+    changes = []
+    for field in ("weight_kg", "gestational_month", "hb", "breaths_per_min", "bp", "temperature"):
+        before, after = baseline.get(field), visit["record"].get(field)
+        if before is None or after is None:
+            continue
+        if field == "temperature" and before[1] != after[1]:
+            continue
+        changes.append({"field": field, "before": before, "after": after})
+    old_signs = {row["sign"] for row in previous["receipt"] if row["status"] == "present"} if previous else set()
+    return {k: v for k, v in visit.items() if k != "transcript"} | {
+        "previous_date": date, "seeded_baseline": seeded, "changes": changes,
+        "recurring_flags": [row["sign"] for row in visit["receipt"]
+                            if row["status"] == "present" and row["sign"] in old_signs],
+        "new_flags": [row["sign"] for row in visit["receipt"]
+                      if previous and row["status"] == "present" and row["sign"] not in old_signs],
+    }
+
+
+def confirmed_report(store, session):
+    visit_id = store.report_id(str(session))
+    visit = store.load_visit(visit_id) if visit_id else None
+    if not visit or visit["status"] != "saved":
+        raise HTTPException(404, "Confirmed report not found")
+    return visit
+
+
+@app.get("/api/visit-report/{session}")
+def visit_report(session: UUID, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    with report_store() as store:
+        visit = confirmed_report(store, session)
+        return report_view(store, visit, synthetic_patient(visit["beneficiary_id"]))
+
+
+@app.post("/api/visit-report/{session}/file")
+def file_visit_report(session: UUID, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    with report_store() as store:
+        visit = confirmed_report(store, session)
+        synthetic_patient(visit["beneficiary_id"])
+        if not store.file_report(visit["id"], str(session), now()):
+            raise HTTPException(409, "The visit was undone or changed")
+        return {"beneficiary_id": visit["beneficiary_id"], "visit_id": visit["id"]}
+
+
+@app.get("/api/patients/{beneficiary_id}/history")
+def patient_history(beneficiary_id: str, response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    patient = synthetic_patient(beneficiary_id)
+    with report_store() as store:
+        return [report_view(store, visit, patient) for visit in store.history(beneficiary_id)]
+
+
 async def send_audio(phone: WebSocket, prisma, turn: VisitTurn) -> None:
     loop = asyncio.get_running_loop()
     next_frame = loop.time()
@@ -266,7 +355,8 @@ async def visit_socket(phone: WebSocket) -> None:
                     write_timing(session_id, number, "llm_done", time.time_ns() / 1e6)
 
         visit = Visit(start["visit_type"], subject, start["lang"],
-                      beneficiary_id=start["beneficiary_id"], understand=timed_understand)
+                      beneficiary_id=start["beneficiary_id"], understand=timed_understand,
+                      report_session=str(session_id))
         terms = visit_keyterms(start["visit_type"], start["lang"])
         hands_free = phone.query_params.get("hands_free") == "1"
         # Keep short pauses within a dictated note together. Button release

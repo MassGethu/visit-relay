@@ -580,6 +580,10 @@ class DangerChecker:
     def present(self) -> list[str]:
         return [s for s in self.scope if self.states[s].status == PRESENT]
 
+    def guided_questions(self) -> list[str]:
+        return [sign for group in VISIT_GROUPS.get(self.visit_type or "", ())
+                for sign in CORE_SIGNS.get(group, []) if sign in self.states]
+
     def safety_questions(self, limit: int = 3) -> list[str]:
         """Signs for the single safety turn: doubtful ones first, then unmentioned core signs."""
         doubtful = [s for s in self.scope if self.states[s].needs_confirmation]

@@ -29,7 +29,8 @@
     question: "", speaking: false, discreet: false,
     receipt: null, saved: false, savedAt: null, showAnm: false, undone: false,
     context: null,                       // {current, suggested}: the backend asks "which visit is this?"
-    switching: "", switchNote: "", switchTimer: null,
+    switching: "", switchNote: "", switchTimer: null, checklist: [], sessionId: null,
+    report: null, reportMessage: "", filing: false, filed: null,
   };
 
   // ---------- small DOM helpers ----------
@@ -99,6 +100,7 @@
   function pickType(visitType) {
     state.visitType = visitType;
     drawVisit();
+    loadChecklist();
   }
 
   // app.js listens for "cards:send" and forwards the detail to the backend WebSocket.
@@ -137,7 +139,7 @@
     state.switchNote = from !== state.visitType
       ? `Changed from ${VISIT_TYPES[from]}. Everything said so far was checked again.` : "";
     drawVisit();
-    drawLive();
+    loadChecklist();
   }
 
   function drawContext() {
@@ -157,6 +159,7 @@
     state.person = state.people.find(p => String(p.id) === String(id)) || null;
     if (state.person?.visit_type in VISIT_TYPES) state.visitType = state.person.visit_type;
     drawVisit();
+    loadChecklist();
   }
 
   function addAlert(event) {
@@ -185,6 +188,68 @@
         text: concern.flagged ? "Flagged for ANM" : "Noted — say “ANM ko batao” to flag" }));
   }
 
+  let checklistRequest = 0;
+
+  async function loadChecklist() {
+    const request = ++checklistRequest;
+    const lang = document.querySelector("#speech-language").value;
+    state.checklist = [];
+    drawLive();
+    try {
+      const response = await fetch(`/api/checklist/${state.visitType}?lang=${lang}`);
+      if (!response.ok) throw new Error("Checklist unavailable");
+      const questions = await response.json();
+      if (request === checklistRequest) {
+        state.checklist = questions;
+        drawLive();
+      }
+    } catch {
+      if (request === checklistRequest) {
+        state.checklist = null;
+        drawLive();
+      }
+    }
+  }
+
+  function drawChecklist() {
+    const receipt = new Map((state.receipt || []).map(row => [row.sign, row]));
+    const fields = ["gestational_month", ...VITALS.filter(field => field !== "gestational_month"), "next_visit_date"]
+      .filter(field => field !== "gestational_month" || state.visitType === "anc");
+    const checklist = state.checklist;
+    return el("section", { class: "c-card c-template", "aria-label": "Visit questions" },
+      el("h2", { text: "Visit questions" }),
+      el("p", { class: "c-empty", text: "Review these questions, then dictate what you know. Say “not sure” for a question you cannot answer." }),
+      el("dl", { class: "c-fields" }, fields.map(field => {
+        const [label, value] = fieldText(field, state.record[field]);
+        return el("div", { class: "c-field" }, el("dt", { text: label }),
+          el("dd", { text: state.record[field] == null ? "Not recorded" : value }));
+      })),
+      checklist?.length ? el("ol", { class: "c-checklist" }, checklist.map(item => {
+        const row = receipt.get(item.sign);
+        const current = state.question === speechText(item.question);
+        return el("li", { class: current ? "c-current-question" : "", "aria-current": current ? "true" : null },
+          el("span", { text: speechText(item.question) }),
+          el("span", { class: `c-status ${row?.status || "not_checked"}`,
+            text: STATUS_TEXT[row?.status] || "Not checked" }),
+          row?.quote && el("small", { class: "c-said", text: row.quote }));
+      })) : el("p", { class: "c-empty", text: checklist ? "Loading safety questions…" : "Could not load safety questions." }));
+  }
+
+  function dangerPreview() {
+    if (!state.receipt || state.saved) return null;
+    const flagged = state.receipt.filter(row => row.status === "present");
+    const present = flagged.length;
+    const checked = state.receipt.filter(row => row.status === "ruled_out").length;
+    return el("section", { class: "c-card", "aria-label": "Danger report preview" },
+      el("h2", { text: "Danger report" }),
+      el("p", { text: `${present} present · ${checked} ruled out · ${state.receipt.length - present - checked} not checked` }),
+      el("p", { class: "c-empty", text: present
+        ? "Review the cited flags and the PHC referral shown above."
+        : "No checklist signs flagged. Review anything still unchecked." }),
+      el("details", {}, el("summary", { text: "Review all signs" }),
+        el("ul", {}, state.receipt.map(receiptRow))));
+  }
+
   function drawLive() {
     const names = Object.keys(state.record).filter(name => !NOT_FIELDS.has(name));
     const before = flagsBeforeSwitch(state.record);
@@ -211,7 +276,11 @@
         el("ul", {}, before.map(f => el("li", { class: "c-concern" },
           el("span", { text: `${f.label} (${VISIT_TYPES[f.visit_type] || f.visit_type}) — refer to PHC` }),
           f.quote && el("span", { class: "c-quote", text: `“${f.quote}”` }))))));
-    liveBox.replaceChildren(...[drawContext(), question, record].filter(Boolean));
+    const preview = dangerPreview();
+    if (preview && liveBox.querySelector("[aria-label='Danger report preview'] details")?.open) {
+      preview.querySelector("details").open = true;
+    }
+    liveBox.replaceChildren(...[drawContext(), drawChecklist(), question, record, preview].filter(Boolean));
     state.changed.clear();
   }
 
@@ -221,7 +290,7 @@
       el("div", { class: "c-name" },
         el("span", { text: local || row.label }),
         local && el("small", { text: row.label }),
-        row.status !== "not_checked" && row.quote && el("span", { class: "c-quote", text: `“${row.quote}”` }),
+        row.quote && el("span", { class: "c-quote", text: `“${row.quote}”` }),
         row.disputed && el("span", { class: "c-tag", text: "Disputed — ANM to check" }),
         row.history && row.status === "present" && el("span", { class: "c-tag", text: "Happened earlier" })),
       el("span", { class: `c-status ${row.status}`, text: STATUS_TEXT[row.status] || row.status }));
@@ -265,6 +334,68 @@
       el("p", { class: "c-note", text: "No diagnosis made by AI. Synthetic data." }));
   }
 
+  async function loadReport() {
+    const id = state.sessionId;
+    if (!id) return;
+    try {
+      const response = await fetch(`/api/visit-report/${id}`);
+      if (!response.ok) throw new Error();
+      const report = await response.json();
+      if (id === state.sessionId && state.saved) state.report = report;
+    } catch {
+      if (id === state.sessionId) state.reportMessage = "Could not load the confirmed report.";
+    }
+    if (id === state.sessionId) drawEnd();
+  }
+
+  async function fileReport() {
+    const id = state.sessionId;
+    state.filing = true;
+    state.reportMessage = "";
+    drawEnd();
+    try {
+      const response = await fetch(`/api/visit-report/${id}/file`, { method: "POST" });
+      if (!response.ok) throw new Error();
+      const filed = await response.json();
+      if (id === state.sessionId && state.saved) state.filed = filed;
+    } catch {
+      if (id === state.sessionId) state.reportMessage = "Dashboard filing failed. Try again.";
+    } finally {
+      if (id === state.sessionId) {
+        state.filing = false;
+        drawEnd();
+      }
+    }
+  }
+
+  function drawReport() {
+    const report = state.report;
+    const previous = report?.previous_date;
+    return el("section", { class: "c-card", "aria-label": "Confirmed visit report" },
+      el("h2", { text: "Confirmed visit report" }),
+      report && el("p", { class: "c-empty", text: previous
+        ? `Compared with ${report.seeded_baseline ? "the synthetic baseline" : "the previous visit"} on ${previous.slice(0, 10)}.`
+        : "No earlier visit of this type is available." }),
+      previous && report.changes.length > 0 && el("ul", {}, report.changes.map(change => {
+        const [label, before] = fieldText(change.field, change.before);
+        const [, after] = fieldText(change.field, change.after);
+        return el("li", { text: `${label}: ${before} → ${after}` });
+      })),
+      report && previous && report.changes.length === 0 &&
+        el("p", { class: "c-empty", text: "No matching measurements to compare." }),
+      report && report.new_flags.length > 0 && el("p", { text: `New flags: ${report.new_flags.map(sign => report.receipt.find(row => row.sign === sign)?.label || sign).join(", ")}` }),
+      report && report.recurring_flags.length > 0 && el("p", { text: `Recurring flags: ${report.recurring_flags.map(sign => report.receipt.find(row => row.sign === sign)?.label || sign).join(", ")}` }),
+      state.reportMessage && el("p", { role: "status", text: state.reportMessage }),
+      !report && !state.reportMessage && el("p", { role: "status", text: "Preparing report…" }),
+      !report && state.reportMessage && el("button", { class: "c-button", type: "button",
+        text: "Reload report", onclick: loadReport }),
+      report && !state.filed && el("button", { class: "c-button", type: "button",
+        text: state.filing ? "Filing report…" : "Push to dashboard", disabled: state.filing, onclick: fileReport }),
+      state.filed && el("a", { class: "c-button",
+        href: `/dashboard.html?patient=${encodeURIComponent(state.filed.beneficiary_id)}#visit-${state.filed.visit_id}`,
+        text: "Open patient history" }));
+  }
+
   function drawEnd() {
     if (!state.saved) {
       endBox.replaceChildren(...(state.undone
@@ -274,6 +405,7 @@
     endBox.replaceChildren(
       el("section", { class: "c-card c-saved", role: "status" }, el("span", { text: "✓ Record saved" })),
       state.receipt && drawReceipt(),
+      drawReport(),
       el("button", { class: "c-button", type: "button", "aria-expanded": String(state.showAnm),
         text: state.showAnm ? "Hide ANM card" : "Show ANM card",
         onclick: () => { state.showAnm = !state.showAnm; drawEnd(); } }),
@@ -314,6 +446,7 @@
         break;
       case "receipt":
         state.receipt = Array.isArray(event.rows) ? event.rows : [];
+        drawLive();
         break;
       case "saved":
         state.saved = true;
@@ -324,6 +457,7 @@
         drawVisit();
         drawLive();
         drawEnd();
+        loadReport();
         break;
       case "visit_context":
         state.context = { current: event.current || state.visitType,
@@ -343,6 +477,8 @@
         state.saved = false;
         state.undone = true;
         state.showAnm = false;
+        state.report = null;
+        state.filed = null;
         drawVisit();
         drawEnd();
         break;
@@ -372,15 +508,18 @@
       started: false, record: {}, evidence: {}, changed: new Set(), alerts: new Set(),
       question: "", speaking: false, discreet: false, receipt: null, saved: false,
       savedAt: null, showAnm: false, undone: false, context: null, switching: "", switchNote: "",
+      sessionId: null, report: null, reportMessage: "", filing: false, filed: null,
     });
     alertBox.replaceChildren();
     drawVisit();
     drawLive();
     drawEnd();
+    loadChecklist();
   }
 
+  document.querySelector("#speech-language").addEventListener("change", loadChecklist);
   window.Cards = {
-    handle, endSession,
+    handle, endSession, startSession: id => { state.sessionId = id; },
     // The chosen beneficiary and visit type, for app.js's start_visit message.
     beneficiary: () => (state.person ? { ...state.person, visit_type: state.visitType } : null),
   };

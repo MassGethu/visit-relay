@@ -1,7 +1,7 @@
 /* Screen cards for the phone page. Everything is scoped to #cards (drawn by cards.js). */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@600;700&display=swap");
 
-#cards {
+#cards, .patient-dashboard {
   --teal: #0f4c5c;
   --teal-soft: #dceae8;
   --saffron: #f2a541;
@@ -14,6 +14,9 @@
   --ok: #2e8b57;
   --ok-soft: #dff1e6;
   --grey-soft: #eceeee;
+}
+
+#cards {
   display: grid;
   gap: .9rem;
   margin-top: 1rem;
@@ -128,3 +131,24 @@
 .c-button.c-switch { background: var(--teal); color: #fff; }
 .c-context .c-kicker { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
   color: var(--teal); }
+
+.c-checklist { margin: .85rem 0 0; padding-left: 1.4rem; }
+.c-checklist li { padding: .6rem .25rem; border-top: 1px solid #d5e0dc; }
+.c-checklist .c-status { display: inline-block; margin: .2rem 0 .15rem .35rem; }
+.c-checklist small { display: block; overflow-wrap: anywhere; }
+.c-card a.c-button { display: inline-block; }
+
+.patient-dashboard { margin: 0; background: #fff8ee; color: #173e43; font: 1rem/1.55 system-ui, sans-serif; }
+.dashboard-shell { max-width: 40rem; margin: auto; padding: 1.25rem; }
+.dashboard-shell h1 { margin: .3rem 0 1.1rem; font-size: clamp(2rem, 7vw, 2.8rem); line-height: 1.12; }
+.dashboard-shell > .c-kicker { margin-top: 1.25rem; }
+.dashboard-shell a { color: #0f4c5c; }
+.dashboard-shell label { display: block; font-weight: 700; }
+.dashboard-shell select { width: 100%; margin-top: .45rem; min-height: 2.75rem; font: inherit; }
+.dashboard-shell h2 { margin-bottom: .35rem; }
+.dashboard-shell h3, .dashboard-shell h4 { margin: .2rem 0; }
+.dashboard-shell .c-card { overflow-wrap: anywhere; }
+.dashboard-flag { color: #812b17; }
+
+.voice-shell .c-visit, .voice-shell .c-live > .c-card, .voice-shell .c-alerts, .voice-shell .c-end { margin-bottom: .85rem; }
+.c-checklist .c-current-question { background: #e4efeb; font-weight: 650; }

@@ -34,6 +34,12 @@ CREATE TABLE IF NOT EXISTS visits (
     transcript BLOB NOT NULL,
     receipt BLOB NOT NULL
 );
+CREATE TABLE IF NOT EXISTS visit_reports (
+    visit_id INTEGER PRIMARY KEY REFERENCES visits(id),
+    session_key TEXT UNIQUE NOT NULL,
+    filed_at TEXT
+);
+CREATE INDEX IF NOT EXISTS visits_patient_history ON visits (beneficiary_id, visit_type, id);
 CREATE TABLE IF NOT EXISTS audit (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     visit_id INTEGER NOT NULL REFERENCES visits(id),
@@ -75,7 +81,7 @@ class Store:
 
     def save_visit(self, *, beneficiary_id: str, visit_type: str, lang: str, saved_at: str,
                    record: dict, transcript: list, receipt: list, flags: list[dict],
-                   concerns: list[dict] = (), switches: list[dict] = ()) -> int:
+                   concerns: list[dict] = (), switches: list[dict] = (), session_key: str | None = None) -> int:
         with self._lock, self.db:
             cur = self.db.execute(
                 "INSERT INTO visits (beneficiary_id, visit_type, lang, saved_at, record, transcript, receipt)"
@@ -83,6 +89,11 @@ class Store:
                 (beneficiary_id, visit_type, lang, saved_at,
                  self._seal(record), self._seal(transcript), self._seal(receipt)))
             visit_id = cur.lastrowid
+            if session_key:
+                self.db.execute(
+                    "INSERT INTO visit_reports (visit_id, session_key) VALUES (?, ?) "
+                    "ON CONFLICT(session_key) DO UPDATE SET visit_id=excluded.visit_id, filed_at=NULL",
+                    (visit_id, session_key))
             self.db.executemany(
                 "INSERT INTO audit (visit_id, at, kind, sign, flagged_by, quote) VALUES (?, ?, 'flag', ?, ?, ?)",
                 [(visit_id, f["at"], f["sign"], f["by"], self._seal(f["quote"])) for f in flags])
@@ -114,6 +125,42 @@ class Store:
         keys = ("id", "beneficiary_id", "visit_type", "lang", "saved_at", "status")
         return {**dict(zip(keys, row[:6])), "record": self._open(row[6]),
                 "transcript": self._open(row[7]), "receipt": self._open(row[8])}
+
+    def report_id(self, session_key: str) -> int | None:
+        with self._lock:
+            row = self.db.execute(
+                "SELECT r.visit_id FROM visit_reports r JOIN visits v ON v.id=r.visit_id "
+                "WHERE r.session_key=? AND v.status='saved'", (session_key,)).fetchone()
+        return row[0] if row else None
+
+    def file_report(self, visit_id: int, session_key: str, at: str) -> bool:
+        with self._lock, self.db:
+            cursor = self.db.execute(
+                "UPDATE visit_reports SET filed_at=COALESCE(filed_at, ?) "
+                "WHERE visit_id=? AND session_key=? AND EXISTS "
+                "(SELECT 1 FROM visits WHERE id=? AND status='saved')",
+                (at, visit_id, session_key, visit_id))
+            return cursor.rowcount == 1
+
+    def history(self, beneficiary_id: str) -> list[dict]:
+        with self._lock:
+            ids = self.db.execute(
+                "SELECT v.id FROM visits v LEFT JOIN visit_reports r ON v.id=r.visit_id "
+                "WHERE v.beneficiary_id=? AND v.status='saved' "
+                "AND (r.visit_id IS NULL OR r.filed_at IS NOT NULL) ORDER BY v.id DESC",
+                (beneficiary_id,)).fetchall()
+        return [visit for (visit_id,) in ids
+                if (visit := self.load_visit(visit_id)) and visit["status"] == "saved"]
+
+    def previous_visit(self, visit: dict) -> dict | None:
+        with self._lock:
+            row = self.db.execute(
+                "SELECT v.id FROM visits v LEFT JOIN visit_reports r ON v.id=r.visit_id "
+                "WHERE v.beneficiary_id=? AND v.visit_type=? AND v.id<? AND v.status='saved' "
+                "AND (r.visit_id IS NULL OR r.filed_at IS NOT NULL) ORDER BY v.id DESC LIMIT 1",
+                (visit["beneficiary_id"], visit["visit_type"], visit["id"])).fetchone()
+        baseline = self.load_visit(row[0]) if row else None
+        return baseline if baseline and baseline["status"] == "saved" else None
 
     def audit(self, visit_id: int) -> list[dict]:
         with self._lock:

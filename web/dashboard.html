@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patient dashboard · ASHA Voice Register</title>
+  <link rel="stylesheet" href="cards.css">
+  <script defer src="dashboard.js"></script>
+</head>
+<body class="patient-dashboard">
+  <main class="dashboard-shell">
+    <a href="/">Back to visit register</a>
+    <p class="c-kicker">Synthetic data</p>
+    <h1>Patient dashboard</h1>
+    <section class="c-card" aria-label="Patient selection">
+      <label for="patient">Patient</label>
+      <select id="patient" disabled></select>
+    </section>
+    <section aria-labelledby="history-title">
+      <h2 id="history-title">Visit history</h2>
+      <p id="history-status" role="status">Loading patients…</p>
+      <div id="history"></div>
+    </section>
+  </main>
+</body>
+</html>

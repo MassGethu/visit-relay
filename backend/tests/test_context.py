@@ -49,7 +49,7 @@ def test_after_the_readback_out_of_scope_resumes_with_the_next_checklist_questio
     v = make("anc")
     v.readback()
     lines = v.hear("kaunsi dawai dein?")
-    assert lines[0] == OUT_OF_SCOPE and lines[1].startswith("<pauses> Ek-ek karke bataiye")
+    assert lines[0] == OUT_OF_SCOPE and "Haan, nahi ya pata nahi" in lines[1]
 
 
 def test_a_danger_sign_in_a_medicine_question_still_alerts_first():

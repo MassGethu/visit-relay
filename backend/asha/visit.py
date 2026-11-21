@@ -22,7 +22,7 @@ from typing import Any, Callable
 from .concern import carries_content, is_flag_request, is_worry
 from .context import COVERS, SUBJECTS, VISIT_TYPES, answer_to_switch, context_cues, out_of_scope
 from .correction import apply_correction, is_commit, is_undo
-from .danger import PRESENT, RULED_OUT, DangerChecker, Evidence, sign_label
+from .danger import NOT_CHECKED, PRESENT, RULED_OUT, DangerChecker, Evidence, sign_label
 from .dates import resolve
 from .numbers import KILO, extract_measurements, parse_numbers
 from .readback import Doubt, find_doubts, plan
@@ -86,6 +86,7 @@ class Visit:
     clock: Callable[[], float] = time.monotonic                  # for the 5-second undo
     beneficiary_id: str = ""
     use_store: bool = True            # False: nothing written to disk (tests, text demo)
+    report_session: str | None = None
     store: Any = None                 # default: store.default_store() (encrypted SQLite)
 
     def __post_init__(self):
@@ -112,6 +113,7 @@ class Visit:
         self._pending_doubt: Doubt | None = None
         self._safety_pending: list[str] = []
         self._safety_started = False
+        self._checklist_snapshot = None
         self.switches: list[dict] = []          # every visit-type change: from, to, time, by
         if self.use_store and self.store is None:
             from store import default_store     # lazy: rules-only visits never touch the disk
@@ -243,11 +245,15 @@ class Visit:
     def _start_safety(self) -> list[str]:
         if not self._safety_started:
             self._safety_started = True
-            self._safety_pending = self.danger.safety_questions()
+            # Follow the same core questions the phone showed before recording.
+            preview = self.danger.guided_questions()
+            self._safety_pending = [sign for sign in preview
+                                    if self.danger.states[sign].status == NOT_CHECKED
+                                    or self.danger.states[sign].needs_confirmation]
         return self._continue_safety()
 
     def _continue_safety(self) -> list[str]:
-        line = (self.speaker.safety_turn(self._safety_pending) if self._safety_pending
+        line = (self.speaker.safety_question(self._safety_pending[0]) if self._safety_pending
                 else self.speaker.say("summary", summary=self._summary()))
         return self._question(line)
 
@@ -276,12 +282,18 @@ class Visit:
         return alerts + self._start_safety()
 
     def _answer_safety(self, text: str, words: list[str]) -> list[str] | None:
+        if tuple(words) in {("not", "sure"), ("skip",), ("pata", "nahi"), ("पता", "नहीं"), ("ಗೊತ್ತಿಲ್ಲ",)}:
+            sign = self._safety_pending.pop(0)
+            idx = len(self.danger.utterances)
+            self.danger.utterances.append(text)
+            self.danger.states[sign].evidence.append(Evidence(NOT_CHECKED, text, idx, phrase="safety_answer"))
+            return self._continue_safety()
         answers = [word for word in words if word not in ANSWER_FILLERS | {"also", "bhi", "भी"}]
         if len(answers) == 1 and answers[0] in {"yesn", "yesno", "noyes"}:
             return self._question(self.speaker.say("safety_retry"))
         if not answers or set(answers) - YES_ANSWERS - NO_ANSWERS:
             return None
-        if len(answers) > len(self._safety_pending):
+        if len(answers) != 1:
             return self._question(self.speaker.say("safety_retry"))
 
         # Assign only explicit answers, in the exact order of the last question.
@@ -300,6 +312,11 @@ class Visit:
     def events(self) -> list[dict]:
         """Browser events since the last call; the queue is cleared."""
         self._drain(wait=False)                 # finished LLM results reach the screen early
+        if self.report_session and not self.saved:
+            rows = self.checklist_rows()
+            if rows != self._checklist_snapshot:
+                self._checklist_snapshot = rows
+                self._events.append({"type": "receipt", "rows": rows})
         out, self._events = self._events, []
         return out
 
@@ -419,7 +436,7 @@ class Visit:
     def _resume(self) -> str:
         """Back to the checklist: the next safety questions once the first readback has asked them."""
         signs = self._safety_pending
-        return self.speaker.safety_turn(signs) if signs else self.speaker.say("resume")
+        return self.speaker.safety_question(signs[0]) if signs else self.speaker.say("resume")
 
     def _scope_reply(self, idx: int) -> list[str]:
         self._replied.add(idx)
@@ -509,18 +526,21 @@ class Visit:
         self._events.append({"type": "record", "fields": jsonable(self.record),
                              "evidence": dict(self.evidence)})
 
+    def checklist_rows(self):
+        return [{**row, "label": sign_label(row["sign"]), "local": spoken_sign(row["sign"], self.lang)}
+                for row in self.danger.receipt()]
+
     def _save(self) -> list[str]:
         if self.use_store and self.store is None:
             return [self.speaker.say("save_failed")]
-        rows = [{**r, "label": sign_label(r["sign"]), "local": spoken_sign(r["sign"], self.lang)}
-                for r in self.danger.receipt()]
+        rows = self.checklist_rows()
         if self.store:
             try:
                 self.visit_id = self.store.save_visit(
                     beneficiary_id=self.beneficiary_id, visit_type=self.visit_type, lang=self.lang,
                     saved_at=now(), record=jsonable(self.record), transcript=self.transcript,
                     receipt=rows, flags=self.flags, concerns=self.record.get("worker_concerns", []),
-                    switches=self.switches)
+                    switches=self.switches, session_key=self.report_session)
             except Exception:                   # never claim "saved" when the disk write failed
                 log.exception("saving the visit failed")
                 return [self.speaker.say("save_failed")]

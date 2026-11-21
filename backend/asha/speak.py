@@ -47,9 +47,14 @@ TEMPLATES = {
         "en": "Please say the correct value.",
     },
     "safety_retry": {
-        "hi": "Har nishaan ke liye kram se haan ya nahi boliye.",
-        "kn": "ಪ್ರತಿ ಲಕ್ಷಣಕ್ಕೆ ಕ್ರಮವಾಗಿ ಹೌದು ಅಥವಾ ಇಲ್ಲ ಎಂದು ಹೇಳಿ.",
-        "en": "Say one yes or no for each remaining sign, in order.",
+        "hi": "Is sawaal ka ek hi jawab dijiye. Haan, nahi ya pata nahi.",
+        "kn": "ಈ ಪ್ರಶ್ನೆಗೆ ಒಂದು ಉತ್ತರ ನೀಡಿ. ಹೌದು, ಇಲ್ಲ ಅಥವಾ ಗೊತ್ತಿಲ್ಲ.",
+        "en": "Answer the current question only. Say yes, no, or not sure.",
+    },
+    "safety_question": {
+        "hi": "{sign} tha ya hai? Haan, nahi ya pata nahi boliye.",
+        "kn": "{sign} ಇತ್ತಾ ಅಥವಾ ಇದೆಯಾ? ಹೌದು, ಇಲ್ಲ ಅಥವಾ ಗೊತ್ತಿಲ್ಲ ಎಂದು ಹೇಳಿ.",
+        "en": "Was there any report of {sign}? Say yes, no, or not sure.",
     },
     "safety_turn": {
         "hi": "<pauses> Ek-ek karke bataiye, hai ya nahi: {signs}. Isi kram mein jawab dijiye.",
@@ -206,6 +211,9 @@ class Speaker:
             return self.say("context_check", suggested=self.visit_name(suggested[0]))
         names = [self.visit_name(v) for v in [current, *suggested]]
         return self.say("context_which", options=", ".join(names[:-1]) + OR_WORD[self.lang] + names[-1])
+
+    def safety_question(self, sign: str) -> str:
+        return self.say("safety_question", sign=spoken_sign(sign, self.lang))
 
     def safety_turn(self, signs: list[str]) -> str:
         sep = {"hi": ", ", "kn": ", ", "en": ", "}[self.lang]

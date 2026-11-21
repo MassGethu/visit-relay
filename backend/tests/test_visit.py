@@ -333,17 +333,24 @@ def test_ordered_safety_answers_advance_once_and_preserve_cited_alerts():
     assert v.readback()
     asked = list(v._safety_pending)
     assert "anc_high_fever" not in asked and "anc_severe_headache_blurred_vision" not in asked
-    assert len(asked) == 3
+    assert asked == ["anc_vaginal_bleeding", "anc_convulsions", "anc_swelling_face_hands",
+                     "anc_reduced_fetal_movement", "anc_water_break_no_labour",
+                     "anc_severe_abdominal_pain"]
     assert v.readback() == []
     v.events()
     assert v.hear("yesn") and v._safety_pending == asked
+    assert v.hear("yes yes", "en-IN") and v._safety_pending == asked
     v.hear("भी नहीं है।", "hi-IN")
-    lines = v.hear("yes yes", "en-IN")
+    v.hear("हाँ।", "hi-IN")
+    for _ in asked[2:]:
+        lines = v.hear("not sure", "en-IN")
     assert any("record pakka" in line for line in lines)
     assert not v._safety_pending
     assert v.danger.states[asked[0]].status == "ruled_out"
+    assert v.danger.states[asked[-1]].status == "not_checked"
+    assert v.danger.states[asked[-1]].evidence[-1].quote == "not sure"
     alerts = [e for e in v.events() if e["type"] == "alert"]
-    assert [e["sign"] for e in alerts] == asked[1:]
+    assert [e["sign"] for e in alerts] == [asked[1]]
     assert all(e["source"] and e["page"] for e in alerts)
 
 

@@ -111,3 +111,28 @@ def test_llm_flag_is_audited_as_llm(store):
     v.hear("record pakka")
     flags = [a for a in store.audit(v.visit_id) if a["kind"] == "flag"]
     assert [(f["sign"], f["by"]) for f in flags] == [("nb_poor_feeding", "llm")]
+
+
+def test_history_only_includes_filed_or_legacy_visits_and_skips_undone(tmp_path):
+    store = Store(tmp_path / "history.db", Fernet.generate_key())
+    def save(patient, weight, session=None):
+        return store.save_visit(beneficiary_id=patient, visit_type="anc", lang="hi",
+                                saved_at="2026-11-21", record={"weight_kg": weight},
+                                transcript=[], receipt=[], flags=[], session_key=session)
+    try:
+        old = save("4127", 51)
+        save("4381", 60)
+        current = save("4127", 52, "first-session")
+        assert [row["id"] for row in store.history("4127")] == [old]
+        assert store.report_id("first-session") == current
+        assert store.previous_visit(store.load_visit(current))["id"] == old
+        assert not store.file_report(current, "other-session", "2026-11-21")
+        assert store.file_report(current, "first-session", "2026-11-21")
+        assert store.file_report(current, "first-session", "2026-11-21")
+        assert [row["id"] for row in store.history("4127")] == [current, old]
+        store.mark_undone(current, "2026-11-21")
+        assert store.report_id("first-session") is None
+        assert not store.file_report(current, "first-session", "2026-11-21")
+        assert [row["id"] for row in store.history("4127")] == [old]
+    finally:
+        store.close()

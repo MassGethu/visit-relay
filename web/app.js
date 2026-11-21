@@ -171,6 +171,7 @@ async function connectVisit(current, lang) {
     socket.addEventListener("open", resolve, { once: true });
     socket.addEventListener("close", reject, { once: true });
   });
+  window.Cards?.startSession?.(current.id);
   socket.send(JSON.stringify({
     type: "start_visit", beneficiary_id: String(id), visit_type: person.visit_type || "anc", lang,
   }));

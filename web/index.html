@@ -13,8 +13,14 @@
     :root { color: #173e43; background: #fff8ee; font: 100%/1.5 system-ui, sans-serif; }
     body { margin: 0; }
     .voice-shell { max-width: 36rem; margin: auto; padding: 1.25rem clamp(1rem, 5vw, 2rem); }
-    .voice-banner { display: inline-block; background: #f2a541; color: #362505; padding: .25rem .65rem;
+    .voice-banner { align-self: flex-start; display: inline-block; background: #f2a541; color: #362505; padding: .25rem .65rem;
       font-size: .875rem; font-weight: 750; letter-spacing: .06em; }
+    .voice-shell { display: flex; flex-direction: column; }
+    #cards, .c-live { display: contents; }
+    .c-visit { order: 1; }
+    .c-template { order: 2; }
+    .c-alerts, .voice-controls, .voice-meta, .voice-transcript { order: 3; }
+    .c-live > :not(.c-template), .c-end { order: 4; }
     .voice-shell h1 { margin: .7rem 0 1.25rem; font-size: clamp(1.75rem, 7vw, 2.6rem); line-height: 1.1; }
     .voice-controls { display: grid; gap: .6rem; }
     .voice-controls select, .voice-controls button { font: inherit; min-height: 3rem;
@@ -42,6 +48,8 @@
   <section class="voice-shell" aria-labelledby="voice-title">
     <span class="voice-banner">SYNTHETIC DATA</span>
     <h1 id="voice-title">ASHA Voice Register</h1>
+    <p><a href="/dashboard.html">Patient dashboard</a></p>
+    <main id="cards"></main>
     <div class="voice-controls">
       <label for="speech-language">Speech language</label>
       <select id="speech-language">
@@ -72,7 +80,6 @@
         <p id="assistant-transcript" dir="auto" aria-live="polite">AI replies will appear here.</p>
       </div>
     </section>
-    <main id="cards"></main>
   </section>
 </body>
 </html>
