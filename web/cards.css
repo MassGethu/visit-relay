@@ -1,0 +1,111 @@
+/* Screen cards for the phone page. Everything is scoped to #cards (drawn by cards.js). */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Poppins:wght@600;700&display=swap");
+
+#cards {
+  --teal: #0f4c5c;
+  --teal-soft: #dceae8;
+  --saffron: #f2a541;
+  --cream: #fff8ee;
+  --card: #fffdf8;
+  --ink: #173e43;
+  --muted: #5f7579;
+  --danger: #e4572e;
+  --danger-soft: #fde6df;
+  --ok: #2e8b57;
+  --ok-soft: #dff1e6;
+  --grey-soft: #eceeee;
+  display: grid;
+  gap: .9rem;
+  margin-top: 1rem;
+  color: var(--ink);
+  font-family: Inter, system-ui, sans-serif;
+}
+#cards h2, #cards h3, #cards .c-big { font-family: Poppins, system-ui, sans-serif; }
+#cards h2 { font-size: 1.05rem; margin: 0 0 .6rem; }
+#cards [hidden], #cards > div:empty { display: none !important; }
+.c-alerts, .c-live, .c-end { display: grid; gap: .9rem; }
+
+.c-card {
+  background: var(--card);
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 3px rgb(15 76 92 / .12);
+  overflow-wrap: anywhere;
+}
+
+/* visit header + picker */
+.c-visit { display: grid; gap: .5rem; }
+.c-visit label { font-size: .85rem; color: var(--muted); }
+.c-visit select { font: inherit; min-height: 2.8rem; border-radius: .6rem; padding: .4rem .7rem;
+  border: 1px solid #799196; background: #fff; color: inherit; }
+.c-who { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .6rem; }
+.c-who .c-big { font-size: 1.2rem; font-weight: 700; }
+.c-chip { display: inline-block; border-radius: 999px; padding: .1rem .6rem; font-size: .8rem;
+  font-weight: 600; background: var(--teal-soft); color: var(--teal); }
+.c-chip.c-discreet { background: var(--saffron); color: #362505; }
+
+/* danger banner */
+.c-alert {
+  background: var(--danger);
+  color: #fff;
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+  animation: c-slide .35s ease-out, c-pulse 1.6s ease-in-out 3;
+}
+.c-alert .c-kicker { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.c-alert .c-big { font-size: 1.35rem; line-height: 1.25; margin: .25rem 0 .1rem; }
+.c-alert .c-en { font-size: .95rem; opacity: .95; }
+.c-alert .c-quote { margin: .5rem 0; font-style: italic; }
+.c-alert .c-refer { display: inline-block; background: #fff; color: var(--danger); font-weight: 700;
+  border-radius: .5rem; padding: .3rem .7rem; }
+.c-alert .c-source { font-size: .78rem; margin-top: .6rem; opacity: .9; }
+@keyframes c-slide { from { transform: translateY(-.8rem); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes c-pulse { 50% { box-shadow: 0 0 0 .45rem rgb(228 87 46 / .25); } }
+
+/* live record */
+.c-fields { display: grid; gap: .55rem; margin: 0; }
+.c-field { display: grid; grid-template-columns: 7.5rem 1fr; gap: .1rem .6rem; }
+.c-field dt { color: var(--muted); font-size: .9rem; }
+.c-field dd { margin: 0; font-weight: 600; }
+.c-field .c-said { grid-column: 2; font-size: .8rem; color: var(--muted); font-weight: 400; font-style: italic; }
+.c-field.c-new dd { animation: c-flash 1.2s ease-out; }
+@keyframes c-flash { from { background: var(--saffron); } to { background: transparent; } }
+.c-empty { color: var(--muted); margin: 0; }
+
+/* agent question */
+.c-question { border-left: .35rem solid var(--saffron); }
+.c-question p { margin: 0; font-size: 1.05rem; }
+.c-question.c-speaking { box-shadow: 0 0 0 3px var(--saffron); }
+
+/* saved + receipt */
+.c-saved { background: var(--ok-soft); color: #1d5c3a; font-weight: 700; display: flex; gap: .5rem;
+  align-items: center; }
+.c-receipt ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+.c-row { display: flex; justify-content: space-between; align-items: flex-start; gap: .6rem;
+  padding-bottom: .45rem; border-bottom: 1px dashed #c9d3d3; }
+.c-row .c-name { display: grid; }
+.c-row .c-name small { color: var(--muted); }
+.c-row .c-quote { font-size: .8rem; color: var(--muted); font-style: italic; }
+.c-status { flex: none; border-radius: 999px; padding: .15rem .65rem; font-size: .8rem; font-weight: 700; }
+.c-status.present { background: var(--danger); color: #fff; }
+.c-status.ruled_out { background: var(--ok); color: #fff; }
+.c-status.not_checked { background: var(--grey-soft); color: var(--muted); }
+.c-tag { font-size: .72rem; color: var(--danger); font-weight: 600; }
+.c-receipt details { margin-top: .6rem; }
+.c-receipt summary { cursor: pointer; color: var(--muted); font-size: .9rem; }
+.c-receipt details ul { margin-top: .5rem; }
+.c-foot { display: flex; justify-content: space-between; font-size: .78rem; color: var(--muted);
+  margin-top: .7rem; }
+
+/* ANM card */
+.c-button { font: inherit; font-weight: 700; min-height: 2.8rem; width: 100%; border-radius: .6rem;
+  border: 2px solid var(--teal); background: #fff; color: var(--teal); }
+.c-button:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
+.c-anm { border-top: .35rem solid var(--teal); }
+.c-anm .c-sign { color: var(--danger); font-weight: 700; margin: .4rem 0 0; }
+.c-anm .c-quote { margin: 0 0 .3rem; font-style: italic; color: var(--muted); }
+.c-anm .c-note { margin-top: .8rem; font-size: .85rem; font-weight: 600; }
+
+@media (prefers-reduced-motion: reduce) {
+  .c-alert, .c-field.c-new dd { animation: none; }
+}
