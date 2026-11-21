@@ -18,7 +18,7 @@ TURNS = [
 
 
 def main() -> None:
-    v = Visit("anc", subject="mother", lang="hi", today=dt.date(2026, 11, 13))
+    v = Visit("anc", subject="mother", lang="hi", today=dt.date(2026, 11, 13), use_llm=False)
     show = lambda who, lines: [print(f"{who:>6}: {line}") for line in lines]
     show("agent", v.start())
     for t in TURNS:
@@ -28,6 +28,7 @@ def main() -> None:
     show("ASHA", ["haan, fits nahi, sir dard nahi, bukhaar nahi. record pakka"])
     show("agent", v.hear("fits nahi aaye, sir dard nahi hai, bukhaar nahi hai"))
     show("agent", v.hear("record pakka"))
+    print("\nBrowser events (types):", [e["type"] for e in v.events()])
     print("\nDanger-sign receipt (non-empty rows):")
     for r in v.danger.receipt():
         if r["status"] != "not_checked":

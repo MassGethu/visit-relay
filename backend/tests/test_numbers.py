@@ -57,3 +57,14 @@ def test_ids_keep_every_digit():
     assert parse_digit_string("nau aath chaar double paanch zero") == "984550"
     assert parse_digit_string("ek zero chaar do") == "1042"
     assert valid_id("mobile", "9845012345") and not valid_id("mobile", "98450")
+
+
+@pytest.mark.parametrize("text, subject, expected", [
+    ("wajan baavan kilo, hb saadhe nau", "mother", {"weight_kg": 52.0, "hb": 9.5}),
+    ("wajan 52 kilo, hb 9.5", "mother", {"weight_kg": 52.0, "hb": 9.5}),
+    ("bukhaar 101 degree, saans 64 per minute", "newborn",
+     {"temperature": (101.0, "F"), "breaths_per_min": 64}),
+])
+def test_nearest_field_word_decides_which_field_a_number_fills(text, subject, expected):
+    m = extract_measurements(text, subject)
+    assert {k: v for k, v in m.items() if k != "doubts"} == expected

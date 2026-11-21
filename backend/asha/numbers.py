@@ -239,6 +239,13 @@ def extract_measurements(text: str, subject: str = "mother") -> dict:
         lo = max(0, n.start - before)
         return any(t in keywords for t in toks[lo:n.start])
 
+    def distance(keywords: set[str], n: Number, before: int = 4) -> int | None:
+        """Words between the number and the nearest keyword before it (within `before`)."""
+        for d in range(1, before + 1):
+            if n.start - d >= 0 and toks[n.start - d] in keywords:
+                return d
+        return None
+
     used: set[int] = set()
     for idx, n in enumerate(nums):
         nxt = toks[n.end + 1] if n.end + 1 < len(toks) else ""
@@ -255,7 +262,15 @@ def extract_measurements(text: str, subject: str = "mother") -> dict:
             continue
         if idx in used:
             continue
-        if nxt in KILO or near(WEIGHT_WORDS, n):
+        # Several field words may sit before a number ("wajan baavan kilo, hb saadhe nau"):
+        # the nearest one decides. A unit right after the number counts as distance 0.
+        dists = {"weight_kg": 0 if nxt in KILO else distance(WEIGHT_WORDS, n),
+                 "hb": distance(HB_WORDS, n),
+                 "temperature": 0 if nxt in TEMP_WORDS else distance(TEMP_WORDS, n),
+                 "breaths_per_min": distance(BREATH_WORDS, n, before=6)}
+        found = {f: d for f, d in dists.items() if d is not None}
+        field_ = min(found, key=found.get) if found else None      # ties: dict order above
+        if field_ == "weight_kg":
             value = n.value
             after = n.end + 2
             if nxt in KILO and idx + 1 < len(nums) and nums[idx + 1].start == after:
@@ -267,12 +282,12 @@ def extract_measurements(text: str, subject: str = "mother") -> dict:
             out["weight_kg"] = round(value, 3)
             if n.low_confidence:
                 out["doubts"].append(("weight_kg", value, "decimal heard as a two-digit word"))
-        elif near(HB_WORDS, n):
+        elif field_ == "hb":
             out["hb"] = n.value
-        elif near(TEMP_WORDS, n) or nxt in TEMP_WORDS:
+        elif field_ == "temperature":
             unit = "F" if n.value > 50 else "C"
             out["temperature"] = (n.value, unit)
-        elif near(BREATH_WORDS, n, before=6):
+        elif field_ == "breaths_per_min":
             out["breaths_per_min"] = int(n.value)
 
     _check_ranges(out, subject)

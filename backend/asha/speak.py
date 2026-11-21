@@ -54,6 +54,16 @@ TEMPLATES = {
         "kn": "ರೆಕಾರ್ಡ್ ಉಳಿಸಲಾಗಿದೆ. ಬದಲಿಸಬೇಕಾದರೆ ಐದು ಸೆಕೆಂಡಿನಲ್ಲಿ 'ruko' ಅನ್ನಿ.",
         "en": "Record saved. Say 'ruko' within five seconds to undo.",
     },
+    "discreet_on": {
+        "hi": "Theek hai, niji baatein zor se nahi padhungi. Khatre ke nishaan hamesha bataungi.",
+        "kn": "ಸರಿ, ಖಾಸಗಿ ವಿಷಯಗಳನ್ನು ಜೋರಾಗಿ ಓದುವುದಿಲ್ಲ. ಅಪಾಯದ ಲಕ್ಷಣಗಳನ್ನು ಯಾವಾಗಲೂ ಹೇಳುತ್ತೇನೆ.",
+        "en": "Okay, I will not read private details aloud. Danger signs will always be read.",
+    },
+    "undone": {
+        "hi": "Theek hai, save radd kar diya. Jo badalna hai, boliye.",
+        "kn": "ಸರಿ, ಉಳಿಸಿದ್ದನ್ನು ರದ್ದು ಮಾಡಿದೆ. ಏನು ಬದಲಿಸಬೇಕು, ಹೇಳಿ.",
+        "en": "Okay, the save is undone. Tell me what to change.",
+    },
     "out_of_scope": {
         "hi": "Main sirf visit record mein madad kar sakti hoon.",
         "kn": "ನಾನು ಭೇಟಿ ದಾಖಲೆಗೆ ಮಾತ್ರ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",

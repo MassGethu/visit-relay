@@ -428,6 +428,17 @@ class DangerChecker:
                 newly.append(sign)
         return newly
 
+    def add_external(self, sign: str, quote: str, utterance: int, history: bool = False,
+                     phrase: str = "llm") -> bool:
+        """Evidence from the second checker (the LLM). It can only flag a sign, never rule one out.
+        Returns True if the sign has just become present (so it must alert now)."""
+        if sign not in self.states:
+            return False
+        was = self.states[sign].status
+        self.states[sign].evidence.append(Evidence(PRESENT, quote, utterance, history=history,
+                                                   phrase=phrase))
+        return was != PRESENT
+
     def receipt(self) -> list[dict]:
         rows = []
         for s in self.scope:
