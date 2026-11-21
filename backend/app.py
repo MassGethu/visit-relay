@@ -314,31 +314,84 @@ def checklist(visit_type: Literal["anc", "pnc", "hbnc", "hbyc"], lang: Literal["
             for number, sign in enumerate(DangerChecker(visit_type).guided_questions(), 1)]
 
 
-def report_view(store, visit, patient):
-    previous = store.previous_visit(visit)
-    baseline = previous["record"] if previous else {}
-    date = previous["saved_at"] if previous else None
-    seeded = False
-    if not previous and visit["visit_type"] == patient.get("visit_type"):
-        baseline = patient.get("last_visit") or {}
-        date = baseline.get("date")
-        seeded = bool(date)
+REPORT_MEASUREMENTS = ("weight_kg", "gestational_month", "hb", "breaths_per_min", "bp", "temperature")
+
+
+def report_measurements(record):
+    for field in REPORT_MEASUREMENTS:
+        value = record.get(field)
+        if value is not None:
+            yield (field, value[1] if field == "temperature" else None), value
+
+
+def measurement_direction(field, before, after):
+    if before == after:
+        return "unchanged"
+    if field == "bp":
+        return "changed"
+    if field == "temperature":
+        before, after = before[0], after[0]
+    return "higher" if after > before else "lower"
+
+
+def report_sign_changes(receipt, checked_signs):
+    current = {row["sign"]: row for row in receipt}
+    for sign in dict.fromkeys((*current, *checked_signs)):
+        row = current.get(sign, {})
+        status = row.get("status", "not_checked")
+        last_status, last_date, last_label = checked_signs.get(sign, (None, None, None))
+        if status == "present":
+            status = {"present": "reported_again", "ruled_out": "new"}.get(last_status, "reported")
+        elif last_status != "present":
+            continue
+        yield {"sign": sign, "label": row.get("label") or last_label or sign, "status": status,
+               "previous_date": last_date}
+
+
+def report_view(visit, previous_date, measurements, signs, seed):
+    seed_date = seed.get("date")
+    seeded = previous_date is None and bool(seed_date)
     changes = []
-    for field in ("weight_kg", "gestational_month", "hb", "breaths_per_min", "bp", "temperature"):
-        before, after = baseline.get(field), visit["record"].get(field)
-        if before is None or after is None:
+    seed_values = dict(report_measurements(seed)) if seed_date else {}
+    for key, after in report_measurements(visit["record"]):
+        if key in measurements:
+            before, date = measurements[key]
+            from_seed = False
+        elif key in seed_values:
+            before, date = seed_values[key], seed_date
+            from_seed = True
+        else:
             continue
-        if field == "temperature" and before[1] != after[1]:
-            continue
-        changes.append({"field": field, "before": before, "after": after})
-    old_signs = {row["sign"] for row in previous["receipt"] if row["status"] == "present"} if previous else set()
+        field, _ = key
+        changes.append({"field": field, "before": before, "after": after, "previous_date": date,
+                        "seeded_baseline": from_seed, "direction": measurement_direction(field, before, after)})
+    sign_changes = list(report_sign_changes(visit["receipt"], signs))
     return {k: v for k, v in visit.items() if k != "transcript"} | {
-        "previous_date": date, "seeded_baseline": seeded, "changes": changes,
-        "recurring_flags": [row["sign"] for row in visit["receipt"]
-                            if row["status"] == "present" and row["sign"] in old_signs],
-        "new_flags": [row["sign"] for row in visit["receipt"]
-                      if previous and row["status"] == "present" and row["sign"] not in old_signs],
+        "previous_date": seed_date if seeded else previous_date, "seeded_baseline": seeded,
+        "changes": changes, "sign_changes": sign_changes,
+        "recurring_flags": [row["sign"] for row in sign_changes if row["status"] == "reported_again"],
+        "new_flags": [row["sign"] for row in sign_changes if row["status"] == "new"],
     }
+
+
+def report_views(visits, patient, *, report_id=None):
+    """Read newest-first history in chronological order, keeping the last usable evidence."""
+    latest_dates, measurements, checked_signs = {}, {}, {}
+    for visit in reversed(visits):
+        kind, date = visit["visit_type"], visit["saved_at"]
+        vitals = measurements.setdefault(kind, {})
+        signs = checked_signs.setdefault(kind, {})
+        if report_id is None or visit["id"] == report_id:
+            seed = (patient.get("last_visit") or {}) if kind == patient.get("visit_type") else {}
+            if (seed.get("date") or date) >= date[:10]:
+                seed = {}
+            yield report_view(visit, latest_dates.get(kind), vitals, signs, seed)
+        latest_dates[kind] = date
+        for key, value in report_measurements(visit["record"]):
+            vitals[key] = value, date
+        for row in visit["receipt"]:
+            if row["status"] in ("present", "ruled_out"):
+                signs[row["sign"]] = row["status"], date, row.get("label")
 
 
 def confirmed_report(store, session):
@@ -354,7 +407,10 @@ def visit_report(session: UUID, response: Response):
     response.headers["Cache-Control"] = "no-store"
     with report_store() as store:
         visit = confirmed_report(store, session)
-        return report_view(store, visit, synthetic_patient(visit["beneficiary_id"]))
+        patient = synthetic_patient(visit["beneficiary_id"])
+        earlier = [row for row in store.history(visit["beneficiary_id"])
+                   if row["id"] < visit["id"] and row["visit_type"] == visit["visit_type"]]
+        return next(report_views([visit, *earlier], patient, report_id=visit["id"]))
 
 
 @app.post("/api/visit-report/{session}/file")
@@ -373,7 +429,7 @@ def patient_history(beneficiary_id: str, response: Response):
     response.headers["Cache-Control"] = "no-store"
     patient = synthetic_patient(beneficiary_id)
     with report_store() as store:
-        return [report_view(store, visit, patient) for visit in store.history(beneficiary_id)]
+        return list(reversed(list(report_views(store.history(beneficiary_id), patient))))
 
 
 async def send_audio(phone: WebSocket, prisma, turn: VisitTurn, headers) -> None:

@@ -417,7 +417,10 @@
       const response = await fetch(`/api/visit-report/${id}`);
       if (!response.ok) throw new Error();
       const report = await response.json();
-      if (id === state.sessionId && state.saved) state.report = report;
+      if (id === state.sessionId && state.saved) {
+        state.report = report;
+        state.reportMessage = "";
+      }
     } catch {
       if (id === state.sessionId) state.reportMessage = "Could not load the confirmed report.";
     }
@@ -447,20 +450,34 @@
   function drawReport() {
     const report = state.report;
     const previous = report?.previous_date;
+    const signLabels = {
+      new: "Newly reported",
+      reported_again: "Reported again",
+      reported: "Reported this visit",
+      not_checked: "Previously reported, not checked this visit",
+      ruled_out: "Previously reported, answered No this visit",
+    };
     return el("section", { class: "c-card", "aria-label": "Confirmed visit report" },
       el("h2", { text: "Confirmed visit report" }),
+      report && el("h3", { text: "Patient progress" }),
       report && el("p", { class: "c-empty", text: previous
-        ? `Compared with ${report.seeded_baseline ? "the synthetic baseline" : "the previous visit"} on ${previous.slice(0, 10)}.`
-        : "No earlier visit of this type is available." }),
-      previous && report.changes.length > 0 && el("ul", {}, report.changes.map(change => {
+        ? `${report.seeded_baseline ? "Synthetic baseline" : "Most recent earlier visit"} on ${previous.slice(0, 10)}.`
+        : "This is the first recorded visit of this type." }),
+      report?.changes.length > 0 && el("ul", {}, report.changes.map(change => {
         const [label, before] = fieldText(change.field, change.before);
         const [, after] = fieldText(change.field, change.after);
-        return el("li", { text: `${label}: ${before} → ${after}` });
+        const value = change.direction === "unchanged" ? after : `${before} → ${after}`;
+        const baseline = `${change.seeded_baseline ? "synthetic baseline from " : ""}${change.previous_date.slice(0, 10)}`;
+        return el("li", { text: `${label}: ${value} · ${change.direction} compared with ${baseline}` });
       })),
       report && previous && report.changes.length === 0 &&
         el("p", { class: "c-empty", text: "No matching measurements to compare." }),
-      report && report.new_flags.length > 0 && el("p", { text: `New flags: ${report.new_flags.map(sign => report.receipt.find(row => row.sign === sign)?.label || sign).join(", ")}` }),
-      report && report.recurring_flags.length > 0 && el("p", { text: `Recurring flags: ${report.recurring_flags.map(sign => report.receipt.find(row => row.sign === sign)?.label || sign).join(", ")}` }),
+      report?.sign_changes.length > 0 && el("div", {},
+        el("h3", { text: "Danger-sign follow-up" }),
+        el("ul", {}, report.sign_changes.map(change => {
+          const date = change.previous_date ? ` (last checked on ${change.previous_date.slice(0, 10)})` : "";
+          return el("li", { text: `${change.label}: ${signLabels[change.status]}${date}` });
+        }))),
       state.reportMessage && el("p", { role: "status", text: state.reportMessage }),
       !report && !state.reportMessage && el("p", { role: "status", text: "Preparing report…" }),
       !report && state.reportMessage && el("button", { class: "c-button", type: "button",

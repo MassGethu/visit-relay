@@ -53,10 +53,13 @@ function visitCard(visit) {
     if (concern.flagged) card.append(node("p", `Worker concern for ANM: “${concern.quote}”`));
   }
   if (visit.previous_date) {
-    card.append(node("h4", "Compared with " + visit.previous_date.slice(0, 10) + (visit.seeded_baseline ? " (synthetic baseline)" : "")));
+    card.append(node("h4", "Measurement changes"));
     if (!visit.changes.length) card.append(node("p", "No matching measurements to compare."));
     for (const change of visit.changes) {
-      card.append(node("p", `${labels[change.field] || change.field}: ${format(change.field, change.before)} → ${format(change.field, change.after)}`));
+      const after = format(change.field, change.after);
+      const value = change.direction === "unchanged" ? after : `${format(change.field, change.before)} → ${after}`;
+      const baseline = `${change.seeded_baseline ? "synthetic baseline from " : ""}${change.previous_date.slice(0, 10)}`;
+      card.append(node("p", `${labels[change.field] || change.field}: ${value} · ${change.direction} compared with ${baseline}`));
     }
   } else {
     card.append(node("p", "No earlier visit of this type is available."));
