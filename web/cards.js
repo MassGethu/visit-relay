@@ -49,6 +49,29 @@
 
   const speechText = text => String(text || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
   const timeText = date => date.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+  const sentences = text => speechText(text).split(/(?<=[.!?।])\s+/u);
+  const questionOf = item => sentences(item.display_question ?? item.question)[0];
+  const hintOf = item => sentences(item.display_question ?? item.question).slice(1).join(" ");
+
+  // Drawn icons (one stroke family), never emoji.
+  const ICONS = {
+    alert: ["M12 9v4", "M12 17h.01", "M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"],
+    check: ["M20 6 9 17l-5-5"],
+    pin: ["M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z", "M12 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"],
+  };
+  function icon(name) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("class", `c-icon c-icon-${name}`);
+    for (const d of ICONS[name]) {
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", d);
+      svg.append(path);
+    }
+    return svg;
+  }
+  const wave = () => el("span", { class: "c-wave", "aria-hidden": "true" }, el("i"), el("i"), el("i"), el("i"));
 
   function formatDate(iso) {
     const date = new Date(`${iso}T00:00:00`);
@@ -75,18 +98,19 @@
     const person = state.person;
     const who = el("div", { class: "c-who" },
       el("span", { class: "c-big", text: person ? person.name : "Synthetic beneficiary" }),
-      person && el("span", { class: "c-chip", text: `ID ${person.id}` }),
       el("span", { class: "c-chip", text: VISIT_TYPES[state.visitType] || state.visitType }),
-      state.discreet && el("span", { class: "c-chip c-discreet", text: "Discreet mode" }));
+      state.discreet && el("span", { class: "c-chip c-discreet", text: "Discreet mode" }),
+      person && el("span", { class: "c-place" }, person.village && icon("pin"),
+        el("span", { text: [person.village, `ID ${person.id}`].filter(Boolean).join(" · ") })));
     const personPicker = state.started || !state.people.length ? [] : [
-      el("label", { for: "c-person", text: "Visit for" }),
+      el("label", { for: "c-person", text: "Who are you visiting?" }),
       el("select", { id: "c-person", onchange: e => choose(e.target.value) },
         state.people.map(p => el("option", { value: p.id, selected: p === person,
           text: `${p.name} · ID ${p.id}` }))),
     ];
     // The visit type stays changeable during the visit: the fallback when she or the app got it wrong.
     const typePicker = state.saved ? [] : [
-      el("label", { for: "c-type", text: state.started ? "Visit type (change if wrong)" : "Visit type" }),
+      el("label", { for: "c-type", text: "Visit type" }),
       el("select", { id: "c-type", disabled: Boolean(state.switching),
         onchange: e => (state.started ? requestSwitch(e.target.value) : pickType(e.target.value)) },
         Object.entries(VISIT_NAMES).map(([value, text]) =>
@@ -94,6 +118,7 @@
       state.switching && el("p", { class: "c-pending", text: `Switching to ${VISIT_TYPES[state.switching]}…` }),
       state.switchNote && el("p", { class: "c-pending", text: state.switchNote }),
     ];
+    visitCard.classList.toggle("is-started", state.started);
     visitCard.replaceChildren(who, ...personPicker, ...typePicker);
   }
 
@@ -167,7 +192,7 @@
     state.alerts.add(event.sign);
     const local = event.local && event.local !== event.label ? event.local : "";
     alertBox.prepend(el("section", { class: "c-alert", role: "alert" },
-      el("div", { class: "c-kicker", text: "⚠ Danger sign" }),
+      el("div", { class: "c-kicker" }, icon("alert"), el("span", { text: "Danger sign" })),
       el("div", { class: "c-big", text: local || event.label }),
       local && el("div", { class: "c-en", text: event.label }),
       event.quote && el("p", { class: "c-quote", text: `“${event.quote}”` }),
@@ -226,29 +251,49 @@
     return text;
   }
 
-  function drawChecklist() {
-    const receipt = new Map((state.receipt || []).map(row => [row.sign, row]));
-    const fields = ["gestational_month", ...VITALS.filter(field => field !== "gestational_month"), "next_visit_date"]
-      .filter(field => field !== "gestational_month" || state.visitType === "anc");
-    const checklist = state.checklist;
-    return el("section", { class: "c-card c-template", "aria-label": "Visit questions" },
-      el("h2", { text: "Visit questions" }),
-      el("p", { class: "c-empty", text: "Review these questions, then dictate what you know. Say “not sure” for a question you cannot answer." }),
-      el("dl", { class: "c-fields" }, fields.map(field => {
+  const MEASURED = ["gestational_month", ...VITALS.filter(field => field !== "gestational_month"), "next_visit_date"];
+
+  function drawMeasurements() {
+    const fields = MEASURED.filter(field => field !== "gestational_month" || state.visitType === "anc");
+    const done = fields.filter(field => state.record[field] != null).length;
+    return el("section", { class: "c-card c-template c-measure", "aria-label": "Measurements" },
+      el("div", { class: "c-head" }, el("h2", { text: "Measurements" }),
+        el("span", { class: "c-progress-text", text: `${done} of ${fields.length}` })),
+      el("dl", { class: "c-tiles" }, fields.map(field => {
         const [label, value] = fieldText(field, state.record[field]);
         const missing = state.record[field] == null;
-        return el("div", { class: "c-field" }, el("dt", { text: label }),
-          el("dd", { class: missing ? "c-missing" : "", text: missing ? "Not recorded" : value }));
-      })),
+        const said = state.evidence[field];
+        return el("div", { class: `c-tile${missing ? " is-missing" : ""}${state.changed.has(field) ? " c-new" : ""}` },
+          el("dt", { text: label }),
+          el("dd", { text: missing ? "Not recorded" : value }),
+          !missing && said && el("dd", { class: "c-said", text: `“${said}”` }));
+      })));
+  }
+
+  function drawChecklist() {
+    const receipt = new Map((state.receipt || []).map(row => [row.sign, row]));
+    const checklist = state.checklist;
+    const asked = checklist?.filter(item => (receipt.get(item.sign)?.status || "not_checked") !== "not_checked").length || 0;
+    const total = checklist?.length || 0;
+    const hint = checklist?.length ? hintOf(checklist[0]) : "";
+    return el("section", { class: "c-card c-template c-safety", "aria-label": "Danger-sign questions" },
+      el("div", { class: "c-head" }, el("h2", { text: "Danger-sign questions" }),
+        total > 0 && el("span", { class: "c-progress-text", text: `${asked} of ${total} answered` })),
+      total > 0 && el("div", { class: "c-progress", role: "progressbar", "aria-label": "Questions answered",
+        "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(asked) },
+        el("span", { style: `inline-size: ${(asked / total) * 100}%` })),
+      el("p", { class: "c-empty", text: hint
+        ? `Dictate what you know. For each one: ${hint}`
+        : "Dictate what you know. Say “not sure” for a question you cannot answer." }),
       checklist?.length ? el("ol", { class: "c-checklist" }, checklist.map(item => {
         const row = receipt.get(item.sign);
         const status = row?.status || "not_checked";
         const current = state.question === speechText(item.question);
         return el("li", { class: `is-${status}${current ? " c-current-question" : ""}`,
           "aria-current": current ? "true" : null },
-          el("span", { class: "c-q", text: speechText(item.display_question ?? item.question) }),
+          el("span", { class: "c-q", text: questionOf(item) }),
           el("div", { class: "c-meta" },
-            el("span", { class: `c-status ${status}`, text: STATUS_TEXT[status] || "Not checked" }),
+            el("span", { class: `c-status ${status}`, text: current && status === "not_checked" ? "Asking now" : STATUS_TEXT[status] || "Not checked" }),
             row?.quote && el("small", { class: "c-said", text: `“${row.quote}”` })));
       })) : el("p", { class: "c-empty", text: checklist ? "Loading safety questions…" : "Could not load safety questions." }));
   }
@@ -273,8 +318,19 @@
         el("ul", {}, state.receipt.map(receiptRow))));
   }
 
+  function drawQuestion() {
+    if (!state.question) return null;
+    const active = currentQuestion();
+    const total = state.checklist?.length || 0;
+    const label = active ? `Question ${active.number} of ${total}` : state.speaking ? "Speaking" : "Your turn";
+    return el("section", { class: `c-card c-question${state.speaking ? " c-speaking" : ""}`, "aria-live": "polite" },
+      el("div", { class: "c-asking" }, state.speaking && wave(), el("span", { text: label })),
+      el("p", { class: "c-question-text", dir: "auto", text: active ? questionOf(active) : state.question }),
+      active && hintOf(active) && el("p", { class: "c-hint", dir: "auto", text: hintOf(active) }));
+  }
+
   function drawLive() {
-    const names = Object.keys(state.record).filter(name => !NOT_FIELDS.has(name));
+    const names = Object.keys(state.record).filter(name => !NOT_FIELDS.has(name) && !MEASURED.includes(name));
     const before = flagsBeforeSwitch(state.record);
     const concerns = concernsOf(state.record);
     const rows = names.map(name => {
@@ -284,14 +340,9 @@
         el("dt", { text: label }), el("dd", { text: value }),
         said && el("dd", { class: "c-said", text: `“${said}”` }));
     });
-    const activeQuestion = currentQuestion();
-    const question = state.question && el("section", {
-      class: `c-card c-question${state.speaking ? " c-speaking" : ""}`, "aria-live": "polite" },
-      el("p", { text: activeQuestion ? `Question ${activeQuestion.number} · Unanswered` : state.question }));
-    const record = el("section", { class: "c-card", "aria-label": "Visit record" },
-      el("h2", { text: "Visit record" }),
-      rows.length ? el("dl", { class: "c-fields" }, rows)
-        : el("p", { class: "c-empty", text: "Fields fill in as she speaks." }),
+    const record = (rows.length || concerns.length || before.length) && el("section", { class: "c-card c-record", "aria-label": "Visit record" },
+      el("h2", { text: "Also recorded" }),
+      rows.length && el("dl", { class: "c-fields" }, rows),
       concerns.length && el("div", { class: "c-concerns" },
         el("h3", { text: "Worker concerns (her words)" }),
         el("ul", {}, concerns.map(concernItem))),
@@ -304,7 +355,8 @@
     if (preview && liveBox.querySelector("[aria-label='Danger report preview'] details")?.open) {
       preview.querySelector("details").open = true;
     }
-    liveBox.replaceChildren(...[drawContext(), drawChecklist(), question, record, preview].filter(Boolean));
+    liveBox.replaceChildren(...[drawContext(), drawQuestion(), drawMeasurements(), drawChecklist(), record, preview]
+      .filter(Boolean));
     state.changed.clear();
   }
 
@@ -426,14 +478,18 @@
         ? [el("section", { class: "c-card", text: "Save undone. Tell me what to change." })] : []));
       return;
     }
-    endBox.replaceChildren(
-      el("section", { class: "c-card c-saved", role: "status" }, el("span", { text: "✓ Record saved" })),
+    endBox.replaceChildren(...[
+      el("section", { class: "c-card c-saved", role: "status" },
+        el("span", { class: "c-saved-mark" }, icon("check")),
+        el("div", {}, el("strong", { text: "Visit saved" }),
+          el("span", { text: `${state.person ? `${state.person.name} · ` : ""}${timeText(state.savedAt)}` }))),
       state.receipt && drawReceipt(),
       drawReport(),
       el("button", { class: "c-button", type: "button", "aria-expanded": String(state.showAnm),
         text: state.showAnm ? "Hide ANM card" : "Show ANM card",
         onclick: () => { state.showAnm = !state.showAnm; drawEnd(); } }),
-      state.showAnm && drawAnm());
+      state.showAnm && drawAnm(),
+    ].filter(Boolean));
   }
 
   // ---------- events from the backend ----------
@@ -542,6 +598,14 @@
   }
 
   document.querySelector("#speech-language").addEventListener("change", loadChecklist);
+
+  // The talk controls are a bar docked to the bottom of the phone screen (cards.css); the status line
+  // sits right above it, so it needs the bar's live height.
+  const dock = document.querySelector(".voice-controls");
+  if (dock && "ResizeObserver" in window) {
+    new ResizeObserver(([entry]) => document.documentElement.style.setProperty("--dock-h",
+      `${Math.ceil(entry.borderBoxSize?.[0]?.blockSize ?? dock.offsetHeight)}px`)).observe(dock);
+  }
   window.Cards = {
     handle, endSession, assistantTranscriptText,
     startSession: (id, person) => {
