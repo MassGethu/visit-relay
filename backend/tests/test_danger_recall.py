@@ -130,3 +130,20 @@ def test_a_number_word_is_never_read_as_a_symptom():
     d = DangerChecker("anc")
     d.add_utterance("BP ek sau chalis by nabbe")
     assert "anc_high_fever" not in d.present()
+
+
+@pytest.mark.parametrize("visit_type, text, want", [
+    ("pnc", "bahut khoon aa raha hai", {"pnc_heavy_bleeding"}),
+    ("pnc", "बहुत खून आ रहा है", {"pnc_heavy_bleeding"}),
+    ("pnc", "tez bukhaar hai", {"pnc_fever"}),
+    ("pnc", "स्तन में दर्द और बुखार", {"pnc_fever", "pnc_breast_problem_fever"}),
+    ("hbyc", "do din se dast ho rahe hain", set()),
+    ("hbyc", "do hafte se dast ho rahe hain", {"ch_persistent_diarrhoea"}),
+    ("hbyc", "do din se bukhaar hai", set()),
+    ("anc", "bahut tez sir dard hai", {"anc_severe_headache_blurred_vision"}),
+    ("anc", "pet mein bahut tez dard hai", {"anc_severe_abdominal_pain"}),
+])
+def test_partial_match_needs_the_sign_key_word(visit_type, text, want):
+    # a partial phrase match must contain the word that makes the sign ("hafte", "stan", "pet"),
+    # never only intensity words ("bahut", "tez")
+    assert present(visit_type, text) == want

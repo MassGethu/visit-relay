@@ -2,7 +2,8 @@
 
     understand("thoda khoon aa raha tha kal, ab nahi", "anc", {})
     -> {"ok": True, "provider": "groq", "ms": 640, "fields": {...}, "evidence": {...},
-        "unsure": [...], "correction_of": [...], "danger_signs": [...], "off_topic": False}
+        "unsure": [...], "correction_of": [...], "danger_signs": [...], "off_topic": False,
+        "visit_context": None}
 
 Groq first (JSON mode, 3 s timeout), then local Ollama (LOCAL_MODEL). If both fail it returns
 {"ok": False, "error": ...} and the visit carries on with rules only. The LLM never writes speech;
@@ -119,6 +120,9 @@ def _strings(v) -> list[str]:
     return [x for x in v if isinstance(x, str)] if isinstance(v, list) else []
 
 
+VISIT_TYPES = ("anc", "pnc", "hbnc", "hbyc")
+
+
 def validate(raw: dict, visit_type: str) -> dict:
     """Keep only what fits the schema in prompts/understand.md; drop the rest (logged)."""
     dropped = []
@@ -155,6 +159,7 @@ def validate(raw: dict, visit_type: str) -> dict:
         "correction_of": [f for f in _strings(raw.get("correction_of")) if f in FIELDS],
         "danger_signs": list(signs.values()),
         "off_topic": raw.get("off_topic") is True,
+        "visit_context": raw.get("visit_context") if raw.get("visit_context") in VISIT_TYPES else None,
     }
 
 

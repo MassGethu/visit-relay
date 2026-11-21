@@ -4,6 +4,9 @@
   "use strict";
 
   const VISIT_TYPES = { anc: "ANC", pnc: "PNC", hbnc: "HBNC", hbyc: "HBYC" };
+  const VISIT_NAMES = { anc: "ANC · pregnancy", pnc: "PNC · mother after delivery",
+    hbnc: "HBNC · newborn", hbyc: "HBYC · young child" };
+  const SWITCH_WAIT_MS = 4000;           // no reply from the backend: put the dropdown back
   const STATUS_TEXT = { present: "Present", ruled_out: "Ruled out", not_checked: "Not checked" };
   const VITALS = ["weight_kg", "bp", "hb", "temperature", "breaths_per_min"];
   const FIELDS = {
@@ -24,6 +27,8 @@
     record: {}, evidence: {}, changed: new Set(), alerts: new Set(),
     question: "", speaking: false, discreet: false,
     receipt: null, saved: false, savedAt: null, showAnm: false, undone: false,
+    context: null,                       // {current, suggested}: the backend asks "which visit is this?"
+    switching: "", switchNote: "", switchTimer: null,
   };
 
   // ---------- small DOM helpers ----------
@@ -71,17 +76,80 @@
       person && el("span", { class: "c-chip", text: `ID ${person.id}` }),
       el("span", { class: "c-chip", text: VISIT_TYPES[state.visitType] || state.visitType }),
       state.discreet && el("span", { class: "c-chip c-discreet", text: "Discreet mode" }));
-    const pickers = state.started || !state.people.length ? [] : [
+    const personPicker = state.started || !state.people.length ? [] : [
       el("label", { for: "c-person", text: "Visit for" }),
       el("select", { id: "c-person", onchange: e => choose(e.target.value) },
         state.people.map(p => el("option", { value: p.id, selected: p === person,
           text: `${p.name} · ID ${p.id}` }))),
-      el("label", { for: "c-type", text: "Visit type" }),
-      el("select", { id: "c-type", onchange: e => { state.visitType = e.target.value; drawVisit(); } },
-        Object.entries(VISIT_TYPES).map(([value, text]) =>
-          el("option", { value, text, selected: value === state.visitType }))),
     ];
-    visitCard.replaceChildren(who, ...pickers);
+    // The visit type stays changeable during the visit: the fallback when she or the app got it wrong.
+    const typePicker = state.saved ? [] : [
+      el("label", { for: "c-type", text: state.started ? "Visit type (change if wrong)" : "Visit type" }),
+      el("select", { id: "c-type", disabled: Boolean(state.switching),
+        onchange: e => (state.started ? requestSwitch(e.target.value) : pickType(e.target.value)) },
+        Object.entries(VISIT_NAMES).map(([value, text]) =>
+          el("option", { value, text, selected: value === (state.switching || state.visitType) }))),
+      state.switching && el("p", { class: "c-pending", text: `Switching to ${VISIT_TYPES[state.switching]}…` }),
+      state.switchNote && el("p", { class: "c-pending", text: state.switchNote }),
+    ];
+    visitCard.replaceChildren(who, ...personPicker, ...typePicker);
+  }
+
+  function pickType(visitType) {
+    state.visitType = visitType;
+    drawVisit();
+  }
+
+  // app.js listens for "cards:send" and forwards the detail to the backend WebSocket.
+  function send(message) {
+    window.dispatchEvent(new CustomEvent("cards:send", { detail: message }));
+  }
+
+  function requestSwitch(visitType) {
+    state.context = null;
+    state.switchNote = "";
+    if (!(visitType in VISIT_TYPES) || visitType === state.visitType) {
+      state.switching = "";
+      if (visitType === state.visitType) send({ type: "set_visit_type", visit_type: visitType });
+      drawVisit();
+      drawLive();
+      return;
+    }
+    state.switching = visitType;
+    clearTimeout(state.switchTimer);
+    state.switchTimer = setTimeout(() => {
+      state.switching = "";
+      state.switchNote = "Could not change the visit type. Try again.";
+      drawVisit();
+    }, SWITCH_WAIT_MS);
+    send({ type: "set_visit_type", visit_type: visitType });
+    drawVisit();
+    drawLive();
+  }
+
+  function switched(event) {
+    clearTimeout(state.switchTimer);
+    const from = state.visitType;
+    state.switching = "";
+    state.context = null;
+    if (event.visit_type in VISIT_TYPES) state.visitType = event.visit_type;
+    state.switchNote = from !== state.visitType
+      ? `Changed from ${VISIT_TYPES[from]}. Everything said so far was checked again.` : "";
+    drawVisit();
+    drawLive();
+  }
+
+  function drawContext() {
+    const ctx = state.context;
+    if (!ctx) return null;
+    const choices = [ctx.current, ...ctx.suggested].filter(v => v in VISIT_TYPES);
+    return el("section", { class: "c-card c-context", "aria-label": "Which visit is this?" },
+      el("div", { class: "c-kicker", text: "Which visit is this?" }),
+      el("p", { text: "Answer by voice, or tap:" }),
+      el("div", { class: "c-choices" }, choices.map(v => el("button", {
+        class: `c-button${v === ctx.current ? "" : " c-switch"}`, type: "button",
+        text: v === ctx.current ? `Keep ${VISIT_NAMES[v]}` : `Switch to ${VISIT_NAMES[v]}`,
+        onclick: () => requestSwitch(v) }))));
   }
 
   function choose(id) {
@@ -105,6 +173,9 @@
 
   // Her concerns outside the checklist, verbatim. They never change a checklist state.
   const concernsOf = record => (Array.isArray(record.worker_concerns) ? record.worker_concerns : []);
+  // Signs flagged on the earlier visit type's checklist: they stay flagged after a switch.
+  const flagsBeforeSwitch = record => (Array.isArray(record.flags_before_switch) ? record.flags_before_switch : []);
+  const NOT_FIELDS = new Set(["worker_concerns", "flags_before_switch"]);
 
   function concernItem(concern) {
     return el("li", { class: "c-concern" },
@@ -114,7 +185,8 @@
   }
 
   function drawLive() {
-    const names = Object.keys(state.record).filter(name => name !== "worker_concerns");
+    const names = Object.keys(state.record).filter(name => !NOT_FIELDS.has(name));
+    const before = flagsBeforeSwitch(state.record);
     const concerns = concernsOf(state.record);
     const rows = names.map(name => {
       const [label, value] = fieldText(name, state.record[name]);
@@ -132,8 +204,13 @@
         : el("p", { class: "c-empty", text: "Fields fill in as she speaks." }),
       concerns.length && el("div", { class: "c-concerns" },
         el("h3", { text: "Worker concerns (her words)" }),
-        el("ul", {}, concerns.map(concernItem))));
-    liveBox.replaceChildren(...[question, record].filter(Boolean));
+        el("ul", {}, concerns.map(concernItem))),
+      before.length && el("div", { class: "c-concerns" },
+        el("h3", { text: "Flagged before the visit type changed" }),
+        el("ul", {}, before.map(f => el("li", { class: "c-concern" },
+          el("span", { text: `${f.label} (${VISIT_TYPES[f.visit_type] || f.visit_type}) — refer to PHC` }),
+          f.quote && el("span", { class: "c-quote", text: `“${f.quote}”` }))))));
+    liveBox.replaceChildren(...[drawContext(), question, record].filter(Boolean));
     state.changed.clear();
   }
 
@@ -168,7 +245,8 @@
 
   function drawAnm() {
     const person = state.person;
-    const present = (state.receipt || []).filter(r => r.status === "present");
+    const present = [...(state.receipt || []).filter(r => r.status === "present"),
+      ...flagsBeforeSwitch(state.record)];
     const flagged = concernsOf(state.record).filter(c => c.flagged);
     const vitals = VITALS.filter(f => f in state.record).map(f => fieldText(f, state.record[f]).join(": "));
     return el("section", { class: "c-card c-anm", "aria-label": "ANM referral card" },
@@ -241,17 +319,34 @@
         state.undone = false;
         state.savedAt = new Date();
         state.question = "";
+        state.context = null;
+        drawVisit();
         drawLive();
         drawEnd();
+        break;
+      case "visit_context":
+        state.context = { current: event.current || state.visitType,
+          suggested: Array.isArray(event.suggested) ? event.suggested : [] };
+        drawLive();
+        break;
+      case "visit_type":
+        switched(event);
+        break;
+      case "transcript":                 // she spoke again: the "which visit?" question is answered or lapsed
+        if (state.context) {
+          state.context = null;
+          drawLive();
+        }
         break;
       case "undo":
         state.saved = false;
         state.undone = true;
         state.showAnm = false;
+        drawVisit();
         drawEnd();
         break;
       default:
-        break;                           // transcript, latency: shown by app.js
+        break;                           // latency: shown by app.js
     }
   }
 

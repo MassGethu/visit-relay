@@ -206,5 +206,58 @@
     "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
    }
   ]
+ },
+ "pnc_heavy_bleeding": {
+  "hi": [
+   {
+    "script": "बहुत खून आ रहा",
+    "roman": "bahut khoon aa raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "ज़्यादा खून आ रहा",
+    "roman": "zyada khoon aa raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "खून बहुत आ रहा",
+    "roman": "khoon bahut aa raha",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "बहुत ज़्यादा खून",
+    "roman": "bahut zyada khoon",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "बहुत ब्लीडिंग हो रही",
+    "roman": "bahut bleeding ho rahi",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "pnc_breast_problem_fever": {
+  "hi": [
+   {
+    "script": "स्तन में दर्द",
+    "roman": "stan mein dard",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "स्तन में सूजन",
+    "roman": "stan mein soojan",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "छाती में दर्द",
+    "roman": "chhaati mein dard",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   },
+   {
+    "script": "स्तन में गाँठ",
+    "roman": "stan mein gaanth",
+    "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
  }
 }

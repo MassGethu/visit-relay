@@ -161,10 +161,18 @@ def test_llm_unsure_field_becomes_a_readback_question():
     assert any("HB" in line for line in lines)
 
 
-def test_off_topic_gets_the_fixed_out_of_scope_line():
+def test_medicine_question_gets_out_of_scope_from_rules_and_llm_never_repeats_it():
     v = make(use_llm=True, understand=llm_says(off_topic=True))
-    v.hear("isko kaunsi dawai dein")
-    assert v.followup() == ["Main sirf visit record mein madad kar sakti hoon."]
+    assert v.hear("isko kaunsi dawai dein") == ["Main sirf visit record mein madad kar sakti hoon.",
+                                                "Chaliye, visit aage badhaate hain."]
+    assert v.followup() == []
+
+
+def test_unrelated_sentence_gets_out_of_scope_from_the_llm_then_resumes():
+    v = make(use_llm=True, understand=llm_says(off_topic=True))
+    assert v.hear("aaj bahut garmi hai") == []
+    assert v.followup() == ["Main sirf visit record mein madad kar sakti hoon.",
+                            "Chaliye, visit aage badhaate hain."]
 
 
 def test_llm_failure_leaves_the_rules_result():

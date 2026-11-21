@@ -20,8 +20,9 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from .concern import carries_content, is_flag_request, is_worry
+from .context import COVERS, SUBJECTS, VISIT_TYPES, answer_to_switch, context_cues, out_of_scope
 from .correction import apply_correction, is_commit, is_undo
-from .danger import DangerChecker, sign_label
+from .danger import PRESENT, DangerChecker, sign_label
 from .dates import resolve
 from .numbers import extract_measurements
 from .readback import Doubt, find_doubts, plan
@@ -93,6 +94,12 @@ class Visit:
         self.transcript: list[dict] = []        # everything she said, with time (saved encrypted)
         self.flags: list[dict] = []             # every danger flag: sign, quote, time, rules or llm
         self.visit_id: int | None = None
+        self._heard: list[tuple[str, str]] = []  # every sentence the checker saw, to replay on a switch
+        self._switch_offer: list[str] | None = None   # visit types we just asked her about
+        self._asked_context: set[str] = set()   # never ask about the same other visit twice
+        self._replied: set[int] = set()         # utterances already given an out-of-scope / context reply
+        self._readback_done = False
+        self.switches: list[dict] = []          # every visit-type change: from, to, time, by
         if self.use_store and self.store is None:
             from store import default_store     # lazy: rules-only visits never touch the disk
             self.store = default_store()
@@ -129,12 +136,18 @@ class Visit:
         flag = is_flag_request(words)
         if flag and not carries_content(words):     # "ANM ko batao": flag the concern she just said
             return self._take_unspoken() + [self._flag_last_concern()]
+        if self._switch_offer is not None:      # her answer to "switch the visit?"
+            reply = self._answer_switch(words)
+            if reply is not None:
+                return self._take_unspoken() + reply
         self._drain(wait=False)
         llm_job = None
         if self.use_llm:                        # start first so it runs while the rules work
             llm_job = _POOL.submit(self.understand, text, self.visit_type, jsonable(
                 {k: v for k, v in self.record.items() if k != "worker_concerns"}))   # not LLM input
+        self._heard.append((text, language_code))
         new = self.danger.add_utterance(text, language_code)
+        idx = len(self.danger.utterances) - 1
         m = extract_measurements(text, self.subject)
         changed = False
         for key in RULE_FIELDS:
@@ -161,7 +174,11 @@ class Visit:
             self._emit_record()
         alerts = self._alerts(new)                           # rule alerts first, never deferred
         concern = self._add_concern(text, flag) if flag or is_worry(words) else []
-        return alerts + concern + self._take_unspoken()
+        if out_of_scope(words):                 # medicine / dose / diagnosis: never answered
+            steer = self._scope_reply(idx)
+        else:
+            steer = self._context_reply(words, text, language_code, idx)
+        return alerts + concern + steer + self._take_unspoken()
 
     def followup(self) -> list[str]:
         """Wait for the LLM's reading of the last sentences; return anything new to speak
@@ -171,6 +188,7 @@ class Visit:
 
     def readback(self) -> list[str]:
         self._drain(wait=True)
+        self._readback_done = True
         out = self._take_unspoken()
         # Only fields with a fixed spoken form are asked aloud (free text from the LLM is never
         # spoken); in discreet mode sensitive fields are skipped. The rest stay on the screen.
@@ -252,12 +270,102 @@ class Visit:
         if changed:
             self._emit_record()
         self._unspoken += self._alerts(new)
-        if result.get("off_topic"):
-            self._unspoken.append(self.speaker.say("out_of_scope"))
+        other = result.get("visit_context")
+        if idx in self._replied:                # the rules already answered this sentence
+            return
+        if other and self._other_visit(other) and other not in self._asked_context:
+            self._unspoken += self._offer_switch([other], idx)
+        elif result.get("off_topic"):
+            self._unspoken += self._scope_reply(idx)
 
     def _take_unspoken(self) -> list[str]:
         out, self._unspoken = self._unspoken, []
         return out
+
+    # ---------- out of scope and visit context ----------
+
+    def set_visit_type(self, visit_type: str, by: str = "screen") -> list[str]:
+        """Switch to another visit's checklist (her spoken yes, or the dropdown on the screen).
+        Everything she said is checked again against the new checklist. Signs already flagged stay
+        flagged: their alerts were spoken, they stay in the audit trail, and any sign the new
+        checklist does not have is kept in the record as "flags_before_switch" for the ANM."""
+        if visit_type not in VISIT_TYPES:
+            raise ValueError(f"unknown visit type {visit_type!r}")
+        self._switch_offer = None
+        if self.saved:
+            return []
+        if visit_type == self.visit_type:
+            return [self.speaker.say("visit_kept", visit=self.speaker.visit_name(visit_type))]
+        old = self.danger
+        self.switches.append({"from": self.visit_type, "to": visit_type, "at": now(), "by": by})
+        self.visit_type, self.subject = visit_type, SUBJECTS[visit_type]
+        self.danger = DangerChecker(visit_type, self.tested_languages)
+        for text, code in self._heard:
+            self.danger.add_utterance(text, code)
+        for sign, state in old.states.items():  # what the LLM flagged carries over where it applies
+            for e in state.evidence:
+                if e.status == PRESENT and e.phrase == "llm":
+                    self.danger.add_external(sign, e.quote, e.utterance, history=e.history)
+        self.danger.add_vitals({k: v for k, v in self.record.items()
+                                if k in ("bp", "temperature", "breaths_per_min", "weight_kg")})
+        kept = [k for k in self.record.get("flags_before_switch", [])
+                if k["sign"] not in self.danger.states]     # back on its own checklist: not "before" any more
+        self.record["flags_before_switch"] = kept
+        for sign in old.present():
+            if sign not in self.danger.states and all(k["sign"] != sign for k in kept):
+                kept.append({"sign": sign, "label": sign_label(sign), "visit_type": old.visit_type,
+                             "quote": old.states[sign].evidence[-1].quote})
+        if not kept:
+            del self.record["flags_before_switch"]
+        self._events.append({"type": "visit_type", "visit_type": visit_type, "subject": self.subject})
+        self._emit_record()
+        line = self.speaker.say("visit_switched", visit=self.speaker.visit_name(visit_type))
+        return [line] + self._alerts(self.danger.present())
+
+    def _other_visit(self, visit_type: str) -> bool:
+        return (visit_type in VISIT_TYPES and visit_type != self.visit_type
+                and visit_type not in COVERS.get(self.visit_type, set()))
+
+    def _resume(self) -> str:
+        """Back to the checklist: the next safety questions once the first readback has asked them."""
+        signs = self.danger.safety_questions() if self._readback_done else []
+        return self.speaker.safety_turn(signs) if signs else self.speaker.say("resume")
+
+    def _scope_reply(self, idx: int) -> list[str]:
+        self._replied.add(idx)
+        lines = [self.speaker.say("out_of_scope"), self._resume()]
+        self._events.append({"type": "question", "text": lines[-1]})
+        return lines
+
+    def _context_reply(self, words: list[str], text: str, code: str, idx: int) -> list[str]:
+        if self._switch_offer is not None:
+            return []
+        here = any(e.utterance == idx for st in self.danger.states.values() for e in st.evidence)
+        other = sorted(context_cues(words, text, self.visit_type, here, code) - self._asked_context)
+        return self._offer_switch(other, idx) if other else []
+
+    def _offer_switch(self, suggested: list[str], idx: int) -> list[str]:
+        self._replied.add(idx)
+        self._switch_offer = suggested
+        self._asked_context |= set(suggested)
+        line = self.speaker.context_question(suggested, self.visit_type)
+        self._events.append({"type": "visit_context", "current": self.visit_type, "suggested": suggested})
+        self._events.append({"type": "question", "text": line})
+        return [line]
+
+    def _answer_switch(self, words: list[str]) -> list[str] | None:
+        """None: not an answer, so the sentence is visit content (the question lapses)."""
+        offer, answer = self._switch_offer, answer_to_switch(words)
+        if answer is None:
+            self._switch_offer = None
+            return None
+        if answer == "yes" and len(offer) > 1:  # "haan" to "which visit?": ask again
+            return [self.speaker.context_question(offer, self.visit_type)]
+        if answer == "no":
+            self._switch_offer = None
+            return [self.speaker.say("visit_kept", visit=self.speaker.visit_name(self.visit_type)),
+                    self._resume()]
+        return self.set_visit_type(offer[0] if answer == "yes" else answer, by="voice")
 
     # ---------- internals ----------
 
@@ -319,7 +427,8 @@ class Visit:
                 self.visit_id = self.store.save_visit(
                     beneficiary_id=self.beneficiary_id, visit_type=self.visit_type, lang=self.lang,
                     saved_at=now(), record=jsonable(self.record), transcript=self.transcript,
-                    receipt=rows, flags=self.flags, concerns=self.record.get("worker_concerns", []))
+                    receipt=rows, flags=self.flags, concerns=self.record.get("worker_concerns", []),
+                    switches=self.switches)
             except Exception:                   # never claim "saved" when the disk write failed
                 log.exception("saving the visit failed")
                 return [self.speaker.say("save_failed")]

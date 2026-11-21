@@ -26,7 +26,9 @@ Return ONLY JSON matching this schema:
     {"id": "<one id from the list below>", "status": "present" | "absent" | "past",
      "evidence": "<exact words>"}
   ],
-  "off_topic": true | false        // she asked for medicine, diagnosis or something unrelated
+  "off_topic": true | false,       // she asked for medicine, diagnosis or something unrelated
+  "visit_context": "anc" | "pnc" | "hbnc" | "hbyc" | null
+                                   // the visit this sentence is clearly about, ONLY when it is not VISIT_TYPE
 }
 
 Rules:
@@ -40,5 +42,9 @@ Rules:
    "status": "past" when it happened but has stopped ("pehle tha, ab nahi") — this still needs referral.
    Some signs are expressed with "nahi": "doodh nahi pee raha" means the poor-feeding sign is PRESENT.
 5. Never give advice, a diagnosis, a medicine or a dose. You only extract.
+   A sentence about another person on another visit's checklist is NOT off_topic: set "visit_context"
+   ("baby ko bukhaar hai" on an anc visit = "hbnc"; "teen saal ka bachcha" = "hbyc";
+   "pet mein bachcha hil nahi raha" on an hbyc visit = "anc"). Otherwise "visit_context": null.
+   An hbnc visit also covers the mother after delivery, so mother's signs there are NOT another visit.
 6. Use only danger sign ids from this list:
 {DANGER_SIGN_LIST}

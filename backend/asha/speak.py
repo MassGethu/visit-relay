@@ -94,7 +94,40 @@ TEMPLATES = {
         "kn": "ನಾನು ಭೇಟಿ ದಾಖಲೆಗೆ ಮಾತ್ರ ಸಹಾಯ ಮಾಡಬಲ್ಲೆ.",
         "en": "I can only help with the visit record.",
     },
+    "resume": {
+        "hi": "Chaliye, visit aage badhaate hain.",
+        "kn": "ಭೇಟಿಯನ್ನು ಮುಂದುವರಿಸೋಣ.",
+        "en": "Let us continue the visit.",
+    },
+    "context_check": {
+        "hi": "Yeh {suggested} ki baat lagti hai. Visit badal doon? Haan ya nahi.",
+        "kn": "ಇದು {suggested} ವಿಷಯ ಅನಿಸುತ್ತದೆ. ಭೇಟಿ ಬದಲಿಸಲೇ? ಹೌದು ಅಥವಾ ಇಲ್ಲ.",
+        "en": "This sounds like a {suggested} visit. Switch the visit? Yes or no.",
+    },
+    "context_which": {
+        "hi": "Yeh kis visit ki baat hai: {options}?",
+        "kn": "ಇದು ಯಾವ ಭೇಟಿಯ ವಿಷಯ: {options}?",
+        "en": "Which visit is this about: {options}?",
+    },
+    "visit_switched": {
+        "hi": "Theek hai, ab {visit} visit.",
+        "kn": "ಸರಿ, ಈಗ {visit} ಭೇಟಿ.",
+        "en": "OK, this is now a {visit} visit.",
+    },
+    "visit_kept": {
+        "hi": "Theek hai, {visit} visit hi chalega.",
+        "kn": "ಸರಿ, {visit} ಭೇಟಿಯೇ ಮುಂದುವರಿಯುತ್ತದೆ.",
+        "en": "OK, staying on the {visit} visit.",
+    },
 }
+
+VISIT_NAMES = {
+    "anc": {"hi": "garbhavastha", "kn": "ಗರ್ಭಿಣಿ", "en": "pregnancy"},
+    "pnc": {"hi": "prasav ke baad maa", "kn": "ಬಾಣಂತಿ", "en": "mother after delivery"},
+    "hbnc": {"hi": "navjaat shishu", "kn": "ನವಜಾತ ಶಿಶು", "en": "newborn"},
+    "hbyc": {"hi": "chhote bachche", "kn": "ಚಿಕ್ಕ ಮಗು", "en": "young child"},
+}
+OR_WORD = {"hi": " ya ", "kn": " ಅಥವಾ ", "en": " or "}
 
 FIELD_NAMES = {
     "weight_kg": {"hi": "Wajan", "kn": "ತೂಕ", "en": "Weight"},
@@ -151,6 +184,16 @@ class Speaker:
 
     def alert(self, sign: str) -> str:
         return self.say("alert", sign=spoken_sign(sign, self.lang))
+
+    def visit_name(self, visit_type: str) -> str:
+        return VISIT_NAMES[visit_type][self.lang]
+
+    def context_question(self, suggested: list[str], current: str) -> str:
+        """One other visit: "switch? yes or no". Several: "which visit: a, b or c?"."""
+        if len(suggested) == 1:
+            return self.say("context_check", suggested=self.visit_name(suggested[0]))
+        names = [self.visit_name(v) for v in [current, *suggested]]
+        return self.say("context_which", options=", ".join(names[:-1]) + OR_WORD[self.lang] + names[-1])
 
     def safety_turn(self, signs: list[str]) -> str:
         sep = {"hi": ", ", "kn": ", ", "en": ", "}[self.lang]

@@ -106,10 +106,14 @@ def _alternatives(text: str, split_commas: bool = True) -> list[str]:
         if "—" not in paren and "ambiguous" not in paren and "only" not in paren:
             alts.append(paren)
     text = re.sub(r"\([^)]*\)", " ", text)
-    pattern = r"\s+/\s*|\s*/\s+|;\s+" + (r"|,\s+" if split_commas else "")
-    for chunk in re.split(pattern, text):
-        if chunk.strip():
-            alts.append(chunk)
+    for group in re.split(r"\s+/\s*|\s*/\s+|;\s+", text):
+        parts = [c for c in (re.split(r",\s+", group) if split_commas else [group]) if c.strip()]
+        alts += parts[:1]
+        # "chhaati mein gaanth, dard, bukhaar": a lone word later in a comma list belongs to
+        # the list's subject ("chhaati dard"), it is not a sign on its own ("bukhaar")
+        head = parts[0].split()[0] if parts else ""
+        alts += [f"{head} {c}" if len(c.split()) == 1 and len(parts[0].split()) > 1 else c
+                 for c in parts[1:]]
     return alts
 
 
@@ -182,7 +186,9 @@ def load_lexicon() -> Lexicon:
 ALWAYS_GENERIC = {fold(w) for w in ("bachcha", "baccha", "bachche", "bacche", "baby", "magu", "maguvu",
                                   "amma", "maa", "बच्चे", "बच्चों", "शिशु", "shishu",
                                   "thoda", "bahut", "tumba", "jaasti", "kam", "kammi", "kal",
-                                  "body", "pet", "hotte", "बच्चा", "ಮಗು")}
+                                  "body", "pet", "hotte", "बच्चा", "ಮಗು",
+                                  "बहुत", "ज़्यादा", "ज्यादा", "zyada", "zyaada", "jyada", "tez", "तेज़", "तेज",
+                                  "ತುಂಬಾ", "ಜಾಸ್ತಿ", "थोड़ा", "कम")}
 
 
 def _finish(signs, inverted, phrases, generic, by_word) -> Lexicon:
@@ -229,6 +235,38 @@ class Match:
     specific: bool = True   # at least one matched word is not a generic one ("dard", "bachcha")
 
 
+# A partial match may skip a word, but never the word that makes it this sign:
+# "do din se dast" is not "do hafte se dast", and "dast" alone is not "dast mein khoon".
+_WEEKS = {"hafte", "hafta", "hafton", "हफ़्ते", "हफ्ते", "हफ़्ता", "हफ्ता", "weeks", "week",
+          "vaara", "vaarada", "ವಾರ", "ವಾರದಿಂದ", "chaudah", "चौदह", "fourteen"}
+_FEVER = {"bukhaar", "bukhar", "बुखार", "jvara", "jwara", "ಜ್ವರ", "fever", "taap", "ताप"}
+_LOOSE = {"dast", "दस्त", "loose", "motion", "motions", "bedi", "bhedi", "ಭೇದಿ", "ಬೇಧಿ", "diarrhoea", "diarrhea"}
+_BLOOD = {"khoon", "खून", "rakt", "rakta", "रक्त", "ರಕ್ತ", "blood", "khooni"}
+_BELLY = {"pet", "पेट", "hotte", "ಹೊಟ್ಟೆ", "abdomen", "stomach", "tummy", "kokh", "कोख"}
+_BREAST = {"chhaati", "chaati", "छाती", "stan", "स्तन", "breast", "nipple", "nipples", "mole", "ಮೊಲೆ",
+           "moletottu", "ಮೊಲೆತೊಟ್ಟು"}
+_LABOUR = {"dard", "दर्द", "pain", "labour", "labor", "novu", "ನೋವು", "ghante", "घंटे", "ghanta", "hours",
+           "herige", "ಹೆರಿಗೆ", "hua", "हुआ", "hui", "हुई", "aagilla", "ಆಗಿಲ್ಲ", "delivery", "डिलीवरी"}
+# Each set needs one of its words in the match (all sets for that sign).
+KEY_WORDS = {
+    "ch_persistent_diarrhoea": [_WEEKS, _LOOSE],
+    "ch_fever_persistent": [_FEVER, _WEEKS],
+    "ch_blood_in_stool": [_BLOOD],
+    "pnc_breast_problem_fever": [_BREAST],
+    "anc_severe_abdominal_pain": [_BELLY],
+}
+# The whole sentence must name labour for these: "bachcha nahi [hua]" (a fragment of
+# "kal raat se dard hai, bachcha nahi hua") also matched "pet mein bachcha hil nahi raha".
+SENTENCE_KEY_WORDS = {"anc_prolonged_labour": _LABOUR}
+_SENTENCE_KEY_FOLDED = {sign: {fold(w) for w in group} for sign, group in SENTENCE_KEY_WORDS.items()}
+_KEY_FOLDED = {sign: [{fold(w) for w in group} for group in groups] for sign, groups in KEY_WORDS.items()}
+
+
+def _has_key_word(sign: str, matched_words: list[str]) -> bool:
+    folded = {fold(w) for w in matched_words}
+    return all(folded & group for group in _KEY_FOLDED.get(sign, []))
+
+
 def _find(phrase: Phrase, content: list[int], hits: dict[str, set[int]],
           generic: frozenset[str], breaks: list[int] = ()) -> Match | None:
     """Best occurrence of the phrase in the content tokens (indices into the token list).
@@ -260,7 +298,8 @@ def _find(phrase: Phrase, content: list[int], hits: dict[str, set[int]],
         elif (k >= 2 and len(missing) == 1 and not phrase.mandatory[missing[0]] and not phrase.negation
               and any(not is_negator(w) for w in matched_words)
               and (k - 1 >= 3 or any(fold(w) not in generic and len(fold(w)) >= 4 and not is_negator(w)
-                                     for w in matched_words))):
+                                     for w in matched_words))
+              and _has_key_word(phrase.sign, matched_words)):
             partial = True
         else:
             continue
@@ -390,6 +429,8 @@ class DangerChecker:
                      and not hedged
                      and not (m.sign in self.lex.inverted
                               and any(is_negator(w) for w in words[m.start:m.end + 1]))}
+        folded = {fold(w) for w in words}
+        matches = [m for m in matches if not folded.isdisjoint(_SENTENCE_KEY_FOLDED.get(m.sign, folded))]
         danger = _by_subject([m for m in matches if not m.negation_phrase], words)
         starts = sorted({m.start for m in danger if not is_negator(words[m.start])})
 

@@ -119,3 +119,12 @@
 @media (prefers-reduced-motion: reduce) {
   .c-alert, .c-field.c-new dd { animation: none; }
 }
+
+/* visit type: changeable during the visit, and "which visit is this?" */
+.c-pending { margin: 0; font-size: .85rem; color: var(--muted); }
+.c-context { border-left: .35rem solid var(--teal); display: grid; gap: .5rem; }
+.c-context p { margin: 0; }
+.c-choices { display: grid; gap: .5rem; }
+.c-button.c-switch { background: var(--teal); color: #fff; }
+.c-context .c-kicker { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--teal); }
