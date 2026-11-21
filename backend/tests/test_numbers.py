@@ -68,3 +68,15 @@ def test_ids_keep_every_digit():
 def test_nearest_field_word_decides_which_field_a_number_fills(text, subject, expected):
     m = extract_measurements(text, subject)
     assert {k: v for k, v in m.items() if k != "doubts"} == expected
+
+
+@pytest.mark.parametrize("said, bp", [("BP ek sau chalis by nabbe", (140, 90)),
+                                       ("BP ek sau chaalis by nabbe", (140, 90)),
+                                       ("BP ek sau pachas by assi", (150, 80))])
+def test_bp_with_other_roman_spellings(said, bp):
+    assert extract_measurements(said)["bp"] == bp
+
+
+def test_weight_is_not_overwritten_by_a_bp_reading():
+    m = extract_measurements("wajan baavan kilo, BP ek sau chalis by nabbe")
+    assert m["weight_kg"] == 52.0 and m["bp"] == (140, 90)

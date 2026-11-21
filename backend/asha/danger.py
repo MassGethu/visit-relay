@@ -24,6 +24,7 @@ from functools import lru_cache
 
 import re
 
+from .numbers import _unit as number_value
 from .text import DATA, Token, fold, similar, tokens
 
 PRESENT, RULED_OUT, NOT_CHECKED = "present", "ruled_out", "not_checked"
@@ -205,10 +206,12 @@ def _token_hits(lex: Lexicon, toks: list[Token]) -> dict[str, set[int]]:
         if t.text in STOPWORDS:
             continue
         ft = fold(t.text)
+        # a number word matches only itself: "chalis" (forty) is not "chali" (chills)
+        is_number = number_value(t.text) is not None
         for w, fw in lex.by_initial.get(ft[:1], []):
             # a negated word ("aagilla") only matches a negated token, never "agla"
             if (abs(len(fw) - len(ft)) <= 3 and is_negator(w) == is_negator(t.text)
-                    and similar(t.text, w)):
+                    and (fw == ft if is_number else similar(t.text, w))):
                 hits.setdefault(w, set()).add(t.index)
     return hits
 

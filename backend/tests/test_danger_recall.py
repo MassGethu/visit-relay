@@ -123,3 +123,10 @@ def test_a_phrase_never_spans_a_clause_break():
     d = DangerChecker("anc")
     d.add_utterance("saas usko khana kam deti hai, aur thoda khoon aa raha hai")
     assert set(d.present()) == {"anc_vaginal_bleeding"}
+
+
+def test_a_number_word_is_never_read_as_a_symptom():
+    # "chalis" (forty) fuzzy-matched "chali" (chills, in "chali jvara") and raised high fever
+    d = DangerChecker("anc")
+    d.add_utterance("BP ek sau chalis by nabbe")
+    assert "anc_high_fever" not in d.present()

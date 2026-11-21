@@ -100,7 +100,23 @@ def _unit(word: str) -> float | None:
     for cand in (re.sub(r"(oo|uu)$", "u", word), word[:-1] + "ು" if word.endswith("ೂ") else ""):
         if cand in units:
             return units[cand]
-    return None
+    return folded_units().get(fold_spelling(word)) if word.isascii() else None
+
+
+def fold_spelling(word: str) -> str:
+    """Roman Hindi is spelt many ways: "chalis" / "chaalees", "pachas" / "pachaas"."""
+    for long, short in (("aa", "a"), ("ee", "i"), ("ii", "i"), ("oo", "u"), ("uu", "u"), ("w", "v")):
+        word = word.replace(long, short)
+    return word
+
+
+@lru_cache(maxsize=1)
+def folded_units() -> dict[str, int]:
+    out: dict[str, int] = {}
+    for w, n in unit_words().items():
+        if w.isascii():
+            out.setdefault(fold_spelling(w), n)
+    return out
 
 
 TRAILING_FRACTION = {"mukkaalu": 0.75, "mukkaal": 0.75, "ಮುಕ್ಕಾಲು": 0.75, "kaalu": 0.25,
