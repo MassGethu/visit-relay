@@ -161,7 +161,8 @@ async function connectVisit(current, lang) {
       }
       if (!current.handsFree && activePress === null && !current.interrupted) status.textContent = "Ready to talk.";
     } else if (event.type === "assistant_transcript") {
-      appendTranscript(assistantTranscript, event.text);
+      const display = window.Cards?.assistantTranscriptText?.(event.text) ?? event.text;
+      if (display) appendTranscript(assistantTranscript, display);
     } else if (event.type === "latency") {
       if (!current.released?.played) latency.textContent = `Prisma latency · ${Math.round(event.ms)} ms`;
     }

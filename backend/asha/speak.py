@@ -51,6 +51,11 @@ TEMPLATES = {
         "kn": "ಈ ಪ್ರಶ್ನೆಗೆ ಒಂದು ಉತ್ತರ ನೀಡಿ. ಹೌದು, ಇಲ್ಲ ಅಥವಾ ಗೊತ್ತಿಲ್ಲ.",
         "en": "Answer the current question only. Say yes, no, or not sure.",
     },
+    "numbered_question": {
+        "hi": "Sawaal {number}, {question}",
+        "kn": "ಪ್ರಶ್ನೆ {number}, {question}",
+        "en": "Question {number}, {question}",
+    },
     "safety_question": {
         "hi": "{sign} tha ya hai? Haan, nahi ya pata nahi boliye.",
         "kn": "{sign} ಇತ್ತಾ ಅಥವಾ ಇದೆಯಾ? ಹೌದು, ಇಲ್ಲ ಅಥವಾ ಗೊತ್ತಿಲ್ಲ ಎಂದು ಹೇಳಿ.",
@@ -212,8 +217,11 @@ class Speaker:
         names = [self.visit_name(v) for v in [current, *suggested]]
         return self.say("context_which", options=", ".join(names[:-1]) + OR_WORD[self.lang] + names[-1])
 
-    def safety_question(self, sign: str) -> str:
-        return self.say("safety_question", sign=spoken_sign(sign, self.lang))
+    def safety_question(self, sign: str, number: int | None = None) -> str:
+        question = self.say("safety_question", sign=spoken_sign(sign, self.lang))
+        if number is None:
+            return question
+        return self.say("numbered_question", number=verbalize.integer(number, self.lang), question=question)
 
     def safety_turn(self, signs: list[str]) -> str:
         sep = {"hi": ", ", "kn": ", ", "en": ", "}[self.lang]

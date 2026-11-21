@@ -252,8 +252,12 @@ class Visit:
                                     or self.danger.states[sign].needs_confirmation]
         return self._continue_safety()
 
+    def _spoken_safety_question(self, sign: str) -> str:
+        guided = self.danger.guided_questions()
+        return self.speaker.safety_question(sign, guided.index(sign) + 1 if sign in guided else None)
+
     def _continue_safety(self) -> list[str]:
-        line = (self.speaker.safety_question(self._safety_pending[0]) if self._safety_pending
+        line = (self._spoken_safety_question(self._safety_pending[0]) if self._safety_pending
                 else self.speaker.say("summary", summary=self._summary()))
         return self._question(line)
 
@@ -436,7 +440,7 @@ class Visit:
     def _resume(self) -> str:
         """Back to the checklist: the next safety questions once the first readback has asked them."""
         signs = self._safety_pending
-        return self.speaker.safety_question(signs[0]) if signs else self.speaker.say("resume")
+        return self._spoken_safety_question(signs[0]) if signs else self.speaker.say("resume")
 
     def _scope_reply(self, idx: int) -> list[str]:
         self._replied.add(idx)

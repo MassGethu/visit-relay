@@ -170,3 +170,13 @@ def test_headache_denial_does_not_flag_anc_danger(text, lang):
 ])
 def test_affirmed_danger_signs_remain_immediate(text, lang, sign):
     assert sign in DangerChecker("anc").add_utterance(text, lang)
+
+
+def test_affirmed_abdominal_pain_is_not_negated_by_earlier_denials():
+    checker = DangerChecker("anc")
+    signs = checker.add_utterance(
+        "There is no vaginal bleeding, there is no headache, and there is severe abdomen pain.", "en-IN"
+    )
+    assert signs == ["anc_severe_abdominal_pain"]
+    assert checker.states["anc_vaginal_bleeding"].status == "ruled_out"
+    assert checker.states["anc_severe_headache_blurred_vision"].status == "ruled_out"

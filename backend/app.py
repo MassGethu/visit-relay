@@ -186,8 +186,9 @@ def report_store():
 def checklist(visit_type: Literal["anc", "pnc", "hbnc", "hbyc"], lang: Literal["hi", "kn", "en"] = "hi"):
     speaker = Speaker(lang)
     speaker.say("disclosure")
-    return [{"sign": sign, "question": speaker.safety_question(sign)}
-            for sign in DangerChecker(visit_type).guided_questions()]
+    return [{"number": number, "sign": sign, "question": speaker.safety_question(sign, number),
+             "display_question": speaker.safety_question(sign)}
+            for number, sign in enumerate(DangerChecker(visit_type).guided_questions(), 1)]
 
 
 def report_view(store, visit, patient):

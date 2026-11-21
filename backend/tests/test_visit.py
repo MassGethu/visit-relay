@@ -406,3 +406,19 @@ def test_hindi_sentence_punctuation_keeps_spoken_save_and_undo_commands():
     assert any(e["type"] == "saved" for e in v.events())
     v.hear("रुको॥", "hi-IN")
     assert any(e["type"] == "undo" for e in v.events())
+
+
+@pytest.mark.parametrize("chunks", [
+    ["There is no vaginal bleeding, there is no headache, and there is no severe abdomen pain."],
+    ["There is no vaginal bleeding.", "There is no headache.", "And there is no severe abdominal pain."],
+])
+def test_dictation_answers_all_explicit_denials_before_numbered_follow_up(chunks):
+    v = Visit("anc", lang="en", use_llm=False, use_store=False)
+    v.start()
+    for text in chunks:
+        assert v.hear(text, "en-IN") == []
+    for sign in ("anc_vaginal_bleeding", "anc_severe_headache_blurred_vision", "anc_severe_abdominal_pain"):
+        assert v.danger.states[sign].status == "ruled_out"
+    assert v.readback()[0].startswith("Question two,")
+    assert v.hear("no", "en-IN")[0].startswith("Question four,")
+    assert not any(e["type"] == "alert" for e in v.events())

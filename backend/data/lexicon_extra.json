@@ -2,6 +2,11 @@
  "anc_severe_headache_blurred_vision": {
   "negations": [
    {
+    "script": "no headache",
+    "roman": "no headache",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
     "script": "headache भी नहीं है",
     "roman": "headache bhi nahi hai",
     "provenance": "UNSOURCED-linguistic"
@@ -269,6 +274,22 @@
     "script": "स्तन में गाँठ",
     "roman": "stan mein gaanth",
     "provenance": "TUNED-recall-probe (UNSOURCED-linguistic)"
+   }
+  ]
+ },
+ "anc_severe_abdominal_pain": {
+  "codemix": [
+   {
+    "script": "severe abdomen pain",
+    "roman": "severe abdominal pain",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
+  "negations": [
+   {
+    "script": "no severe abdomen pain",
+    "roman": "no severe abdominal pain",
+    "provenance": "UNSOURCED-linguistic"
    }
   ]
  }

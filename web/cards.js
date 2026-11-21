@@ -211,6 +211,21 @@
     }
   }
 
+  function currentQuestion() {
+    return state.checklist?.find(item => state.question === speechText(item.question));
+  }
+
+  function assistantTranscriptText(text) {
+    const spoken = speechText(text);
+    const question = currentQuestion();
+    if (!question) return text;
+    const full = speechText(question.question);
+    const [first, ...instructions] = full.split(/(?<=[.!?।])\s+/u);
+    if (spoken === full || spoken === first) return `Question ${question.number} · Unanswered`;
+    if (instructions.includes(spoken)) return "";
+    return text;
+  }
+
   function drawChecklist() {
     const receipt = new Map((state.receipt || []).map(row => [row.sign, row]));
     const fields = ["gestational_month", ...VITALS.filter(field => field !== "gestational_month"), "next_visit_date"]
@@ -228,7 +243,7 @@
         const row = receipt.get(item.sign);
         const current = state.question === speechText(item.question);
         return el("li", { class: current ? "c-current-question" : "", "aria-current": current ? "true" : null },
-          el("span", { text: speechText(item.question) }),
+          el("span", { text: speechText(item.display_question ?? item.question) }),
           el("span", { class: `c-status ${row?.status || "not_checked"}`,
             text: STATUS_TEXT[row?.status] || "Not checked" }),
           row?.quote && el("small", { class: "c-said", text: row.quote }));
@@ -261,9 +276,10 @@
         el("dt", { text: label }), el("dd", { text: value }),
         said && el("dd", { class: "c-said", text: `“${said}”` }));
     });
+    const activeQuestion = currentQuestion();
     const question = state.question && el("section", {
       class: `c-card c-question${state.speaking ? " c-speaking" : ""}`, "aria-live": "polite" },
-      el("p", { text: state.question }));
+      el("p", { text: activeQuestion ? `Question ${activeQuestion.number} · Unanswered` : state.question }));
     const record = el("section", { class: "c-card", "aria-label": "Visit record" },
       el("h2", { text: "Visit record" }),
       rows.length ? el("dl", { class: "c-fields" }, rows)
@@ -519,7 +535,7 @@
 
   document.querySelector("#speech-language").addEventListener("change", loadChecklist);
   window.Cards = {
-    handle, endSession, startSession: id => { state.sessionId = id; },
+    handle, endSession, assistantTranscriptText, startSession: id => { state.sessionId = id; },
     // The chosen beneficiary and visit type, for app.js's start_visit message.
     beneficiary: () => (state.person ? { ...state.person, visit_type: state.visitType } : null),
   };
