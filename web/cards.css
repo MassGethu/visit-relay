@@ -375,6 +375,31 @@ details > summary { cursor: pointer; color: var(--teal); font-weight: 600; font-
   min-height: 2.75rem; display: flex; align-items: center; }
 .c-foot { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); margin-top: .7rem; }
 
+/* patient progress (final report) */
+.c-report { display: grid; gap: .1rem; }
+.c-report .c-empty { margin-top: .25rem; }
+.c-changes { list-style: none; margin: .7rem 0 0; padding: 0; display: grid; gap: .5rem; }
+.c-change { display: grid; grid-template-columns: 1fr auto; gap: .15rem .6rem; align-items: center;
+  padding: .65rem .8rem; border-radius: .75rem; background: var(--teal-soft); }
+.c-change-label { font-size: .85rem; font-weight: 600; color: var(--teal); }
+.c-change-value { grid-column: 1; display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .4rem;
+  font-variant-numeric: tabular-nums; }
+.c-change-value strong { font: 700 1.15rem/1.25 Inter, system-ui, sans-serif; }
+.c-before { color: var(--muted); font-size: .98rem; }
+.c-arrow { color: var(--muted); }
+.c-dir { grid-column: 2; grid-row: 1 / span 2; border-radius: 999px; padding: .15rem .65rem; font-size: .82rem;
+  font-weight: 700; background: #fff; color: var(--teal); box-shadow: inset 0 0 0 1.5px #b5cdca; }
+.c-dir.is-unchanged { color: var(--muted); box-shadow: inset 0 0 0 1.5px var(--line); }
+.c-change-since { grid-column: 1 / -1; font-size: .8rem; color: var(--muted); }
+.c-followup { margin-top: 1rem; }
+#cards .c-followup h3 { font-size: .98rem; margin: 0 0 .3rem; }
+.c-followup ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+.c-followup .c-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.c-followup .c-row { flex-direction: column; gap: .3rem; }
+.c-followup .c-status { line-height: 1.3; }
+.c-report .c-button { margin-top: .8rem; }
+.c-button.c-primary { background: var(--teal); color: #fff; }
+
 /* buttons inside cards */
 .c-button { font: inherit; font-weight: 700; min-height: 3rem; width: 100%; border-radius: 999px;
   border: 2px solid var(--teal); background: #fff; color: var(--teal); cursor: pointer;

@@ -447,42 +447,59 @@
     }
   }
 
+  const SIGN_CHANGES = {
+    new: ["Newly reported", "present"],
+    reported_again: ["Reported again", "present"],
+    reported: ["Reported this visit", "present"],
+    not_checked: ["Previously reported, not checked this visit", "not_checked"],
+    ruled_out: ["Previously reported, answered No this visit", "ruled_out"],
+  };
+  // Direction only, never good or bad: the app does not judge a measurement.
+  const DIRECTIONS = { higher: "Higher", lower: "Lower", unchanged: "Same", changed: "Changed" };
+  const dayText = iso => formatDate(String(iso || "").slice(0, 10));
+
+  function progressRow(change) {
+    const [label, before] = fieldText(change.field, change.before);
+    const [, after] = fieldText(change.field, change.after);
+    const same = change.direction === "unchanged";
+    return el("li", { class: "c-change" },
+      el("span", { class: "c-change-label", text: label }),
+      el("span", { class: "c-change-value" },
+        !same && el("span", { class: "c-before", text: before }),
+        !same && el("span", { class: "c-arrow", "aria-label": "to", text: "→" }),
+        el("strong", { text: after })),
+      el("span", { class: `c-dir is-${change.direction}`, text: DIRECTIONS[change.direction] || change.direction }),
+      el("small", { class: "c-change-since", text: `since ${change.seeded_baseline ? "synthetic baseline, " : ""}${dayText(change.previous_date)}` }));
+  }
+
+  function signChangeRow(change) {
+    const [text, tone] = SIGN_CHANGES[change.status] || [change.status, "not_checked"];
+    return el("li", { class: "c-row" },
+      el("div", { class: "c-name" },
+        el("span", { text: change.label }),
+        change.previous_date && el("small", { text: `Last checked ${dayText(change.previous_date)}` })),
+      el("span", { class: `c-status ${tone}`, text }));
+  }
+
   function drawReport() {
     const report = state.report;
     const previous = report?.previous_date;
-    const signLabels = {
-      new: "Newly reported",
-      reported_again: "Reported again",
-      reported: "Reported this visit",
-      not_checked: "Previously reported, not checked this visit",
-      ruled_out: "Previously reported, answered No this visit",
-    };
-    return el("section", { class: "c-card", "aria-label": "Confirmed visit report" },
-      el("h2", { text: "Confirmed visit report" }),
-      report && el("h3", { text: "Patient progress" }),
+    return el("section", { class: "c-card c-report", "aria-label": "Confirmed visit report" },
+      el("h2", { text: "Patient progress" }),
       report && el("p", { class: "c-empty", text: previous
-        ? `${report.seeded_baseline ? "Synthetic baseline" : "Most recent earlier visit"} on ${previous.slice(0, 10)}.`
+        ? `Compared with the ${report.seeded_baseline ? "synthetic baseline" : "most recent earlier visit"}, ${dayText(previous)}.`
         : "This is the first recorded visit of this type." }),
-      report?.changes.length > 0 && el("ul", {}, report.changes.map(change => {
-        const [label, before] = fieldText(change.field, change.before);
-        const [, after] = fieldText(change.field, change.after);
-        const value = change.direction === "unchanged" ? after : `${before} → ${after}`;
-        const baseline = `${change.seeded_baseline ? "synthetic baseline from " : ""}${change.previous_date.slice(0, 10)}`;
-        return el("li", { text: `${label}: ${value} · ${change.direction} compared with ${baseline}` });
-      })),
+      report?.changes.length > 0 && el("ul", { class: "c-changes" }, report.changes.map(progressRow)),
       report && previous && report.changes.length === 0 &&
         el("p", { class: "c-empty", text: "No matching measurements to compare." }),
-      report?.sign_changes.length > 0 && el("div", {},
+      report?.sign_changes.length > 0 && el("div", { class: "c-followup" },
         el("h3", { text: "Danger-sign follow-up" }),
-        el("ul", {}, report.sign_changes.map(change => {
-          const date = change.previous_date ? ` (last checked on ${change.previous_date.slice(0, 10)})` : "";
-          return el("li", { text: `${change.label}: ${signLabels[change.status]}${date}` });
-        }))),
+        el("ul", {}, report.sign_changes.map(signChangeRow))),
       state.reportMessage && el("p", { role: "status", text: state.reportMessage }),
-      !report && !state.reportMessage && el("p", { role: "status", text: "Preparing report…" }),
+      !report && !state.reportMessage && el("p", { class: "c-empty", role: "status", text: "Preparing report…" }),
       !report && state.reportMessage && el("button", { class: "c-button", type: "button",
         text: "Reload report", onclick: loadReport }),
-      report && !state.filed && el("button", { class: "c-button", type: "button",
+      report && !state.filed && el("button", { class: "c-button c-primary", type: "button",
         text: state.filing ? "Filing report…" : "Push to dashboard", disabled: state.filing, onclick: fileReport }),
       state.filed && el("a", { class: "c-button",
         href: `/dashboard.html?patient=${encodeURIComponent(state.filed.beneficiary_id)}#visit-${state.filed.visit_id}`,
