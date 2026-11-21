@@ -99,7 +99,7 @@ body .voice-shell .voice-controls select {
   grid-area: hands; display: flex; align-items: center; justify-content: space-between; gap: .5rem;
   min-height: 2.9rem; padding: 0 .55rem 0 .9rem; box-sizing: border-box;
   border: 1px solid #b9c9c8; border-radius: 999px; background: #fff;
-  font-weight: 600; font-size: .92rem; line-height: 1.15; cursor: pointer; user-select: none; white-space: nowrap;
+  font-weight: 600; font-size: .92rem; line-height: 1.15; cursor: pointer; user-select: none;
   flex-direction: row-reverse;
 }
 #hands-free {
@@ -151,6 +151,7 @@ body .voice-shell .voice-controls #talk[aria-pressed="true"] {
   box-shadow: 0 0 0 0 rgb(242 165 65 / .55); animation: c-listen 1.4s var(--ease-out) infinite;
 }
 #talk[aria-pressed="true"]::after { content: "Listening… let go to send"; font-size: 1.2rem; }
+#talk[data-listening][aria-pressed="true"]::after { content: attr(data-listening); }
 #talk[aria-pressed="true"]::before { inline-size: 1.75rem; block-size: 1.75rem; }
 @keyframes c-listen { to { box-shadow: 0 0 0 .9rem rgb(242 165 65 / 0); } }
 
@@ -219,22 +220,28 @@ body .voice-shell #offline-visit input[type="file"] {
 .c-empty { color: var(--muted); margin: .35rem 0 0; font-size: .95rem; text-wrap: pretty; }
 
 /* visit header + pickers */
-.c-visit { display: grid; gap: .5rem; }
+.c-visit { display: grid; grid-template-columns: minmax(0, 1fr); gap: .5rem; }
 .c-visit label { font-size: .9rem; font-weight: 600; color: var(--muted); margin-top: .35rem; }
 .c-visit select {
   font: 600 1.02rem/1.2 Inter, system-ui, sans-serif; min-height: 3.1rem; border-radius: .75rem;
   padding: .45rem 2.4rem .45rem .85rem; border: 1px solid #b9c9c8; background-color: #fff; color: inherit;
-  appearance: none; -webkit-appearance: none;
+  appearance: none; -webkit-appearance: none; min-inline-size: 0; inline-size: 100%;
+  text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f4c5c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right .85rem center; background-size: 1.05rem;
 }
 .c-visit select:focus-visible, .c-button:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
 .c-visit select:disabled { opacity: .6; }
 /* during the visit the header shrinks: name on top, a small "change type" picker beside its label */
-.c-visit.is-started { grid-template-columns: 1fr auto; align-items: center; gap: .35rem .6rem; padding-block: .85rem; }
+.c-visit.is-started { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .35rem .6rem; padding-block: .85rem; }
 .c-visit.is-started .c-who, .c-visit.is-started .c-pending { grid-column: 1 / -1; }
 .c-visit.is-started label { margin: 0; font-size: .85rem; }
-.c-visit.is-started select { min-height: 2.75rem; font-size: .95rem; max-inline-size: 13rem; }
+.c-visit.is-started select { min-height: 2.75rem; font-size: .95rem; max-inline-size: 15rem; justify-self: end; }
+/* very narrow phones: the picker goes under its label so the visit name is not cut off */
+@media (max-width: 22.5rem) {
+  .c-visit.is-started { grid-template-columns: minmax(0, 1fr); }
+  .c-visit.is-started select { justify-self: stretch; max-inline-size: none; }
+}
 .c-who { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .55rem; }
 .c-who .c-big { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
 .c-place { flex-basis: 100%; display: inline-flex; align-items: center; gap: .3rem; color: var(--muted);
@@ -302,7 +309,7 @@ body .voice-shell #offline-visit input[type="file"] {
 .c-progress span { display: block; block-size: 100%; border-radius: inherit; background: var(--ok);
   transition: inline-size .4s var(--ease-out); }
 .c-checklist { list-style: none; counter-reset: c-q; margin: .75rem 0 0; padding: 0; }
-.c-checklist li { counter-increment: c-q; display: grid; grid-template-columns: 2rem 1fr;
+.c-checklist li { counter-increment: c-q; display: grid; grid-template-columns: 2rem minmax(0, 1fr);
   gap: .35rem .7rem; padding: .75rem .55rem; margin: 0 -.55rem; border-top: 1px solid var(--line); }
 .c-checklist li::before { content: counter(c-q); grid-row: span 2; display: grid; place-items: center;
   inline-size: 2rem; block-size: 2rem; border-radius: 50%; background: var(--grey-soft);
@@ -319,7 +326,7 @@ body .voice-shell #offline-visit input[type="file"] {
 .c-checklist li.c-current-question::before { background: var(--saffron); color: #362505; }
 .c-checklist li.c-current-question .c-status.not_checked { background: var(--saffron); color: #362505; }
 
-.c-status { flex: none; border-radius: 999px; padding: .15rem .65rem; font-size: .82rem; font-weight: 700; }
+.c-status { flex: 0 1 auto; max-inline-size: 100%; text-align: center; line-height: 1.3; border-radius: 999px; padding: .15rem .65rem; font-size: .82rem; font-weight: 700; }
 .c-status.present { background: var(--danger); color: #fff; }
 .c-status.ruled_out { background: var(--ok); color: #fff; }
 .c-status.not_checked { background: var(--grey-soft); color: var(--muted); }
@@ -473,3 +480,7 @@ details > summary { cursor: pointer; color: var(--teal); font-weight: 600; font-
 @media (prefers-reduced-motion: reduce) {
   .voice-shell a[href="/dashboard.html"] { transition: none; }
 }
+
+/* Long words (Kannada, Hindi, IDs) wrap inside their box instead of running out of it. */
+body .voice-shell, :where(.c-card, .c-card *, .voice-controls *, .voice-meta *) { min-inline-size: 0; overflow-wrap: break-word; }
+:where(.c-card button, .c-button, .voice-controls button, .c-chip, .c-tag, .c-dir, .c-flag, .c-count span) { white-space: normal; }

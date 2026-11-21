@@ -48,7 +48,8 @@
   }
 
   const speechText = text => String(text || "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
-  const timeText = date => date.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+  const locale = () => window.I18n?.locale() || "en-IN";
+  const timeText = date => date.toLocaleTimeString(locale(), { hour: "numeric", minute: "2-digit" });
   const sentences = text => speechText(text).split(/(?<=[.!?।])\s+/u);
   const questionOf = item => sentences(item.display_question ?? item.question)[0];
   const hintOf = item => sentences(item.display_question ?? item.question).slice(1).join(" ");
@@ -76,7 +77,7 @@
   function formatDate(iso) {
     const date = new Date(`${iso}T00:00:00`);
     return Number.isNaN(date.getTime()) ? String(iso)
-      : date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+      : date.toLocaleDateString(locale(), { weekday: "short", day: "numeric", month: "short" });
   }
 
   function fieldText(name, value) {
@@ -632,6 +633,9 @@
   }
 
   document.querySelector("#speech-language").addEventListener("change", loadChecklist);
+  // Page language (i18n.js): redraw so dates follow it; i18n.js translates the new text.
+  window.addEventListener("i18n:change", () => { drawVisit(); drawLive(); drawEnd(); });
+  if (!document.querySelector('script[src="i18n.js"]')) document.head.append(el("script", { src: "i18n.js" }));
 
   // The talk controls are a bar docked to the bottom of the phone screen (cards.css); the status line
   // sits right above it, so it needs the bar's live height.
