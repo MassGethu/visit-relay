@@ -128,6 +128,26 @@ class Visit:
     def start(self) -> list[str]:
         return [self.speaker.say("disclosure")]
 
+    def resume(self) -> list[str]:
+        """Repeat the current prompt after the voice connection was interrupted."""
+        lines = self.readback()
+        if self.saved:
+            return lines
+        if self._switch_offer:
+            prompt = self.speaker.context_question(self._switch_offer, self.visit_type)
+        elif self._pending_doubt:
+            doubt = self._pending_doubt
+            if doubt.alternative is not None:
+                prompt = self.speaker.choice(doubt.field, doubt.value, doubt.alternative, doubt.value)
+            else:
+                prompt = self.speaker.confirm(doubt.field, doubt.value)
+        elif self._safety_started:
+            prompt = (self._spoken_safety_question(self._safety_pending[0]) if self._safety_pending
+                      else self.speaker.say("summary", summary=self._summary()))
+        else:
+            return lines
+        return lines if prompt in lines else lines + self._question(prompt)
+
     def hear(self, text: str, language_code: str | None = None) -> list[str]:
         language_code = language_code or f"{self.lang}-IN"
         self.transcript.append({"at": now(), "text": text, "lang": language_code})

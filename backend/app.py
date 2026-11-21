@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from websockets.exceptions import WebSocketException
 
+from asha.context import SUBJECTS
 from asha.gnani import COMMIT_MESSAGE, FRAME_BYTES, stt_headers, visit_keyterms
 from asha.visit import Visit, now
 from asha.danger import DangerChecker
@@ -34,6 +35,7 @@ ROOT = BACKEND.parent
 FRAME_SECONDS = FRAME_BYTES / (16000 * 2)
 LANGUAGES = {"hi", "kn", "en"}
 VISIT_TYPES = {"anc", "pnc", "hbnc", "hbyc"}
+DRAFT_TIMEOUT = 60 * 60
 DEMO_BENEFICIARIES = [
     {"id": "demo-anc", "name": "Sunita Devi", "visit_type": "anc"},
     {"id": "demo-hbnc", "name": "Baby of Kavya", "visit_type": "hbnc"},
@@ -69,6 +71,7 @@ class BrowserTiming(BaseModel):
 
 @asynccontextmanager
 async def lifespan(app):
+    app.state.drafts = {}
     key = os.getenv("GNANI_API_KEY", "").strip()
     app.state.timbre = Timbre(key)
     warmup = asyncio.create_task(app.state.timbre.prewarm()) if key else None
@@ -78,30 +81,61 @@ async def lifespan(app):
         if warmup:
             warmup.cancel()
             await asyncio.gather(warmup, return_exceptions=True)
+        for draft in app.state.drafts.values():
+            draft.close()
 
 
 app = FastAPI(lifespan=lifespan)
 
 
-class VisitTurn:
-    def __init__(self, phone, visit, speech, hands_free, session_id, llm_turns):
-        self.phone = phone
+class VisitDraft:
+    """Keep the live visit independent of any one phone connection."""
+
+    def __init__(self, visit, session_id, llm_turns, identity):
+        self.visit = visit
         self.session_id = session_id
         self.llm_turns = llm_turns
-        self.visit_lock = asyncio.Lock()
+        self.identity = identity
+        self.events = []
+        self.started = False
+        self.has_transcript = False
+        self.readback_done = False
         self.turn_number = 0
-        self.reply_turn = 0
+        self.expiry = None
+        self.attached = False
+
+    def remember(self, events):
+        saved = []
+        for event in events:
+            saved.append({**event, "seq": len(self.events) + 1})
+            self.events.append(saved[-1])
+        return saved
+
+    def close(self):
+        if self.expiry:
+            self.expiry.cancel()
+        if self.visit.store is not None:
+            self.visit.store.close()
+
+
+class VisitTurn:
+    def __init__(self, phone, draft, speech, hands_free):
+        self.phone = phone
+        self.draft = draft
+        self.session_id = draft.session_id
+        self.visit_lock = asyncio.Lock()
+        self.turn_number = draft.turn_number
+        self.reply_turn = draft.turn_number
         self.seen_timings = set()
         self.open_utterances = set()
         self.hands_free = hands_free
-        self.visit = visit
+        self.visit = draft.visit
         self.speech = speech
         self.holding = False
         self.pending_speech = []
-        self.has_transcript = False
         self.committed = False
-        self.readback_done = False
         self.timer = None
+        self.ended = False
 
     def mark(self, number, stage):
         point = (number, stage)
@@ -121,29 +155,39 @@ class VisitTurn:
             self.queue(lines, number)
 
     def schedule_readback(self, delay):
-        if self.readback_done:
+        if self.draft.readback_done:
             return
         if self.timer:
             self.timer.cancel()
-        if self.committed and self.has_transcript and not self.holding:
+        if self.committed and self.draft.has_transcript and not self.holding:
             self.timer = asyncio.create_task(self.readback(delay))
 
     async def readback(self, delay):
         # Prisma has no commit-complete event in the browser contract. Allow
         # recently finalized VAD segments to arrive before the first readback.
         await asyncio.sleep(delay)
-        self.readback_done = True
         number = self.reply_turn
         async with self.visit_lock:
-            await self.emit(self.visit.readback(), self.visit.events(), number)
+            self.draft.readback_done = True
+            lines = self.visit.readback()
+            await self.emit(lines, self.draft.remember(self.visit.events()), number)
 
     async def send_late_replies(self):
         while True:
             await asyncio.sleep(0.25)
-            if self.readback_done:
+            if self.draft.readback_done:
                 async with self.visit_lock:
                     # Subsequent calls only drain late LLM replies. They never repeat a question.
-                    await self.emit(self.visit.readback(), self.visit.events(), self.reply_turn)
+                    lines = self.visit.readback()
+                    await self.emit(lines, self.draft.remember(self.visit.events()), self.reply_turn)
+
+    async def finalize_transcript(self, text, detected, number):
+        self.draft.llm_turns[text] = number
+        lines = await asyncio.to_thread(self.visit.hear, text, detected)
+        self.mark(number, "rules_done")
+        self.draft.has_transcript = True
+        events = [{"type": "transcript", "text": text, "lang": detected}, *self.visit.events()]
+        return lines, self.draft.remember(events)
 
     async def close(self):
         if self.timer:
@@ -274,7 +318,15 @@ async def send_audio(phone: WebSocket, prisma, turn: VisitTurn) -> None:
             await prisma.send(frame)
         elif message.get("text"):
             event = json.loads(message["text"])
-            if isinstance(event, dict) and event.get("type") == "commit":
+            if not isinstance(event, dict):
+                continue
+            if event.get("type") == "end_visit":
+                turn.ended = True
+                await phone.close()
+                return
+            if event.get("type") == "ping":
+                await phone.send_json({"type": "pong"})
+            elif event.get("type") == "commit":
                 await asyncio.sleep(max(0, next_frame - loop.time()))
                 if not turn.holding and not turn.hands_free:
                     turn.turn_number += 1
@@ -286,7 +338,7 @@ async def send_audio(phone: WebSocket, prisma, turn: VisitTurn) -> None:
                 turn.pending_speech.clear()
                 turn.committed = True
                 turn.schedule_readback(0.9 if turn.open_utterances else 0.35)
-            elif isinstance(event, dict) and event.get("type") == "barge_in":
+            elif event.get("type") == "barge_in":
                 await turn.speech.interrupt()
 
 
@@ -306,59 +358,91 @@ async def send_transcripts(phone: WebSocket, prisma, locale: str, turn: VisitTur
             turn.mark(number, "transcript")
             text = event["text"]
             detected = event.get("detected_language_code") or locale
-            await phone.send_json({
-                "type": "transcript",
-                "text": event["text"],
-                "lang": event.get("detected_language_code") or locale,
-            })
+            async with turn.visit_lock:
+                work = asyncio.create_task(turn.finalize_transcript(text, detected, number))
+                try:
+                    lines, events = await asyncio.shield(work)
+                except asyncio.CancelledError:
+                    # A final transcript already received from Prisma belongs to the draft.
+                    await work
+                    raise
+                await turn.emit(lines, events, number)
             latency = event.get("latency")
             if isinstance(latency, (int, float)):
                 await phone.send_json({"type": "latency", "ms": latency})
-            turn.has_transcript = True
             if turn.hands_free:
                 turn.committed = True
-            async with turn.visit_lock:
-                turn.llm_turns[text] = number
-                lines = await asyncio.to_thread(turn.visit.hear, text, detected)
-                turn.mark(number, "rules_done")
-                await turn.emit(lines, turn.visit.events(), number)
             turn.schedule_readback(0.7 if turn.open_utterances else 0.25)
+
+
+def open_draft(start, session_id, identity):
+    llm_turns = {}
+
+    def timed_understand(text, visit_type, record):
+        number = llm_turns.pop(text, 0)
+        try:
+            return understand(text, visit_type, record)
+        finally:
+            if number:
+                write_timing(session_id, number, "llm_done", time.time_ns() / 1e6)
+
+    visit = Visit(start["visit_type"], SUBJECTS[start["visit_type"]], start["lang"],
+                  beneficiary_id=start["beneficiary_id"], understand=timed_understand,
+                  report_session=str(session_id))
+    return VisitDraft(visit, session_id, llm_turns, identity)
+
+
+def expire_draft(drafts, token):
+    drafts.pop(token).close()
 
 
 @app.websocket("/ws")
 async def visit_socket(phone: WebSocket) -> None:
     await phone.accept()
+    draft = turn = None
+    token = None
+    drafts = phone.app.state.drafts
     try:
         start = await asyncio.wait_for(phone.receive_json(), timeout=15)
-        if (not isinstance(start, dict) or start.get("type") != "start_visit"
+        if (not isinstance(start, dict) or start.get("type") not in {"start_visit", "resume_visit"}
                 or start.get("lang") not in LANGUAGES or start.get("visit_type") not in VISIT_TYPES
                 or not isinstance(start.get("beneficiary_id"), str) or not start["beneficiary_id"]):
             await phone.close(code=1008, reason="Expected a valid start_visit")
             return
         key = os.getenv("GNANI_API_KEY", "").strip()
         if not key:
-            await phone.close(code=1011, reason="GNANI_API_KEY is missing on the server")
+            await phone.close(code=4403, reason="GNANI_API_KEY is missing on the server")
             return
-        locale = f"{start['lang']}-IN"
-        subject = {"hbnc": "newborn", "hbyc": "child"}.get(start["visit_type"], "mother")
         try:
             session_id = UUID(phone.query_params.get("timing", ""))
         except ValueError:
             session_id = uuid4()
-        llm_turns = {}
-
-        def timed_understand(text, visit_type, record):
-            number = llm_turns.pop(text, 0)
-            try:
-                return understand(text, visit_type, record)
-            finally:
-                if number:
-                    write_timing(session_id, number, "llm_done", time.time_ns() / 1e6)
-
-        visit = Visit(start["visit_type"], subject, start["lang"],
-                      beneficiary_id=start["beneficiary_id"], understand=timed_understand,
-                      report_session=str(session_id))
-        terms = visit_keyterms(start["visit_type"], start["lang"])
+        token = UUID(start["draft_token"]) if "draft_token" in start else None
+        after = start.get("after_event", 0)
+        if type(after) is not int or after < 0:
+            await phone.close(code=1008, reason="Invalid visit progress")
+            return
+        identity = (session_id, start["beneficiary_id"], start["visit_type"], start["lang"])
+        existing = drafts.get(token)
+        if existing is None and start["type"] == "resume_visit":
+            await phone.close(code=4404, reason="Visit draft expired or the server restarted")
+            return
+        if existing and (existing.identity != identity or after > len(existing.events)):
+            await phone.close(code=1008, reason="Visit draft does not match this session")
+            return
+        if existing and existing.attached:
+            await phone.close(code=4409, reason="Previous connection is closing")
+            return
+        draft = existing or open_draft(start, session_id, identity)
+        draft.attached = True
+        if token:
+            drafts[token] = draft
+            if draft.expiry:
+                draft.expiry.cancel()
+                draft.expiry = None
+        visit = draft.visit
+        locale = f"{visit.lang}-IN"
+        terms = visit_keyterms(visit.visit_type, visit.lang)
         hands_free = phone.query_params.get("hands_free") == "1"
         # Keep short pauses within a dictated note together. Button release
         # still finalizes immediately via commit; hands-free keeps standard VAD.
@@ -366,32 +450,58 @@ async def visit_socket(phone: WebSocket) -> None:
         headers = stt_headers(key, [locale], keyterms=terms, **vad)
         async with PrismaRelay(headers) as prisma:
             timbre = phone.app.state.timbre
-            turn = VisitTurn(phone, visit, VisitSpeech(timbre, phone, start["lang"]),
-                             hands_free=hands_free,
-                             session_id=session_id, llm_turns=llm_turns)
-            await turn.emit(visit.start(), visit.events())
-            upload = asyncio.create_task(send_audio(phone, prisma, turn))
-            download = asyncio.create_task(send_transcripts(phone, prisma, locale, turn))
-            followups = asyncio.create_task(turn.send_late_replies())
+            turn = VisitTurn(phone, draft, VisitSpeech(timbre, phone, visit.lang), hands_free)
+            tasks = []
             try:
-                done, _ = await asyncio.wait((upload, download, followups), return_when=asyncio.FIRST_COMPLETED)
+                resumed = draft.started
+                if not draft.has_transcript:
+                    lines = visit.start()
+                    draft.started = True
+                else:
+                    lines = visit.resume() if draft.readback_done else []
+                draft.remember(visit.events())
+                for event in draft.events[after:]:
+                    await phone.send_json(event)
+                if token:
+                    await phone.send_json({"type": "visit_ready", "resumed": resumed,
+                                           "turn": draft.turn_number, "speaking_next": bool(lines)})
+                turn.queue(lines, 0)
+                if resumed and draft.has_transcript and not draft.readback_done:
+                    turn.committed = True
+                    turn.schedule_readback(0.25)
+                upload = asyncio.create_task(send_audio(phone, prisma, turn))
+                download = asyncio.create_task(send_transcripts(phone, prisma, locale, turn))
+                tasks = [upload, download, asyncio.create_task(turn.send_late_replies())]
+                done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
                 for task in done:
                     task.result()
                 if download in done and upload not in done:
                     await phone.close(code=1011, reason="Prisma connection ended")
             finally:
-                for task in (upload, download, followups):
+                for task in tasks:
                     task.cancel()
-                await asyncio.gather(upload, download, followups, return_exceptions=True)
+                await asyncio.gather(*tasks, return_exceptions=True)
                 await turn.close()
     except WebSocketDisconnect:
         pass
-    except (json.JSONDecodeError, KeyError, TypeError):
+    except (ValueError, KeyError, TypeError):
         with suppress(RuntimeError, WebSocketDisconnect):
             await phone.close(code=1008, reason="Invalid WebSocket message")
     except (WebSocketException, OSError, RuntimeError, TimeoutError):
         with suppress(RuntimeError, WebSocketDisconnect):
             await phone.close(code=1011, reason="Speech connection failed. Try again.")
+    finally:
+        if draft:
+            draft.attached = False
+            if turn:
+                draft.turn_number = turn.turn_number
+            if not token:
+                draft.close()
+            elif turn and turn.ended:
+                expire_draft(drafts, token)
+            else:
+                draft.expiry = asyncio.get_running_loop().call_later(
+                    DRAFT_TIMEOUT, expire_draft, drafts, token)
 
 
 app.mount("/", StaticFiles(directory=ROOT / "web", html=True), name="web")

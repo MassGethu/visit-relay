@@ -55,18 +55,26 @@ function sendTiming(current, turn, stage, time) {
 const releaseTailMs = 120;
 const transcriptWaitMs = 5500;
 const maxDebugFrames = 30 * 16000 * 2 / 1024;
+const connectionTimeoutMs = 25000;
 
 let session;
 let activePress = null;
 let stopping = false;
 
+function clearVoiceTimers(current) {
+  clearTimeout(current.slowTimer);
+  clearTimeout(current.releaseTimer);
+  clearTimeout(current.transcriptTimer);
+  clearTimeout(current.connectionTimer);
+  clearTimeout(current.retryTimer);
+  clearInterval(current.heartbeat);
+}
+
 function reset(current, message) {
   if (session !== current) return;
   session = null;
   current.socket?.close();
-  clearTimeout(current.slowTimer);
-  clearTimeout(current.releaseTimer);
-  clearTimeout(current.transcriptTimer);
+  clearVoiceTimers(current);
   current.player?.stop();
   current.stream?.getTracks().forEach(track => track.stop());
   if (current.context?.state !== "closed") current.context?.close().catch(() => {});
@@ -107,14 +115,52 @@ function showDebugAudio(current) {
   debugAudio.hidden = false;
 }
 
-async function connectVisit(current, lang) {
-  const response = await fetch("/api/beneficiaries");
-  if (!response.ok) throw new Error("Could not load the demo visit.");
-  const list = await response.json();
-  const person = window.Cards?.beneficiary?.() ?? (Array.isArray(list) ? list[0] : list.beneficiaries?.[0]);
+async function visitDetails(lang) {
+  let person = window.Cards?.beneficiary?.();
+  if (!person) {
+    const response = await fetch("/api/beneficiaries");
+    if (!response.ok) throw new Error("Could not load the demo visit.");
+    const list = await response.json();
+    person = Array.isArray(list) ? list[0] : list.beneficiaries?.[0];
+  }
   const id = person?.id ?? person?.beneficiary_id;
   if (!id) throw new Error("No synthetic beneficiary is available.");
+  return { beneficiary_id: String(id), visit_type: person.visit_type || "anc", lang };
+}
 
+function listenHandsFree(current) {
+  current.followNextSpeech = true;
+  current.mic.port.postMessage("resume");
+  status.textContent = "Listening hands-free…";
+}
+
+function reconnect(current, socket) {
+  if (session !== current || current.socket !== socket) return;
+  current.socket = null;
+  current.connected = false;
+  current.speaking = false;
+  current.muted = true;
+  current.audioTurn = current.released = null;
+  clearVoiceTimers(current);
+  socket.close();
+  current.mic.port.postMessage("pause");
+  current.player.stop();
+  activePress = null;
+  stopping = false;
+  talk.disabled = true;
+  talk.setAttribute("aria-pressed", "false");
+  if (current.hasDraft) window.Cards?.handle({ type: "speaking", on: false });
+  status.textContent = current.hasDraft
+    ? "Connection lost. Keeping your visit and reconnecting…"
+    : "Waiting for a connection…";
+  if (navigator.onLine) {
+    current.retryTimer = setTimeout(() => connectVisit(current), current.retryDelay);
+    current.retryDelay = Math.min(current.retryDelay * 2, 10000);
+  }
+}
+
+function connectVisit(current) {
+  if (session !== current || current.socket || !navigator.onLine) return;
   const url = new URL("/ws", location.href);
   url.protocol = location.protocol === "https:" ? "wss:" : "ws:";
   url.searchParams.set("timing", current.id);
@@ -122,12 +168,28 @@ async function connectVisit(current, lang) {
   const socket = new WebSocket(url);
   current.socket = socket;
   socket.binaryType = "arraybuffer";
+  current.connectionTimer = setTimeout(() => reconnect(current, socket), connectionTimeoutMs);
+  socket.addEventListener("open", () => {
+    if (session !== current || current.socket !== socket) return;
+    socket.send(JSON.stringify({
+      ...current.details, type: current.hasDraft ? "resume_visit" : "start_visit",
+      draft_token: current.draftToken, after_event: current.lastEvent,
+    }));
+  });
   socket.addEventListener("close", event => {
-    reset(current, event.code === 1011 && event.reason
-      ? event.reason : "Speech connection closed. Enable the microphone to try again.");
+    if (session !== current || current.socket !== socket) return;
+    if (event.code === 4404 || event.code === 1008 || event.code === 4403) {
+      if (current.hasDraft) window.Cards?.endSession?.();
+      reset(current, event.code === 4404
+        ? "This visit draft expired or the server restarted. Enable the microphone to start a new visit."
+        : event.reason || "Could not open the visit.");
+      return;
+    }
+    reconnect(current, socket);
   });
   socket.addEventListener("message", ({ data }) => {
-    if (session !== current) return;
+    if (session !== current || current.socket !== socket) return;
+    current.lastMessageAt = performance.now();
     if (typeof data !== "string") {
       if (!current.muted) {
         clearTimeout(current.slowTimer);
@@ -136,6 +198,28 @@ async function connectVisit(current, lang) {
       return;
     }
     const event = JSON.parse(data);
+    if (event.type === "pong") return;
+    if (event.type === "visit_ready") {
+      clearTimeout(current.connectionTimer);
+      current.connected = current.hasDraft = true;
+      current.retryDelay = 500;
+      current.turn = event.turn;
+      current.heartbeat = setInterval(() => {
+        if (performance.now() - current.lastMessageAt > 30000) reconnect(current, socket);
+        else if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: "ping" }));
+      }, 10000);
+      talk.disabled = current.handsFree;
+      if (event.resumed) status.textContent = "Visit restored. Repeat anything missing from the transcript.";
+      else status.textContent = current.handsFree ? "Waiting for the AI disclosure…" : "Ready to talk.";
+      if (current.handsFree && !event.speaking_next) listenHandsFree(current);
+      if (!current.handsFree && !event.resumed) talk.focus();
+      return;
+    }
+    if (event.seq) {
+      if (event.seq <= current.lastEvent) return;
+      current.lastEvent = event.seq;
+      current.hasDraft = true;
+    }
     if (event.type === "speaking") {
       current.speaking = event.on;
       if (current.handsFree && event.on) current.mic.port.postMessage("pause");
@@ -159,7 +243,9 @@ async function connectVisit(current, lang) {
         current.followNextSpeech = false;
         selectTranscript(speechTab);
       }
-      if (!current.handsFree && activePress === null && !current.interrupted) status.textContent = "Ready to talk.";
+      if (current.connected && !current.handsFree && activePress === null && !current.interrupted) {
+        status.textContent = "Ready to talk.";
+      }
     } else if (event.type === "assistant_transcript") {
       const display = window.Cards?.assistantTranscriptText?.(event.text) ?? event.text;
       if (display) appendTranscript(assistantTranscript, display);
@@ -168,14 +254,6 @@ async function connectVisit(current, lang) {
     }
     window.Cards?.handle(event);
   });
-  await new Promise((resolve, reject) => {
-    socket.addEventListener("open", resolve, { once: true });
-    socket.addEventListener("close", reject, { once: true });
-  });
-  window.Cards?.startSession?.(current.id);
-  socket.send(JSON.stringify({
-    type: "start_visit", beneficiary_id: String(id), visit_type: person.visit_type || "anc", lang,
-  }));
 }
 
 enable.addEventListener("click", async () => {
@@ -184,7 +262,8 @@ enable.addEventListener("click", async () => {
     status.textContent = "Open this page over HTTPS in a browser with microphone access.";
     return;
   }
-  const current = { id: crypto.randomUUID(), handsFree: handsFree.checked, turn: 0 };
+  const current = { id: crypto.randomUUID(), draftToken: crypto.randomUUID(), handsFree: handsFree.checked,
+    turn: 0, lastEvent: 0, retryDelay: 500 };
   session = current;
   for (const [panel, placeholder] of [[transcript, "Your words will appear here."],
     [assistantTranscript, "AI replies will appear here."]]) {
@@ -200,11 +279,7 @@ enable.addEventListener("click", async () => {
     const context = new AudioContext();
     current.context = context;
     current.player = new VisitAudioPlayer(context, () => {
-      if (session === current && current.handsFree && !current.speaking) {
-        current.followNextSpeech = true;
-        current.mic.port.postMessage("resume");
-        status.textContent = "Listening hands-free…";
-      }
+      if (session === current && current.connected && current.handsFree && !current.speaking) listenHandsFree(current);
     }, at => {
       const turn = current.audioTurn;
       if (!turn || turn.played || session !== current) return;
@@ -224,7 +299,7 @@ enable.addEventListener("click", async () => {
     const mic = new AudioWorkletNode(context, "visit-microphone", { channelCount: 1 });
     current.mic = mic;
     mic.port.onmessage = ({ data }) => {
-      if (session !== current || current.socket?.readyState !== WebSocket.OPEN) return;
+      if (session !== current || !current.connected || current.socket?.readyState !== WebSocket.OPEN) return;
       if (data === "commit") {
         current.socket.send(JSON.stringify({ type: "commit" }));
         stopping = false;
@@ -249,19 +324,20 @@ enable.addEventListener("click", async () => {
     mic.addEventListener("processorerror", () => {
       reset(current, "Audio capture failed. Enable the microphone to try again.");
     });
-    await connectVisit(current, language.value);
+    current.details = await visitDetails(language.value);
     if (session !== current) return;
     input.connect(mic).connect(context.destination);
     current.stream.getAudioTracks()[0].addEventListener("ended", () => {
       reset(current, "The microphone stopped. Enable it to try again.");
     });
     latency.textContent = "Prisma latency · —";
+    window.Cards?.startSession?.(current.id);
     enable.hidden = true;
     endVoice.hidden = false;
-    talk.disabled = current.handsFree;
+    talk.disabled = true;
     talk.hidden = current.handsFree;
-    status.textContent = current.handsFree ? "Waiting for the AI disclosure…" : "Ready to talk.";
-    if (!current.handsFree) talk.focus();
+    status.textContent = navigator.onLine ? "Connecting…" : "Waiting for a connection…";
+    connectVisit(current);
   } catch (error) {
     reset(current, error.name === "NotAllowedError"
       ? "Allow microphone access in your browser and try again."
@@ -271,13 +347,14 @@ enable.addEventListener("click", async () => {
 
 endVoice.addEventListener("click", () => {
   if (session) {
+    if (session.socket?.readyState === WebSocket.OPEN) session.socket.send(JSON.stringify({ type: "end_visit" }));
     reset(session, "Voice session ended. Enable the microphone to start again.");
     window.Cards?.endSession?.();
   }
 });
 
 function startTalk(press) {
-  if (!session || stopping || activePress !== null) return false;
+  if (!session?.connected || session.socket?.readyState !== WebSocket.OPEN || stopping || activePress !== null) return false;
   clearTimeout(session.slowTimer);
   clearTimeout(session.transcriptTimer);
   activePress = press;
@@ -335,6 +412,15 @@ talk.addEventListener("keydown", event => {
 talk.addEventListener("keyup", event => stopTalk(event.key));
 window.addEventListener("blur", () => {
   if (activePress !== null) stopTalk(activePress, true);
+});
+window.addEventListener("offline", () => {
+  if (session?.socket) reconnect(session, session.socket);
+});
+window.addEventListener("online", () => {
+  if (session?.details) {
+    clearTimeout(session.retryTimer);
+    connectVisit(session);
+  }
 });
 window.addEventListener("pagehide", () => {
   if (session) reset(session, "Enable your microphone to start.");
