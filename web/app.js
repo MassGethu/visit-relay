@@ -6,7 +6,42 @@ const talk = document.querySelector("#talk");
 const handsFree = document.querySelector("#hands-free");
 const language = document.querySelector("#speech-language");
 const status = document.querySelector("#voice-status");
+const speechTab = document.querySelector("#speech-tab");
+const replyTab = document.querySelector("#reply-tab");
 const transcript = document.querySelector("#transcript");
+const assistantTranscript = document.querySelector("#assistant-transcript");
+const transcriptTabs = [speechTab, replyTab];
+
+function selectTranscript(tab) {
+  if (tab.getAttribute("aria-selected") === "true") return;
+  const focusedTab = transcriptTabs.includes(document.activeElement);
+  for (const item of transcriptTabs) {
+    const selected = item === tab;
+    item.setAttribute("aria-selected", String(selected));
+    item.tabIndex = selected ? 0 : -1;
+    document.getElementById(item.getAttribute("aria-controls")).hidden = !selected;
+  }
+  if (focusedTab) tab.focus();
+}
+
+for (const tab of transcriptTabs) {
+  tab.addEventListener("click", () => selectTranscript(tab));
+  tab.addEventListener("keydown", event => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const target = event.key === "Home" ? speechTab : event.key === "End" ? replyTab
+      : tab === speechTab ? replyTab : speechTab;
+    selectTranscript(target);
+  });
+}
+
+function appendTranscript(panel, text) {
+  if (!panel.dataset.hasTranscript) {
+    panel.textContent = "";
+    panel.dataset.hasTranscript = "true";
+  }
+  panel.append(document.createTextNode((panel.textContent ? "\n" : "") + text));
+}
 const latency = document.querySelector("#latency");
 
 const debugAudio = document.querySelector("#debug-audio");
@@ -105,6 +140,7 @@ async function connectVisit(current, lang) {
         current.audioTurn = current.disclosureStarted ? current.released : null;
         current.disclosureStarted = true;
         current.player.start();
+        selectTranscript(replyTab);
         status.textContent = current.handsFree ? "Speaking. Listening will resume." : "Speaking. Hold to interrupt.";
       } else if (!event.on && !current.muted) {
         current.player.finish();
@@ -112,10 +148,14 @@ async function connectVisit(current, lang) {
       }
     } else if (event.type === "transcript") {
       if (current.turn > 1) clearTimeout(current.slowTimer);
-      if (!current.hasTranscript) transcript.textContent = "";
-      transcript.append(document.createTextNode((current.hasTranscript ? "\n" : "") + event.text));
-      current.hasTranscript = true;
+      appendTranscript(transcript, event.text);
+      if (current.handsFree && current.followNextSpeech) {
+        current.followNextSpeech = false;
+        selectTranscript(speechTab);
+      }
       if (!current.handsFree && activePress === null && !current.interrupted) status.textContent = "Ready to talk.";
+    } else if (event.type === "assistant_transcript") {
+      appendTranscript(assistantTranscript, event.text);
     } else if (event.type === "latency") {
       if (!current.released?.played) latency.textContent = `Prisma latency · ${Math.round(event.ms)} ms`;
     }
@@ -138,6 +178,12 @@ enable.addEventListener("click", async () => {
   }
   const current = { id: crypto.randomUUID(), handsFree: handsFree.checked, turn: 0 };
   session = current;
+  for (const [panel, placeholder] of [[transcript, "Your words will appear here."],
+    [assistantTranscript, "AI replies will appear here."]]) {
+    delete panel.dataset.hasTranscript;
+    panel.textContent = placeholder;
+  }
+  selectTranscript(speechTab);
   enable.disabled = true;
   language.disabled = true;
   handsFree.disabled = true;
@@ -147,6 +193,7 @@ enable.addEventListener("click", async () => {
     current.context = context;
     current.player = new VisitAudioPlayer(context, () => {
       if (session === current && current.handsFree && !current.speaking) {
+        current.followNextSpeech = true;
         current.mic.port.postMessage("resume");
         status.textContent = "Listening hands-free…";
       }
@@ -191,7 +238,6 @@ enable.addEventListener("click", async () => {
     current.stream.getAudioTracks()[0].addEventListener("ended", () => {
       reset(current, "The microphone stopped. Enable it to try again.");
     });
-    transcript.textContent = "Your words will appear here.";
     latency.textContent = "Prisma latency · —";
     enable.hidden = true;
     endVoice.hidden = false;
@@ -214,6 +260,7 @@ function startTalk(press) {
   if (!session || stopping || activePress !== null) return false;
   clearTimeout(session.slowTimer);
   activePress = press;
+  selectTranscript(speechTab);
   session.turn++;
   session.released = null;
   if (session.speaking || session.player.playing) {

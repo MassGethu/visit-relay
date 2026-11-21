@@ -30,6 +30,11 @@
     .voice-meta p { margin: 0; font-size: .9rem; }
     .voice-transcript { margin: 0; padding: 1rem; border-top: 1px solid #a0b4b5; }
     .voice-transcript h2 { font-size: 1rem; margin: 0 0 .4rem; }
+    .transcript-tabs { display: flex; gap: .4rem; margin: .5rem 0 .75rem; }
+    .transcript-tabs button { flex: 1; min-height: 2.75rem; padding: .25rem .45rem;
+      border: 1px solid #799196; border-radius: .5rem; color: inherit; background: #fffdf8; font: inherit; }
+    .transcript-tabs button[aria-selected="true"] { background: #0f4c5c; color: white; }
+    .transcript-tabs button:focus-visible { outline: 3px solid #0f4c5c; outline-offset: 2px; }
     .voice-transcript p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
   </style>
 </head>
@@ -56,7 +61,16 @@
     </div>
     <section class="voice-transcript" aria-labelledby="transcript-title">
       <h2 id="transcript-title">Transcript</h2>
-      <p id="transcript" dir="auto" aria-live="polite">Your words will appear here.</p>
+      <div class="transcript-tabs" role="tablist" aria-label="Transcript speaker">
+        <button id="speech-tab" type="button" role="tab" aria-selected="true" aria-controls="speech-panel">Your speech</button>
+        <button id="reply-tab" type="button" role="tab" aria-selected="false" aria-controls="reply-panel" tabindex="-1">AI replies</button>
+      </div>
+      <div id="speech-panel" role="tabpanel" aria-labelledby="speech-tab" tabindex="0">
+        <p id="transcript" dir="auto" aria-live="polite">Your words will appear here.</p>
+      </div>
+      <div id="reply-panel" role="tabpanel" aria-labelledby="reply-tab" tabindex="0" hidden>
+        <p id="assistant-transcript" dir="auto" aria-live="polite">AI replies will appear here.</p>
+      </div>
     </section>
     <main id="cards"></main>
   </section>

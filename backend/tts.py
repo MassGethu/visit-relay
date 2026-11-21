@@ -108,11 +108,16 @@ class VisitSpeech:
                 cached = self.timbre.cache.get((self.lang, text))
                 if cached:
                     on_first()
+                    await self.send_transcript(text)
                     for offset in range(0, len(cached), 3840):
                         await self.phone.send_bytes(cached[offset:offset + 3840])
                     continue
                 async with aclosing(self.stream_sentence(text, on_first)) as audio:
+                    first = True
                     async for chunk in audio:
+                        if first:
+                            await self.send_transcript(text)
+                            first = False
                         await self.phone.send_bytes(chunk)
         except PHONE_CLOSED:
             self.lines.clear()
@@ -125,6 +130,9 @@ class VisitSpeech:
                     await self.phone.send_json({"type": "speaking", "on": False})
                 except PHONE_CLOSED + (OSError, RuntimeError):
                     pass
+
+    async def send_transcript(self, text):
+        await self.phone.send_json({"type": "assistant_transcript", "text": text, "lang": self.lang})
 
     async def stream_sentence(self, text, on_first):
         # The spare may have expired while the worker was dictating. Retry once
