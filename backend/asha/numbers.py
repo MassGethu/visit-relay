@@ -238,9 +238,50 @@ GRAM = {"gram", "graam", "gm", "grams", "ग्राम", "ಗ್ರಾಂ"}
 BP_WORDS = {"bp", "बीपी", "ಬಿಪಿ", "pressure"}
 BY = {"by", "over", "बाई", "ಬೈ", "upon"}
 HB_WORDS = {"hb", "hemoglobin", "haemoglobin", "हीमोग्लोबिन", "एचबी", "ಹಿಮೋಗ್ಲೋಬಿನ್"}
-TEMP_WORDS = {"temperature", "temp", "tapman", "taapmaan", "तापमान", "degree", "digri", "ಡಿಗ್ರಿ", "डिग्री"}
+DEGREE_WORDS = {"degree", "degrees", "digri", "ಡಿಗ್ರಿ", "डिग्री"}
+TEMP_WORDS = {"temperature", "temp", "tapman", "taapmaan", "तापमान", "ತಾಪಮಾನ"} | DEGREE_WORDS
 BREATH_WORDS = {"saans", "breath", "breathing", "usiru", "ಉಸಿರು", "साँस", "सांस"}
-TEMP_UNITS = {"celsius": "C", "fahrenheit": "F", "centigrade": "C"}
+TEMP_UNITS = {
+    "celsius": "C", "centigrade": "C", "c": "C", "सेल्सियस": "C", "ಸೆಲ್ಸಿಯಸ್": "C",
+    "fahrenheit": "F", "f": "F", "फ़ारेनहाइट": "F", "फारेनहाइट": "F", "ಫ್ಯಾರನ್ಹೀಟ್": "F",
+}
+TEMP_ANSWER_WORDS = TEMP_WORDS | TEMP_UNITS.keys() | {
+    "the", "it", "is", "was", "of", "hai", "है", "ಇದೆ", "approximately", "about",
+}
+
+
+def temperature_answer(text: str, *, require_unit=False) -> tuple[float, str] | None:
+    """Read a short answer to a temperature question, including a unit after a pause."""
+    text = text.replace("\u200c", "")
+    words = [token.text for token in tokens(text)]
+    values = parse_numbers(text)
+    if len(values) != 1:
+        return None
+    number = values[0]
+    surrounding = words[:number.start] + words[number.end + 1:]
+    if set(surrounding) - TEMP_ANSWER_WORDS:
+        return None
+    units = {TEMP_UNITS[word] for word in surrounding if word in TEMP_UNITS}
+    if len(units) > 1 or (require_unit and not units):
+        return None
+    unit = next(iter(units), "F" if number.value > 50 else "C")
+    low, high = PLAUSIBLE[f"temperature_{unit.lower()}"]
+    return (number.value, unit) if low <= number.value <= high else None
+
+
+def blood_pressure_answer(text: str, subject: str) -> tuple[int, int] | None:
+    words = [token.text for token in tokens(text)]
+    values = parse_numbers(text)
+    if len(values) != 2 or any(value.value != int(value.value) for value in values):
+        return None
+    left, right = values
+    labels = words[:left.start] + words[left.end + 1:right.start] + words[right.end + 1:]
+    if set(labels) - BP_WORDS - BY - {"blood", "is", "was", "of", "mmhg", "hai", "है", "ಇದೆ"}:
+        return None
+    bp = int(left.value), int(right.value)
+    reading = {"bp": bp, "doubts": []}
+    _check_ranges(reading, subject)
+    return bp if not reading["doubts"] else None
 
 
 def extract_measurements(text: str, subject: str = "mother") -> dict:
@@ -249,7 +290,7 @@ def extract_measurements(text: str, subject: str = "mother") -> dict:
     A number followed by a repair word ("2.6 nahi nahi 2.8") is dropped: her last
     value wins. Returns {"doubts": [(field, value, reason)]} alongside the values.
     """
-    text = re.sub(r"\bb[.\s]+p\b", "bp", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bb[.\s]+p\b", "bp", text.replace("\u200c", ""), flags=re.IGNORECASE)
     text = re.sub(r"\bh[.\s]+b\b", "hb", text, flags=re.IGNORECASE)
     toks = [t.text for t in tokens(text)]
     parsed = parse_numbers(text)
@@ -276,7 +317,7 @@ def extract_measurements(text: str, subject: str = "mother") -> dict:
         # BP: "X by Y" or two numbers after "BP"
         if idx in used:
             continue
-        temp_unit_at = n.end + (2 if nxt in {"degree", "degrees"} else 1)
+        temp_unit_at = n.end + (2 if nxt in DEGREE_WORDS else 1)
         spoken_unit = TEMP_UNITS.get(toks[temp_unit_at]) if temp_unit_at < len(toks) else None
         if idx + 1 < len(nums) and (
             (nxt in BY and nums[idx + 1].start == n.end + 2)

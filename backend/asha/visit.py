@@ -24,7 +24,7 @@ from .context import COVERS, SUBJECTS, VISIT_TYPES, answer_to_switch, context_cu
 from .correction import apply_correction, is_commit, is_undo
 from .danger import NOT_CHECKED, PRESENT, RULED_OUT, DangerChecker, Evidence, sign_label
 from .dates import resolve
-from .numbers import KILO, extract_measurements, parse_numbers
+from .numbers import KILO, blood_pressure_answer, extract_measurements, parse_numbers, temperature_answer
 from .readback import Doubt, find_doubts, plan
 from .speak import FIELD_NAMES, Speaker, spoken_sign
 from .text import tokens
@@ -44,6 +44,9 @@ KANNADA_MONTH_ORDINALS = {
 ENGLISH_ORDINALS = {word: i for i, word in enumerate(
     ("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth"), 1
 )}
+TRIMESTER_ANSWERS = {"pehli": 1, "doosri": 2, "teesri": 3, "पहली": 1, "दूसरी": 2, "तीसरी": 3,
+                     "ಮೊದಲನೇ": 1, "ಮೂರನೆಯ": 3}
+TRIMESTER_WORDS = {"trimester", "timaahi", "timahi", "तिमाही", "ತ್ರೈಮಾಸಿಕ", "the"}
 MEASUREMENT_PROMPTS = {"bp": "bp_both_values", "temperature": "temperature_repeat",
                        "gestational_trimester": "trimester_repeat"}
 DISCREET_WORDS = {"dheere", "dhire", "dheere-dheere", "धीरे", "ಮೆಲ್ಲಗೆ", "quietly"}
@@ -117,6 +120,7 @@ class Visit:
         self._replied: set[int] = set()         # utterances already given an out-of-scope / context reply
         self._readback_done = False
         self._measurement_repeats: set[str] = set()
+        self._readback_attempts = 0
         self._pending_doubt: Doubt | None = None
         self._safety_pending: list[str] = []
         self._safety_disagreements: list[str] = []
@@ -157,7 +161,20 @@ class Visit:
             return lines
         return lines if prompt in lines else lines + self._question(prompt)
 
-    def hear(self, text: str, language_code: str | None = None) -> list[str]:
+    @property
+    def pending_readback_field(self) -> str | None:
+        if self.saved or not self._readback_done or self._switch_offer:
+            return None
+        if self._pending_doubt:
+            return self._pending_doubt.field
+        return self._next_measurement() if self._measurement_repeats else None
+
+    @property
+    def ready_to_save(self) -> bool:
+        return (self._safety_started and not self._safety_pending and not self._measurement_repeats
+                and not self._pending_doubt and not self._switch_offer)
+
+    def hear(self, text: str, language_code: str | None = None, *, defer_temperature=False) -> list[str]:
         language_code = language_code or f"{self.lang}-IN"
         self.transcript.append({"at": now(), "text": text, "lang": language_code})
         if self.saved:
@@ -172,6 +189,12 @@ class Visit:
             return []
         if is_commit(text):
             return self.confirm()
+        if (defer_temperature and "temperature" in self._measurement_repeats
+                and self.pending_readback_field == "temperature" and temperature_answer(text) is not None
+                and temperature_answer(text, require_unit=True) is None):
+            # The scale may be in a later speech segment. Keep the original
+            # transcript, and apply the reading when the worker finishes.
+            return self._take_unspoken()
         words = [t.text for t in tokens(text)]
         if len(words) <= DISCREET_MAX_WORDS and set(words) & DISCREET_WORDS:
             self.discreet = True
@@ -185,19 +208,72 @@ class Visit:
             if reply is not None:
                 return self._take_unspoken() + reply
         if self._pending_doubt is not None:
+            if tuple(words) in SKIP_ANSWERS:
+                return self._take_unspoken() + self._skip_doubt()
             reply = self._answer_doubt(text, words)
             if reply is not None:
                 return self._take_unspoken() + reply
         if self._readback_done and self._measurement_repeats and tuple(words) in SKIP_ANSWERS:
-            self._measurement_repeats.remove(self._next_measurement())
-            if self._measurement_repeats:
-                return self._take_unspoken() + self._question(self._measurement_prompt())
-            return self._take_unspoken() + self._start_safety()
+            field = self._next_measurement()
+            return self._take_unspoken() + self._complete_measurement(field)
         if self._safety_pending:
             reply = self._answer_safety(text, words)
             if reply is not None:
                 return self._take_unspoken() + reply
         return self._hear_content(text, language_code, words, flag)
+
+    def finish_readback_answer(self, field: str, segments: list[str]) -> list[str]:
+        if field != self.pending_readback_field:
+            return []
+        text = " ".join(segments)
+        words = [token.text for token in tokens(text)]
+        skip = tuple(words) in SKIP_ANSWERS
+        if self._pending_doubt:
+            value = self.record.get(field)
+            if value is not None and self.evidence.get(field) in segments and self._plausible_readback(field, value):
+                return self._resolve_doubt(value, self.evidence[field])
+            if not skip and len(segments) > 1:
+                reply = self._answer_doubt(text, words, prompt_on_no=False)
+                if reply is not None:
+                    return reply
+        elif (value := self._measurement_answer(field, text, words)) is not None:
+            self._set(field, value, text)
+            self._emit_record()
+            return self._alerts(self.danger.add_vitals({field: value})) + self._complete_measurement(field)
+
+        self._readback_attempts += 1
+        if not skip and self._readback_attempts == 1:
+            if field == "temperature" and not self._pending_doubt:
+                return self._question(self.speaker.say("temperature_retry"))
+            prompt = self.speaker.say("value_again") if self._pending_doubt else self._measurement_prompt()
+            return self._question(f"{prompt} {self.speaker.say('measurement_skip_hint')}")
+        lines = self._skip_doubt() if self._pending_doubt else self._complete_measurement(field)
+        reply = "temperature_skipped" if field == "temperature" else "measurement_skipped"
+        return lines if skip else [self.speaker.say(reply), *lines]
+
+    def _measurement_answer(self, field: str, text: str, words: list[str]):
+        if field == "temperature":
+            return temperature_answer(text)
+        if field == "bp":
+            return blood_pressure_answer(text, self.subject)
+        answer = [word for word in words if word not in TRIMESTER_WORDS | ANSWER_FILLERS]
+        if len(answer) != 1:
+            return None
+        word = answer[0]
+        ordinal = (TRIMESTER_ANSWERS.get(word) or KANNADA_MONTH_ORDINALS.get(word)
+                   or ENGLISH_ORDINALS.get(word))
+        if ordinal is None:
+            value = parse_numbers(word.removesuffix("st").removesuffix("nd").removesuffix("rd"))
+            ordinal = value[0].value if len(value) == 1 else None
+        return int(ordinal) if ordinal in (1, 2, 3) else None
+
+    def _complete_measurement(self, field: str) -> list[str]:
+        self._measurement_repeats.remove(field)
+        return self._advance_readback()
+
+    def _advance_readback(self) -> list[str]:
+        self._readback_attempts = 0
+        return self._question(self._measurement_prompt()) if self._measurement_repeats else self._start_safety()
 
     def add_note(self, text: str, language_code: str) -> list[str]:
         """Process a typed or imported note without treating it as a voice command."""
@@ -284,6 +360,8 @@ class Visit:
         for f, v, reason in m["doubts"]:
             if reason != "outside plausible range":     # range doubts are found again by readback
                 self.extra_doubts.append(Doubt(f, v, "approximate"))
+        for field in invalid:
+            m.pop(field)
         new += self.danger.add_vitals(m)
         if set(text.lower().split()) & DATE_CUES:
             r = resolve(text, self.today)
@@ -318,10 +396,10 @@ class Visit:
         if (self._readback_done and not self._pending_doubt
                 and (previous_repeats != self._measurement_repeats
                      or (self._measurement_repeats and ("bp_partial" in m or invalid)))):
-            if self._measurement_repeats:
+            if previous_repeats != self._measurement_repeats:
+                steer += self._advance_readback()
+            elif self._measurement_repeats:
                 steer += self._question(self._measurement_prompt())
-            else:
-                steer += self._start_safety()
         return alerts + concern + steer + self._take_unspoken()
 
     def followup(self) -> list[str]:
@@ -386,31 +464,53 @@ class Visit:
                 else self.speaker.say("summary", summary=self._summary()))
         return self._question(line)
 
-    def _answer_doubt(self, text: str, words: list[str]) -> list[str] | None:
+    def _answer_doubt(self, text: str, words: list[str], *, prompt_on_no=True) -> list[str] | None:
         doubt = self._pending_doubt
         answer = [word for word in words if word not in ANSWER_FILLERS]
         if len(answer) == 1 and answer[0] in YES_ANSWERS | NO_ANSWERS:
             if doubt.alternative is not None or answer[0] in NO_ANSWERS:
-                return self._question(self.speaker.say("value_again"))
+                return self._question(self.speaker.say("value_again")) if prompt_on_no else None
             value = doubt.value
+        elif doubt.field == "temperature":
+            value = temperature_answer(text)
+        elif doubt.field == "bp":
+            value = blood_pressure_answer(text, self.subject)
         else:
             numbers = parse_numbers(text)
             if not isinstance(doubt.value, (int, float)) or len(numbers) != 1:
                 return None
             number = numbers[0]
             rest = words[:number.start] + words[number.end + 1:]
-            if set(rest) - KILO - ANSWER_FILLERS - YES_ANSWERS - NO_ANSWERS:
+            units = {"g", "dl", "grams", "gram", "per", "deciliter", "decilitre"} if doubt.field == "hb" else KILO
+            if set(rest) - units - ANSWER_FILLERS - YES_ANSWERS - NO_ANSWERS:
                 return None
             value = number.value
 
+        if value is None or not self._plausible_readback(doubt.field, value):
+            return None
+        return self._resolve_doubt(value, text)
+
+    def _plausible_readback(self, field, value):
+        return not any(doubt.kind == "out_of_range" for doubt in find_doubts({field: value}, self.subject, self.today))
+
+    def _clear_doubt(self):
+        field = self._pending_doubt.field
         self._pending_doubt = None
-        self.extra_doubts = [item for item in self.extra_doubts if item.field != doubt.field]
-        self._set(doubt.field, value, text)
+        self.extra_doubts = [item for item in self.extra_doubts if item.field != field]
+        return field
+
+    def _skip_doubt(self):
+        field = self._clear_doubt()
+        self.record.pop(field, None)
+        self.evidence.pop(field, None)
         self._emit_record()
-        alerts = self._alerts(self.danger.add_vitals({doubt.field: value}))
-        if self._measurement_repeats:
-            return alerts + self._question(self._measurement_prompt())
-        return alerts + self._start_safety()
+        return self._advance_readback()
+
+    def _resolve_doubt(self, value, text):
+        field = self._clear_doubt()
+        self._set(field, value, text)
+        self._emit_record()
+        return self._alerts(self.danger.add_vitals({field: value})) + self._advance_readback()
 
     def _answer_safety(self, text: str, words: list[str]) -> list[str] | None:
         if tuple(words) in SKIP_ANSWERS:

@@ -109,7 +109,9 @@ class VisitDraft:
         self.readback_done = False
         self.turn_number = 0
         self.dictating = False
-        self.hands_free_replies = []
+        self.held_replies = []
+        self.held_question = None
+        self.readback_answer = None
         self.expiry = None
         self.attached = False
         self.synced = set()
@@ -127,6 +129,21 @@ class VisitDraft:
     def checklist(self):
         return [{"sign": sign, "text": self.visit.speaker.safety_question(sign)}
                 for sign in self.visit.danger.guided_questions()]
+
+    def hold_replies(self, lines, events):
+        questions = [event["text"] for event in events if event["type"] == "question"]
+        saved = any(event["type"] == "saved" for event in events)
+        if questions or saved:
+            self.held_replies = [line for line in self.held_replies if line != self.held_question]
+            self.held_question = None if saved else questions[-1]
+            stale = set(questions) - {self.held_question}
+            lines = [line for line in lines if line not in stale]
+        self.held_replies.extend(lines)
+
+    def take_replies(self):
+        lines, self.held_replies = self.held_replies, []
+        self.held_question = None
+        return lines
 
     def close(self):
         if self.expiry:
@@ -168,8 +185,8 @@ class VisitTurn:
             self.speech.queue(lines, on_first=lambda: self.mark(number, "first_tts_byte"))
 
     async def emit(self, lines, events, number=0, *, defer_speech=False, hand_off=False):
-        if self.hands_free and defer_speech:
-            self.draft.hands_free_replies.extend(lines)
+        if defer_speech:
+            self.draft.hold_replies(lines, events)
             lines = []
         for event in events:
             await self.phone.send_json(event)
@@ -179,16 +196,55 @@ class VisitTurn:
             self.queue(lines, number, hand_off=hand_off)
 
     async def finish_hands_free(self):
+        had_answer = self.draft.dictating
         self.draft.dictating = False
-        lines = self.draft.hands_free_replies
-        self.draft.hands_free_replies = []
-        if self.draft.has_transcript:
+        events = self.finish_readback_answer()
+        if self.draft.has_transcript and not self.visit.saved:
+            if not had_answer or self.visit.ready_to_save:
+                lines, final_events = await self.confirm_visit()
+            else:
+                lines = self.visit.readback()
+                final_events = self.draft.remember(self.visit.events())
             self.draft.readback_done = True
-            lines.extend(self.visit.readback())
-        await self.emit(lines, self.draft.remember(self.visit.events()), self.reply_turn, hand_off=True)
+            self.draft.hold_replies(lines, final_events)
+            events.extend(final_events)
+        return self.draft.take_replies(), events
+
+    def finish_readback_answer(self):
+        answer, self.draft.readback_answer = self.draft.readback_answer, None
+        if answer is None:
+            return []
+        field, start = answer
+        segments = [row["text"] for row in self.visit.transcript[start:]]
+        lines = self.visit.finish_readback_answer(field, segments)
+        events = self.draft.remember(self.visit.events())
+        self.draft.hold_replies(lines, events)
+        return events
+
+    async def confirm_visit(self):
+        lines = await asyncio.to_thread(self.visit.confirm)
+        return lines, self.draft.remember(self.visit.events())
+
+    async def process_transcript(self, text, detected, number, finished):
+        lines, events = [], []
+        if text:
+            if self.draft.readback_answer is None and not self.draft.dictating:
+                field = self.visit.pending_readback_field
+                if field:
+                    self.draft.readback_answer = (field, len(self.visit.transcript))
+            self.draft.dictating = self.hands_free
+            self.mark(number, "transcript")
+            lines, events = await self.finalize_transcript(text, detected, number)
+        if self.hands_free or self.draft.readback_answer is not None:
+            self.draft.hold_replies(lines, events)
+            if finished:
+                replies, final_events = await self.finish_hands_free()
+                return replies, events + final_events
+            return [], events
+        return lines, events
 
     def schedule_readback(self, delay):
-        if self.draft.readback_done:
+        if self.draft.readback_done and self.draft.readback_answer is None:
             return
         if self.timer:
             self.timer.cancel()
@@ -201,9 +257,14 @@ class VisitTurn:
         await asyncio.sleep(delay)
         number = self.reply_turn
         async with self.visit_lock:
-            self.draft.readback_done = True
-            lines = self.visit.readback()
-            await self.emit(lines, self.draft.remember(self.visit.events()), number)
+            if self.draft.readback_done:
+                events = self.finish_readback_answer()
+                lines = self.draft.take_replies()
+            else:
+                self.draft.readback_done = True
+                lines = self.visit.readback()
+                events = self.draft.remember(self.visit.events())
+            await self.emit(lines, events, number)
 
     async def send_late_replies(self):
         while True:
@@ -214,11 +275,12 @@ class VisitTurn:
                     # without advancing to the readback question.
                     lines = self.visit.readback() if self.draft.readback_done else []
                     await self.emit(lines, self.draft.remember(self.visit.events()), self.reply_turn,
-                                    defer_speech=self.hands_free)
+                                    defer_speech=self.hands_free or self.draft.readback_answer is not None)
 
     async def finalize_transcript(self, text, detected, number):
         self.draft.llm_turns[text] = number
-        lines = await asyncio.to_thread(self.visit.hear, text, detected)
+        options = {"defer_temperature": True} if self.visit.pending_readback_field == "temperature" else {}
+        lines = await asyncio.to_thread(self.visit.hear, text, detected, **options)
         self.mark(number, "rules_done")
         self.draft.has_transcript = True
         events = [{"type": "transcript", "text": text, "lang": detected}, *self.visit.events()]
@@ -266,6 +328,9 @@ class VisitTurn:
 
     async def apply_entry(self, entry, text):
         if self.visit.saved:
+            if entry["kind"] == "save":
+                self.draft.synced.add(entry["id"])
+                return [], []
             raise ValueError("This visit was already confirmed.")
         events = []
         if entry["kind"] == "save":
@@ -575,6 +640,17 @@ async def send_audio(phone: WebSocket, prisma, turn: VisitTurn, headers) -> None
             if not isinstance(event, dict):
                 continue
             if event.get("type") == "end_visit":
+                async with turn.visit_lock:
+                    if turn.draft.has_transcript and not turn.visit.saved:
+                        work = asyncio.create_task(turn.confirm_visit())
+                        try:
+                            lines, events = await asyncio.shield(work)
+                        except asyncio.CancelledError:
+                            await work
+                            raise
+                        await turn.emit(lines, events)
+                        if not turn.visit.saved:
+                            continue
                 turn.ended = True
                 await phone.close()
                 return
@@ -615,24 +691,17 @@ async def send_transcripts(phone: WebSocket, prisma, locale: str, turn: VisitTur
                 if not turn.draft.dictating:
                     turn.turn_number += 1
                     turn.reply_turn = turn.turn_number
-                    turn.draft.dictating = True
             number = turn.turn_number
             detected = event.get("detected_language_code") or locale
             async with turn.visit_lock:
-                if text:
-                    turn.mark(number, "transcript")
-                    work = asyncio.create_task(turn.finalize_transcript(text, detected, number))
-                    try:
-                        lines, events = await asyncio.shield(work)
-                    except asyncio.CancelledError:
-                        # Keep this transcript and its held replies in the reconnectable draft.
-                        lines, _ = await work
-                        if turn.hands_free:
-                            turn.draft.hands_free_replies.extend(lines)
-                        raise
-                    await turn.emit(lines, events, number, defer_speech=turn.hands_free)
-                if finished:
-                    await turn.finish_hands_free()
+                work = asyncio.create_task(turn.process_transcript(text, detected, number, finished))
+                try:
+                    lines, events = await asyncio.shield(work)
+                except asyncio.CancelledError:
+                    # A received finish cue may already be saving to disk.
+                    await work
+                    raise
+                await turn.emit(lines, events, number, hand_off=finished)
             latency = event.get("latency")
             if isinstance(latency, (int, float)):
                 await phone.send_json({"type": "latency", "ms": latency})
@@ -736,6 +805,7 @@ async def visit_socket(phone: WebSocket) -> None:
                     await phone.send_json({"type": "visit_ready", "resumed": resumed,
                                            "turn": draft.turn_number, "speaking_next": bool(lines),
                                            "saved": visit.saved,
+                                           "has_notes": draft.has_transcript,
                                            "answered_offline": sorted(draft.answered_offline),
                                            "checklist": draft.checklist()})
                 turn.queue(lines, 0)

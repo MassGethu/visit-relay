@@ -25,9 +25,11 @@ TEMPLATES = {
               "I will not give treatment or medicine advice.",
     },
     "hands_free_intro": {
-        "hi": "Apni baat poori karne ke baad thoda ruk kar ‘khatam’ boliye.",
-        "kn": "ಹೇಳಿ ಮುಗಿಸಿದಾಗ ‘ಮಾತು ಮುಗಿಯಿತು’ ಎಂದು ಹೇಳಿ.",
-        "en": "When you finish speaking, say ‘I am done’.",
+        "hi": "Apni baat poori karne ke baad thoda ruk kar ‘khatam’ boliye. "
+              "Visit save karne ke liye mere jawaab ke baad sirf ‘khatam’ boliye.",
+        "kn": "ಹೇಳಿ ಮುಗಿಸಿದಾಗ ‘ಮಾತು ಮುಗಿಯಿತು’ ಎಂದು ಹೇಳಿ. "
+              "ಭೇಟಿ ಉಳಿಸಲು ನನ್ನ ಉತ್ತರದ ನಂತರ ‘ಮಾತು ಮುಗಿಯಿತು’ ಎಂದು ಮಾತ್ರ ಹೇಳಿ.",
+        "en": "When you finish speaking, say ‘I am done’. To save the visit, say ‘I am done’ on its own after my reply.",
     },
     "hands_free_ready": {
         "hi": "Ab aap bol sakti hain.",
@@ -65,6 +67,26 @@ TEMPLATES = {
         "hi": "Taapmaan phir se boliye, aur Celsius ya Fahrenheit bhi boliye.",
         "kn": "ತಾಪಮಾನವನ್ನು ಮತ್ತೆ ಹೇಳಿ. ಸೆಲ್ಸಿಯಸ್ ಅಥವಾ ಫ್ಯಾರನ್‌ಹೀಟ್ ಎಂದೂ ಹೇಳಿ.",
         "en": "Please repeat the temperature and say Celsius or Fahrenheit.",
+    },
+    "temperature_retry": {
+        "hi": "Taapmaan Celsius ya Fahrenheit mein phir se boliye. Aage badhne ke liye ‘pata nahi’ boliye.",
+        "kn": "ತಾಪಮಾನವನ್ನು ಸೆಲ್ಸಿಯಸ್ ಅಥವಾ ಫ್ಯಾರನ್‌ಹೀಟ್‌ನಲ್ಲಿ ಮತ್ತೆ ಹೇಳಿ. ಮುಂದುವರಿಯಲು ‘ಗೊತ್ತಿಲ್ಲ’ ಎಂದು ಹೇಳಿ.",
+        "en": "Please repeat the temperature in Celsius or Fahrenheit, or say ‘not sure’ to move on.",
+    },
+    "temperature_skipped": {
+        "hi": "Taapmaan darj nahi hua. Chaliye aage badhte hain.",
+        "kn": "ತಾಪಮಾನ ದಾಖಲಾಗಿಲ್ಲ. ಮುಂದುವರಿಯೋಣ.",
+        "en": "The temperature wasn’t recorded. Let’s move on.",
+    },
+    "measurement_skip_hint": {
+        "hi": "Aage badhne ke liye ‘pata nahi’ boliye.",
+        "kn": "ಮುಂದುವರಿಯಲು ‘ಗೊತ್ತಿಲ್ಲ’ ಎಂದು ಹೇಳಿ.",
+        "en": "Say ‘not sure’ to move on.",
+    },
+    "measurement_skipped": {
+        "hi": "Yeh maap pakka nahi hua. Chaliye aage badhte hain.",
+        "kn": "ಈ ಅಳತೆ ಖಚಿತವಾಗಲಿಲ್ಲ. ಮುಂದುವರಿಯೋಣ.",
+        "en": "I couldn’t confirm that measurement. Let’s move on.",
     },
     "trimester_repeat": {
         "hi": "Pehli, doosri ya teesri timaahi boliye.",

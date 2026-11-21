@@ -1,6 +1,6 @@
 import pytest
 
-from asha.numbers import extract_measurements, parse_digit_string, parse_numbers, valid_id
+from asha.numbers import extract_measurements, parse_digit_string, parse_numbers, temperature_answer, valid_id
 
 
 @pytest.mark.parametrize("text,value", [
@@ -19,6 +19,19 @@ def test_single_values(text, value):
 def test_two_digit_decimal_is_low_confidence():
     n = parse_numbers("do point pachaasi")[0]
     assert n.value == pytest.approx(2.85) and n.low_confidence
+
+
+@pytest.mark.parametrize(("answer", "expected"), [
+    ("98.6", (98.6, "F")),
+    ("38 degrees C", (38, "C")),
+    ("37 ಡಿಗ್ರಿ ಸೆಲ್ಸಿಯಸ್", (37, "C")),
+    ("98.6 डिग्री फ़ारेनहाइट", (98.6, "F")),
+    ("98.6 Celsius", None),
+    ("38 C Fahrenheit", None),
+    ("weight is 38 kilos", None),
+])
+def test_temperature_answer_uses_the_prompt_context(answer, expected):
+    assert temperature_answer(answer) == expected
 
 
 @pytest.mark.parametrize("text,subject,key,value", [

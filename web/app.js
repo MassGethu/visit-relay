@@ -74,6 +74,8 @@ function renderOffline(current) {
   if (session !== current) return;
   editor.hidden = false;
   const pending = current.entries.length;
+  endVoice.textContent = !current.expired && !current.saved && (current.hasNotes || pending)
+    ? "Save visit" : "End visit session";
   editorStatus.textContent = current.expired
     ? "The server draft is unavailable. Unsynced entries are still on this phone."
     : current.syncError || (current.syncing ? "Syncing visit entries…"
@@ -170,6 +172,7 @@ async function acknowledgeEntry(current, event) {
   try {
     if (event.error) current.syncError = event.error;
     else {
+      if (entry.kind !== "save") current.hasNotes = true;
       await saveQueue(current, entries => entries.filter(item => item.id !== entry.id));
     }
   } catch {
@@ -366,6 +369,7 @@ function connectVisit(current) {
       current.turn = event.turn;
       current.checklist = event.checklist ?? current.checklist;
       current.saved = event.saved;
+      current.hasNotes = event.has_notes ?? current.hasNotes;
       saveQueue(current).catch(() => { editorStatus.textContent = "Could not save the visit on this phone."; });
       current.heartbeat = setInterval(() => {
         if (performance.now() - current.lastMessageAt > 30000) reconnect(current, socket);
@@ -402,6 +406,11 @@ function connectVisit(current) {
         if (!current.handsFree && activePress === null && !stopping) status.textContent = "Hold to talk.";
       }
     } else if (event.type === "transcript") {
+      if (!current.hasNotes) {
+        current.hasNotes = true;
+        renderOffline(current);
+        saveQueue(current).catch(() => { editorStatus.textContent = "Could not save the visit on this phone."; });
+      }
       current.heardTurn = current.turn;
       clearTimeout(current.transcriptTimer);
       if (current.turn > 1) clearTimeout(current.slowTimer);
@@ -585,7 +594,16 @@ endVoice.addEventListener("click", async () => {
     endVoice.disabled = true;
     try {
       await current.writes.catch(() => {});
+      if (!current.saved && !current.expired && (current.hasNotes || current.entries.length ||
+          (current.hasDraft && !current.connected && current.hasNotes === undefined))) {
+        if (!current.entries.some(entry => entry.kind === "save")) {
+          await queueEntry(current, { kind: "save" });
+        }
+        return;
+      }
       if (current.entries.length && !window.confirm("End the visit session and discard unsynced entries?")) return;
+      if (current.expired && current.hasNotes && !current.entries.length &&
+          !window.confirm("This visit could not be restored. Clear it from this phone?")) return;
       await OfflineVisit.clear(current.id);
     } catch {
       editorStatus.textContent = "Could not clear the saved entries. Try again.";

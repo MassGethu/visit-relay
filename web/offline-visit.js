@@ -42,7 +42,7 @@ const OfflineVisit = (() => {
     const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key,
       new TextEncoder().encode(JSON.stringify({
         id: visit.id, draftToken: visit.draftToken, details: visit.details, handsFree: visit.handsFree,
-        hasDraft: visit.hasDraft, saved: visit.saved, displayType: visit.displayType,
+        hasDraft: visit.hasDraft, hasNotes: visit.hasNotes, saved: visit.saved, displayType: visit.displayType,
         checklist: visit.checklist, entries,
       })));
     await transact("readwrite", store => store.put({ key, iv, data }, visit.id));

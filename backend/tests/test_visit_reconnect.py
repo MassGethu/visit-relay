@@ -241,6 +241,122 @@ def test_hands_free_waits_for_cue_and_preserves_safety_alerts(phone):
     asyncio.run(exercise())
 
 
+def test_hands_free_records_split_temperature_and_standalone_finish_saves_report(phone):
+    connect, start, dictate = phone
+
+    async def exercise():
+        async with relay.lifespan(relay.app):
+            async with connect({**start, "lang": "en"}) as socket:
+                await socket.receive_until("visit_ready")
+                await socket.next_speech()
+                dictate("Weight 52 kilos. Temperature 15 degrees Celsius. I am done.")
+                assert (await socket.receive_until("question"))["text"] == (
+                    "Please repeat the temperature and say Celsius or Fahrenheit."
+                )
+                assert "Please repeat the temperature" in (await socket.next_speech())[0]
+                dictate("98.6")
+                assert (await socket.receive_until("transcript"))["text"] == "98.6"
+                dictate("Fahrenheit. I am done.")
+                record = await socket.receive_until("record")
+                assert record["fields"] == {"weight_kg": 52, "temperature": [98.6, "F"]}
+                reply = await socket.next_speech()
+                assert reply[0].startswith("Question one")
+                assert not any("repeat the temperature" in line for line in reply)
+
+                dictate("I am done.")
+                await socket.receive_until("saved")
+                draft, = relay.app.state.drafts.values()
+                visit = draft.visit
+                visit_id = visit.store.report_id(visit.report_session)
+                saved = visit.store.load_visit(visit_id)
+                assert saved["record"] == record["fields"]
+                assert [row["text"] for row in saved["transcript"]][-2:] == ["98.6", "Fahrenheit."]
+                assert any(row["status"] == "not_checked" for row in saved["receipt"])
+
+    asyncio.run(exercise())
+
+
+def test_hands_free_moves_on_after_two_unusable_temperature_answers(phone):
+    connect, start, dictate = phone
+
+    async def exercise():
+        async with relay.lifespan(relay.app):
+            async with connect({**start, "lang": "en"}) as socket:
+                await socket.receive_until("visit_ready")
+                await socket.next_speech()
+                dictate("Weight 52 kilos. Temperature 15 C. I am done.")
+                assert "repeat the temperature" in (await socket.next_speech())[0]
+                dictate("98.6 C. I am done.")
+                lines = await socket.next_speech()
+                assert len(lines) == 2 and "not sure" in lines[0]
+                dictate("65 C. I am done.")
+                lines = await socket.next_speech()
+                assert lines[0] == "The temperature wasn’t recorded. Let’s move on."
+                assert lines[1].startswith("Question one")
+                draft, = relay.app.state.drafts.values()
+                assert "temperature" not in draft.visit.record
+                for _ in range(len(draft.visit._safety_pending)):
+                    dictate("Not sure. I am done.")
+                    await socket.next_speech()
+                await socket.receive_until("saved")
+                assert draft.visit.store.load_visit(draft.visit.visit_id)["record"] == {"weight_kg": 52}
+
+    asyncio.run(exercise())
+
+
+def test_ending_a_visit_with_notes_saves_them_before_closing(phone):
+    connect, start, dictate = phone
+
+    async def exercise():
+        async with relay.lifespan(relay.app):
+            async with connect(start) as socket:
+                await socket.receive_until("visit_ready")
+                dictate("wajan baavan kilo, I am done.")
+                await socket.receive_until("question")
+                socket.incoming.put_nowait({"type": "websocket.receive", "text": '{"type":"end_visit"}'})
+                await socket.receive_until("saved")
+                assert (await socket.next_event())["type"] == "close"
+            assert not relay.app.state.drafts
+
+    asyncio.run(exercise())
+
+
+@pytest.mark.parametrize(("note", "answers", "field", "value"), [
+    ("Temperature 15 Celsius.", ["98.6", "Fahrenheit"], "temperature", [98.6, "F"]),
+    ("BP 120.", ["120", "over 80"], "bp", [120, 80]),
+    ("She is in her fourth trimester.", ["second"], "gestational_trimester", 2),
+    ("Hb 60.", ["Hb 10.2"], "hb", 10.2),
+])
+def test_push_to_talk_accepts_correction_and_advances(phone, note, answers, field, value):
+    connect, start, dictate = phone
+
+    async def speak(socket, segments):
+        socket.incoming.put_nowait({"type": "websocket.receive", "bytes": b"\0" * relay.FRAME_BYTES})
+        await asyncio.sleep(0)
+        for text in segments:
+            dictate(text)
+            assert (await socket.receive_until("transcript"))["text"] == text
+        assert socket.spoken.empty()
+        socket.incoming.put_nowait({"type": "websocket.receive", "text": '{"type":"commit"}'})
+
+    async def exercise():
+        async with relay.lifespan(relay.app):
+            async with connect({**start, "lang": "en"}, hands_free=False) as socket:
+                await socket.receive_until("visit_ready")
+                await socket.next_speech()
+                await speak(socket, [note])
+                prompt = await socket.receive_until("question")
+                assert await socket.next_speech() == [prompt["text"]]
+
+                await speak(socket, answers)
+                corrected = await socket.receive_until("record")
+                assert corrected["fields"][field] == value
+                reply = await socket.next_speech()
+                assert len(reply) == 1 and reply[0].startswith("Question one")
+
+    asyncio.run(exercise())
+
+
 def test_push_to_talk_uses_button_release_without_a_spoken_cue(phone):
     connect, start, dictate = phone
 
