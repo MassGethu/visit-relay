@@ -147,3 +147,26 @@ def test_partial_match_needs_the_sign_key_word(visit_type, text, want):
     # a partial phrase match must contain the word that makes the sign ("hafte", "stan", "pet"),
     # never only intensity words ("bahut", "tez")
     assert present(visit_type, text) == want
+
+
+@pytest.mark.parametrize("text, lang", [
+    ("I did not have a headache", "en-IN"),
+    ("She does not have a headache", "en-IN"),
+    ("Sir dard nahi hai", "hi-IN"),
+    ("सिर दर्द नहीं है", "hi-IN"),
+])
+def test_headache_denial_does_not_flag_anc_danger(text, lang):
+    checker = DangerChecker("anc")
+    assert checker.add_utterance(text, lang) == []
+    assert checker.states["anc_severe_headache_blurred_vision"].status != "present"
+    assert checker.states["anc_water_break_no_labour"].status == "not_checked"
+
+
+@pytest.mark.parametrize("text, lang, sign", [
+    ("She has a severe headache and blurred vision", "en-IN", "anc_severe_headache_blurred_vision"),
+    ("I did not have a headache but now I have a headache", "en-IN", "anc_severe_headache_blurred_vision"),
+    ("Paani ki thaili phat gayi, dard nahi", "hi-IN", "anc_water_break_no_labour"),
+    ("Thoda khoon aa raha tha kal, ab nahi", "hi-IN", "anc_vaginal_bleeding"),
+])
+def test_affirmed_danger_signs_remain_immediate(text, lang, sign):
+    assert sign in DangerChecker("anc").add_utterance(text, lang)

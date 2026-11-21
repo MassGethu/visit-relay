@@ -1,5 +1,17 @@
 {
  "anc_severe_headache_blurred_vision": {
+  "negations": [
+   {
+    "script": "headache भी नहीं है",
+    "roman": "headache bhi nahi hai",
+    "provenance": "UNSOURCED-linguistic"
+   },
+   {
+    "script": "did not have a headache",
+    "roman": "does not have a headache",
+    "provenance": "UNSOURCED-linguistic"
+   }
+  ],
   "hi": [
    {
     "script": "सिर में बहुत दर्द",

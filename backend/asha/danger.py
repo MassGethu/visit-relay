@@ -258,6 +258,9 @@ KEY_WORDS = {
 # The whole sentence must name labour for these: "bachcha nahi [hua]" (a fragment of
 # "kal raat se dard hai, bachcha nahi hua") also matched "pet mein bachcha hil nahi raha".
 SENTENCE_KEY_WORDS = {"anc_prolonged_labour": _LABOUR}
+_WATER_BREAK_WORDS = {fold(word) for word in (
+    "water", "paani", "pani", "पानी", "thaili", "थैली", "neeru", "neerina", "ನೀರು", "ನೀರಿನ",
+)}
 _SENTENCE_KEY_FOLDED = {sign: {fold(w) for w in group} for sign, group in SENTENCE_KEY_WORDS.items()}
 _KEY_FOLDED = {sign: [{fold(w) for w in group} for group in groups] for sign, groups in KEY_WORDS.items()}
 
@@ -276,7 +279,7 @@ def _find(phrase: Phrase, content: list[int], hits: dict[str, set[int]],
     if any(t.text in SPAN_BREAKS for t in tokens(phrase.source_text)):
         breaks = ()
     slot_pos = [set().union(*(hits.get(w, set()) for w in slot)) for slot in phrase.slots]
-    anchors = sorted(set().union(*slot_pos))
+    anchors = sorted(set(content) & set().union(*slot_pos))
     best: Match | None = None
     for a in anchors:
         stop = next((b for b in breaks if b > a), None)
@@ -418,8 +421,15 @@ class DangerChecker:
         content = [t.index for t in toks if t.text not in STOPWORDS]
         breaks = [t.index for t in toks if t.text in SPAN_BREAKS]
         candidates = sorted({n for w in hits for n in self.lex.by_word[w]})
-        matches = [m for n in candidates if (p := self.lex.phrases[n]).sign in scope
-                   if (m := _find(p, content, hits, self.generic, breaks))]
+        # A denial before "but" must not hide an affirmative mention after it.
+        contrast = [-1, *(i for i, word in enumerate(words)
+                          if word in {"but", "lekin", "magar", "लेकिन", "ಆದರೆ"}), len(words)]
+        headache_spans = [[i for i in content if a < i < b] for a, b in zip(contrast, contrast[1:])]
+        matches = [
+            match for n in candidates if (p := self.lex.phrases[n]).sign in scope
+            for span in (headache_spans if p.sign == "anc_severe_headache_blurred_vision" else [content])
+            if (match := _find(p, span, hits, self.generic, breaks))
+        ]
         # A "normal" phrase for an inverted sign ("bachcha theek se hil raha") only counts
         # if no negator sits inside it; otherwise it is the danger phrase misheard as normal.
         # "Absent" phrases are not trusted when she hedges or says it stopped
@@ -431,7 +441,11 @@ class DangerChecker:
                               and any(is_negator(w) for w in words[m.start:m.end + 1]))}
         folded = {fold(w) for w in words}
         matches = [m for m in matches if not folded.isdisjoint(_SENTENCE_KEY_FOLDED.get(m.sign, folded))]
-        danger = _by_subject([m for m in matches if not m.negation_phrase], words)
+        danger = _by_subject([
+            m for m in matches if not m.negation_phrase
+            and (m.sign != "anc_water_break_no_labour"
+                 or any(fold(word) in _WATER_BREAK_WORDS for word in words[m.start:m.end + 1]))
+        ], words)
         starts = sorted({m.start for m in danger if not is_negator(words[m.start])})
 
         newly: list[str] = []
@@ -449,6 +463,18 @@ class DangerChecker:
             quote = " ".join(words[max(0, a - 2): b + 3])
             per_sign.setdefault(sign, []).append(Evidence(RULED_OUT, quote, idx, phrase="negation"))
 
+        # A combined Kannada segment can contain these explicit Hindi denials,
+        # including transliterated Hindi. Leave other untested negatives unchecked.
+        mixed_denials = {
+            "anc_high_fever": (("ಬುಖಾರ್", "ನಹಿ"), ("ಬುಖಾರ", "ನಹಿ")),
+            "anc_severe_headache_blurred_vision": (("headache", "भी", "नहीं"),),
+        }
+        if not hedged:
+            for sign, phrases in mixed_denials.items():
+                if sign in scope and any(_has_seq(words, phrase) for phrase in phrases):
+                    per_sign.setdefault(sign, []).append(
+                        Evidence(RULED_OUT, text, idx, phrase="explicit_mixed_denial"))
+
         wordset = set(words)
         for sign in SWELLING_SIGNS & set(per_sign):
             if wordset & FEET_WORDS and not wordset & FACE_HAND_WORDS:
@@ -458,9 +484,9 @@ class DangerChecker:
         for sign, evs in per_sign.items():
             # strongest single piece of evidence per utterance: present > ruled_out
             present = [e for e in evs if e.status == PRESENT]
-            chosen = sorted(present, key=lambda e: (e.partial, e.history))[:1] if present else evs[:1]
+            chosen = sorted(present, key=lambda e: (e.partial, e.history))[:1] if present else sorted(evs, key=lambda e: e.phrase != "explicit_mixed_denial")[:1]
             for e in chosen:
-                if e.status == RULED_OUT and not lang_ok:
+                if e.status == RULED_OUT and not lang_ok and e.phrase != "explicit_mixed_denial":
                     continue  # fail closed: not evaluated in this language
                 self.states[sign].evidence.append(e)
         for s in scope:
@@ -485,7 +511,20 @@ class DangerChecker:
                 break
             hi = j
         window = words[lo:hi + 1]
-        negated = any(is_negator(w) for w in words[lo:m.start] + words[m.end + 1:hi + 1])
+        after = words[m.end + 1:hi + 1]
+        if m.sign == "anc_water_break_no_labour":
+            # "Water broke, no pain" denies pain, while affirming the water breaking.
+            for i, word in enumerate(after):
+                if word in {"dard", "दर्द", "pain", "novu", "ನೋವು"}:
+                    pain_start = i - 1 if i > 0 and is_negator(after[i - 1]) else i
+                    after = after[:pain_start]
+                    break
+        negated = any(is_negator(w) for w in words[lo:m.start] + after)
+        # English can put the denial farther away: "did not have a headache".
+        lead = " ".join(words[max(0, m.start - 5):m.start])
+        negated = negated or bool(re.search(
+            r"(?:^| )not (?:have|had|having|report|experience)(?: (?:a|an|any|the))?$", lead,
+        ))
         clause = words[lo: min(len(words), m.end + 8, barrier + 2)]
         if any(_has_seq(clause, h) for h in RESOLVED):
             # happened, now stopped: still present (earlier bleeding/fits warrant referral)

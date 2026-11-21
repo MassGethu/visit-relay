@@ -616,8 +616,8 @@
  "anc_water_break_no_labour": {
   "hi": [
    {
-    "script": "पानी की थैली फट गई, दर्द नहीं",
-    "roman": "paani ki thaili phat gayi, dard nahi",
+    "script": "पानी की थैली फट गई",
+    "roman": "paani ki thaili phat gayi",
     "provenance": "UNSOURCED-linguistic"
    },
    {
@@ -628,8 +628,8 @@
   ],
   "kn": [
    {
-    "script": "ನೀರು ಹೋಯ್ತು, ನೋವು ಇಲ್ಲ",
-    "roman": "neeru hoytu, novu illa",
+    "script": "ನೀರು ಹೋಯ್ತು",
+    "roman": "neeru hoytu",
     "provenance": "UNSOURCED-linguistic"
    },
    {
@@ -640,8 +640,8 @@
   ],
   "codemix": [
    {
-    "script": "water break ho gaya, pain nahi",
-    "roman": "water break ho gaya, pain nahi",
+    "script": "water break ho gaya",
+    "roman": "water break ho gaya",
     "provenance": "UNSOURCED-linguistic"
    },
    {
