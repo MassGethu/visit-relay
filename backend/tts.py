@@ -8,11 +8,13 @@ import logging
 import os
 import re
 from collections import deque
+from contextlib import aclosing
 
 from anyio import BrokenResourceError, ClosedResourceError
 from starlette.websockets import WebSocketDisconnect
 from websockets.asyncio.client import connect
-from websockets.exceptions import WebSocketException
+from websockets.exceptions import ConnectionClosed, WebSocketException
+from websockets.protocol import State
 
 from asha.gnani import tts_request
 from asha.speak import Speaker, TEMPLATES
@@ -109,23 +111,9 @@ class VisitSpeech:
                     for offset in range(0, len(cached), 3840):
                         await self.phone.send_bytes(cached[offset:offset + 3840])
                     continue
-                # Shield the idle socket so interruption only closes the active one.
-                spare = self.spare
-                try:
-                    socket = await asyncio.shield(spare)
-                except (WebSocketException, OSError, TimeoutError):
-                    self.spare = asyncio.create_task(open_timbre(self.timbre.key))
-                    raise
-                self.spare = asyncio.create_task(open_timbre(self.timbre.key))
-                try:
-                    first = True
-                    async for chunk in synthesize(socket, text, self.lang, self.timbre.voice):
-                        if first:
-                            on_first()
-                            first = False
+                async with aclosing(self.stream_sentence(text, on_first)) as audio:
+                    async for chunk in audio:
                         await self.phone.send_bytes(chunk)
-                finally:
-                    await socket.close()
         except PHONE_CLOSED:
             self.lines.clear()
         except (WebSocketException, OSError, RuntimeError, TimeoutError, ValueError, KeyError):
@@ -137,6 +125,36 @@ class VisitSpeech:
                     await self.phone.send_json({"type": "speaking", "on": False})
                 except PHONE_CLOSED + (OSError, RuntimeError):
                     pass
+
+    async def stream_sentence(self, text, on_first):
+        # The spare may have expired while the worker was dictating. Retry once
+        # before any PCM is sent, so a retry cannot repeat audible words.
+        for attempt in range(2):
+            try:
+                socket = await asyncio.shield(self.spare)
+            except (WebSocketException, OSError, TimeoutError):
+                self.spare = asyncio.create_task(open_timbre(self.timbre.key))
+                if attempt:
+                    raise
+                continue
+            self.spare = asyncio.create_task(open_timbre(self.timbre.key))
+            first = True
+            try:
+                if socket.state is not State.OPEN:
+                    if attempt:
+                        raise RuntimeError("Timbre spare expired")
+                    continue
+                async for chunk in synthesize(socket, text, self.lang, self.timbre.voice):
+                    if first:
+                        on_first()
+                        first = False
+                    yield chunk
+                return
+            except ConnectionClosed:
+                if attempt or not first:
+                    raise
+            finally:
+                await socket.close()
 
     async def interrupt(self):
         self.lines.clear()
