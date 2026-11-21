@@ -39,10 +39,22 @@ TEMPLATES = {
         "kn": "{field} {value}, ಸರಿನಾ?",
         "en": "{field} {value}, is that right?",
     },
+    "acknowledge": {"hi": "Theek hai.", "kn": "ಸರಿ.", "en": "Okay."},
+    "confirm_short": {"hi": "Sahi hai?", "kn": "ಸರಿನಾ?", "en": "Is that right?"},
+    "value_again": {
+        "hi": "Sahi maap boliye.",
+        "kn": "ಸರಿಯಾದ ಅಳತೆಯನ್ನು ಹೇಳಿ.",
+        "en": "Please say the correct value.",
+    },
+    "safety_retry": {
+        "hi": "Har nishaan ke liye kram se haan ya nahi boliye.",
+        "kn": "ಪ್ರತಿ ಲಕ್ಷಣಕ್ಕೆ ಕ್ರಮವಾಗಿ ಹೌದು ಅಥವಾ ಇಲ್ಲ ಎಂದು ಹೇಳಿ.",
+        "en": "Say one yes or no for each remaining sign, in order.",
+    },
     "safety_turn": {
-        "hi": "<pauses> Ek-ek karke bataiye, hai ya nahi: {signs}.",
+        "hi": "<pauses> Ek-ek karke bataiye, hai ya nahi: {signs}. Isi kram mein jawab dijiye.",
         "kn": "<pauses> ಒಂದೊಂದಾಗಿ ಹೇಳಿ, ಇದೆಯಾ ಇಲ್ಲವಾ: {signs}.",
-        "en": "<pauses> One by one, yes or no: {signs}.",
+        "en": "<pauses> One by one, yes or no: {signs}. Answer in that order.",
     },
     "summary": {
         "hi": "{summary}. Save karne ke liye 'record pakka' boliye.",

@@ -8,8 +8,9 @@
     hbnc: "HBNC · newborn", hbyc: "HBYC · young child" };
   const SWITCH_WAIT_MS = 4000;           // no reply from the backend: put the dropdown back
   const STATUS_TEXT = { present: "Present", ruled_out: "Ruled out", not_checked: "Not checked" };
-  const VITALS = ["weight_kg", "bp", "hb", "temperature", "breaths_per_min"];
+  const VITALS = ["gestational_month", "weight_kg", "bp", "hb", "temperature", "breaths_per_min"];
   const FIELDS = {
+    gestational_month: ["Pregnancy month", v => String(v)],
     weight_kg: ["Weight", v => `${v} kg`],
     bp: ["BP", v => `${v[0]}/${v[1]}`],
     hb: ["Hb", v => `${v} g/dL`],
@@ -365,8 +366,21 @@
     }
   }
 
+  function endSession() {
+    clearTimeout(state.switchTimer);
+    Object.assign(state, {
+      started: false, record: {}, evidence: {}, changed: new Set(), alerts: new Set(),
+      question: "", speaking: false, discreet: false, receipt: null, saved: false,
+      savedAt: null, showAnm: false, undone: false, context: null, switching: "", switchNote: "",
+    });
+    alertBox.replaceChildren();
+    drawVisit();
+    drawLive();
+    drawEnd();
+  }
+
   window.Cards = {
-    handle,
+    handle, endSession,
     // The chosen beneficiary and visit type, for app.js's start_visit message.
     beneficiary: () => (state.person ? { ...state.person, visit_type: state.visitType } : null),
   };

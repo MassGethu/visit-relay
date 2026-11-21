@@ -52,6 +52,7 @@ function sendTiming(current, turn, stage, time) {
     body: payload, keepalive: true }).catch(() => {});
 }
 
+const releaseTailMs = 120;
 const maxDebugFrames = 30 * 16000 * 2 / 1024;
 
 let session;
@@ -63,6 +64,7 @@ function reset(current, message) {
   session = null;
   current.socket?.close();
   clearTimeout(current.slowTimer);
+  clearTimeout(current.releaseTimer);
   current.player?.stop();
   current.stream?.getTracks().forEach(track => track.stop());
   if (current.context?.state !== "closed") current.context?.close().catch(() => {});
@@ -253,7 +255,10 @@ enable.addEventListener("click", async () => {
 });
 
 endVoice.addEventListener("click", () => {
-  if (session) reset(session, "Voice session ended. Enable the microphone to start again.");
+  if (session) {
+    reset(session, "Voice session ended. Enable the microphone to start again.");
+    window.Cards?.endSession?.();
+  }
 });
 
 function startTalk(press) {
@@ -287,10 +292,13 @@ function stopTalk(press, interrupted = false) {
   const at = performance.now();
   session.released = { number: session.turn, at };
   sendTiming(session, session.turn, "release", at);
-  session.mic.port.postMessage("stop");
+  const current = session;
+  // Let the capture graph deliver audio still in flight at pointer release.
+  current.releaseTimer = setTimeout(() => {
+    if (session === current) current.mic.port.postMessage("stop");
+  }, interrupted ? 0 : releaseTailMs);
   talk.setAttribute("aria-pressed", "false");
   status.textContent = "Sending audio…";
-  const current = session;
   current.slowTimer = setTimeout(() => {
     if (session === current && !current.interrupted) status.textContent = "Slow network or reply. Still processing…";
   }, 3000);

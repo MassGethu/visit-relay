@@ -157,7 +157,8 @@ def test_llm_vitals_raise_danger_signs():
 def test_llm_unsure_field_becomes_a_readback_question():
     v = make(use_llm=True, understand=llm_says(fields={"hb": 9.0}, unsure=["hb"]))
     v.hear("hb shayad nau")
-    lines = v.readback()                             # readback waits for the LLM itself
+    v.followup()                                    # LLM result available before readback
+    lines = v.readback()
     assert any("HB" in line for line in lines)
 
 
@@ -322,3 +323,67 @@ def test_doubt_on_a_free_text_field_is_not_spoken_and_does_not_crash(field, valu
     v.extra_doubts.append(Doubt(field, value, "llm_unsure"))
     lines = v.readback()
     assert not any(str(value) in line for line in lines)
+
+
+def test_ordered_safety_answers_advance_once_and_preserve_cited_alerts():
+    v = make()
+    v.hear("ANC visit है, her weight is twenty five kilos। बुखार नहीं है।", "hi-IN")
+    v.hear("headache भी नहीं है अभी।", "hi-IN")
+    assert v.record["weight_kg"] == 25
+    assert v.readback()
+    asked = list(v._safety_pending)
+    assert "anc_high_fever" not in asked and "anc_severe_headache_blurred_vision" not in asked
+    assert len(asked) == 3
+    assert v.readback() == []
+    v.events()
+    assert v.hear("yesn") and v._safety_pending == asked
+    v.hear("no", "en-IN")
+    lines = v.hear("yes yes", "en-IN")
+    assert any("record pakka" in line for line in lines)
+    assert not v._safety_pending
+    assert v.danger.states[asked[0]].status == "ruled_out"
+    alerts = [e for e in v.events() if e["type"] == "alert"]
+    assert [e["sign"] for e in alerts] == asked[1:]
+    assert all(e["source"] and e["page"] for e in alerts)
+
+
+def test_readback_and_new_danger_sign_do_not_wait_for_llm():
+    from threading import Event
+    started, resolve = Event(), Event()
+    def stalled(*args):
+        started.set()
+        resolve.wait(5)
+        return {"ok": False}
+    v = make(use_llm=True, understand=stalled)
+    v.hear("wajan baavan kilo")
+    assert started.wait(1)
+    try:
+        v.readback()
+        assert not resolve.is_set()
+        v.hear("thoda khoon aa raha tha kal ab nahi")
+        assert any(e["type"] == "alert" and e["source"] for e in v.events())
+    finally:
+        resolve.set()
+        v.followup()
+
+
+def test_spoken_decimal_choice_updates_record_without_repeating_the_field_name():
+    v = make("hbnc", "newborn")
+    v.hear("wajan athais kilo")
+    assert "ya" in v.readback()[0]
+    v.hear("haan")
+    assert "weight_kg" not in v.record
+    v.hear("do point aath kilo")
+    assert v.record["weight_kg"] == 2.8
+    assert v.evidence["weight_kg"] == "do point aath kilo"
+    assert v.readback() == []
+
+
+def test_code_mixed_recording_transcript_keeps_pregnancy_month_and_weight():
+    v = make()
+    v.hear("ಎ ಎನ್ ಸಿ visit ಹಾಂ, ಎಲ್ನಿ ತಿಂಗಳು ನಡಿಟೀರೆ. ಅವರ weight is twenty five kilos, "
+           "ಬುಖಾರ್ ನಹಿ ಹಾಂ. headache भी नहीं है अभी।", "kn-IN")
+    assert v.record == {"gestational_month": 7, "weight_kg": 25}
+    assert v.danger.states["anc_high_fever"].status == "ruled_out"
+    assert v.danger.states["anc_severe_headache_blurred_vision"].status == "ruled_out"
+    assert not [event for event in v.events() if event["type"] == "alert"]

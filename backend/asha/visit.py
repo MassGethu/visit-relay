@@ -22,9 +22,9 @@ from typing import Any, Callable
 from .concern import carries_content, is_flag_request, is_worry
 from .context import COVERS, SUBJECTS, VISIT_TYPES, answer_to_switch, context_cues, out_of_scope
 from .correction import apply_correction, is_commit, is_undo
-from .danger import PRESENT, DangerChecker, sign_label
+from .danger import PRESENT, RULED_OUT, DangerChecker, Evidence, sign_label
 from .dates import resolve
-from .numbers import extract_measurements
+from .numbers import KILO, extract_measurements, parse_numbers
 from .readback import Doubt, find_doubts, plan
 from .speak import FIELD_NAMES, Speaker, spoken_sign
 from .text import tokens
@@ -36,12 +36,22 @@ RULE_FIELDS = ("weight_kg", "hb", "bp", "temperature", "breaths_per_min")
 LLM_FIELDS = {"weight_kg": "weight_kg", "hb": "hb", "breaths_per_min": "breaths_per_min",
               "ifa_taking": "ifa_taking", "vaccines_given": "vaccinations_given",
               "vaccines_due": "vaccinations_due", "next_visit_text": "next_visit_text"}
+KANNADA_MONTH_ORDINALS = {
+    "ಮೊದಲ": 1, "ಎರಡನೇ": 2, "ಮೂರನೇ": 3, "ನಾಲ್ಕನೇ": 4, "ಐದನೇ": 5,
+    "ಆರನೇ": 6, "ಏಳನೇ": 7, "ಎಳನೇ": 7, "ಎಲೆನೇ": 7, "ಎಲ್ನಿ": 7, "ಎಲ್ನೇ": 7, "elane": 7,
+    "ಎಂಟನೇ": 8, "ಒಂಬತ್ತನೇ": 9,
+}
 DISCREET_WORDS = {"dheere", "dhire", "dheere-dheere", "धीरे", "ಮೆಲ್ಲಗೆ", "quietly"}
 DISCREET_MAX_WORDS = 3                # longer sentences with "dheere" are content, not a command
 # Never read aloud in discreet mode (the screen still shows them). Danger signs are always read.
 SENSITIVE_FIELDS = {"family_planning", "contraception", "pregnancy_loss", "abortion",
                     "miscarriage", "stillbirth"}
 LLM_WAIT_S = 15.0                    # upper bound; llm.py's own timeouts are 3 s + 8 s
+
+# Narrow answer vocabulary: "okay" may acknowledge the question without asserting a symptom.
+YES_ANSWERS = {"yes", "haan", "han", "ha", "हाँ", "हां", "हा", "ಹೌದು", "howdu", "haudu"}
+NO_ANSWERS = {"no", "nahi", "nahin", "नहीं", "नही", "illa", "ಇಲ್ಲ"}
+ANSWER_FILLERS = {"ji", "जी", "hai", "है", "hain", "हैं", "please"}
 
 log = logging.getLogger("asha.visit")
 _POOL = ThreadPoolExecutor(max_workers=4, thread_name_prefix="llm")
@@ -99,6 +109,9 @@ class Visit:
         self._asked_context: set[str] = set()   # never ask about the same other visit twice
         self._replied: set[int] = set()         # utterances already given an out-of-scope / context reply
         self._readback_done = False
+        self._pending_doubt: Doubt | None = None
+        self._safety_pending: list[str] = []
+        self._safety_started = False
         self.switches: list[dict] = []          # every visit-type change: from, to, time, by
         if self.use_store and self.store is None:
             from store import default_store     # lazy: rules-only visits never touch the disk
@@ -140,6 +153,14 @@ class Visit:
             reply = self._answer_switch(words)
             if reply is not None:
                 return self._take_unspoken() + reply
+        if self._pending_doubt is not None:
+            reply = self._answer_doubt(text, words)
+            if reply is not None:
+                return self._take_unspoken() + reply
+        if self._safety_pending:
+            reply = self._answer_safety(text, words)
+            if reply is not None:
+                return self._take_unspoken() + reply
         self._drain(wait=False)
         llm_job = None
         if self.use_llm:                        # start first so it runs while the rules work
@@ -150,6 +171,12 @@ class Visit:
         idx = len(self.danger.utterances) - 1
         m = extract_measurements(text, self.subject)
         changed = False
+        if self.visit_type == "anc":
+            for ordinal, unit in zip(words, words[1:]):
+                if unit in {"ತಿಂಗಳು", "tingalu"} and ordinal in KANNADA_MONTH_ORDINALS:
+                    self._set("gestational_month", KANNADA_MONTH_ORDINALS[ordinal], text)
+                    changed = True
+                    break
         for key in RULE_FIELDS:
             if key in m:
                 self._set(key, m[key], text)
@@ -178,6 +205,11 @@ class Visit:
             steer = self._scope_reply(idx)
         else:
             steer = self._context_reply(words, text, language_code, idx)
+        checked = [sign for sign in self._safety_pending
+                   if any(e.utterance == idx for e in self.danger.states[sign].evidence)]
+        if checked:
+            self._safety_pending = [sign for sign in self._safety_pending if sign not in checked]
+            steer += self._continue_safety()
         return alerts + concern + steer + self._take_unspoken()
 
     def followup(self) -> list[str]:
@@ -187,27 +219,83 @@ class Visit:
         return self._take_unspoken()
 
     def readback(self) -> list[str]:
-        self._drain(wait=True)
-        self._readback_done = True
+        self._drain(wait=False)
         out = self._take_unspoken()
-        # Only fields with a fixed spoken form are asked aloud (free text from the LLM is never
-        # spoken); in discreet mode sensitive fields are skipped. The rest stay on the screen.
+        if self._readback_done or self.saved:
+            return out
+        self._readback_done = True
         doubts = [d for d in find_doubts(self.record, self.subject, self.today, self.extra_doubts)
                   if d.field in FIELD_NAMES and not (self.discreet and d.field in SENSITIVE_FIELDS)]
-        p = plan({}, self.subject, self.today, self.danger.safety_questions(), extras=doubts)
-        asked = len(out)
-        q = p.question
-        if q and q.alternative is not None:
-            out.append(self.speaker.choice(q.field, q.value, q.alternative, q.value))
-        elif q and q.value is not None:
-            out.append(self.speaker.confirm(q.field, q.value))
-        if p.safety_signs:
-            out.append(self.speaker.safety_turn(p.safety_signs))
-        if len(out) == asked:
-            out.append(self.speaker.say("summary", summary=self._summary()))
-        for line in out[asked:]:
-            self._events.append({"type": "question", "text": line})
-        return out
+        question = plan({}, self.subject, self.today, [], extras=doubts).question
+        if question is not None and question.value is not None:
+            self._pending_doubt = question
+            if question.alternative is not None:
+                line = self.speaker.choice(question.field, question.value, question.alternative, question.value)
+            else:
+                line = self.speaker.confirm(question.field, question.value)
+            return out + self._question(line)
+        return out + self._start_safety()
+
+    def _question(self, line: str) -> list[str]:
+        self._events.append({"type": "question", "text": line})
+        return [line]
+
+    def _start_safety(self) -> list[str]:
+        if not self._safety_started:
+            self._safety_started = True
+            self._safety_pending = self.danger.safety_questions()
+        return self._continue_safety()
+
+    def _continue_safety(self) -> list[str]:
+        line = (self.speaker.safety_turn(self._safety_pending) if self._safety_pending
+                else self.speaker.say("summary", summary=self._summary()))
+        return self._question(line)
+
+    def _answer_doubt(self, text: str, words: list[str]) -> list[str] | None:
+        doubt = self._pending_doubt
+        answer = [word for word in words if word not in ANSWER_FILLERS]
+        if len(answer) == 1 and answer[0] in YES_ANSWERS | NO_ANSWERS:
+            if doubt.alternative is not None or answer[0] in NO_ANSWERS:
+                return self._question(self.speaker.say("value_again"))
+            value = doubt.value
+        else:
+            numbers = parse_numbers(text)
+            if not isinstance(doubt.value, (int, float)) or len(numbers) != 1:
+                return None
+            number = numbers[0]
+            rest = words[:number.start] + words[number.end + 1:]
+            if set(rest) - KILO - ANSWER_FILLERS - YES_ANSWERS - NO_ANSWERS:
+                return None
+            value = number.value
+
+        self._pending_doubt = None
+        self.extra_doubts = [item for item in self.extra_doubts if item.field != doubt.field]
+        self._set(doubt.field, value, text)
+        self._emit_record()
+        alerts = self._alerts(self.danger.add_vitals({doubt.field: value}))
+        return alerts + self._start_safety()
+
+    def _answer_safety(self, text: str, words: list[str]) -> list[str] | None:
+        answers = [word for word in words if word not in ANSWER_FILLERS]
+        if len(answers) == 1 and answers[0] in {"yesn", "yesno", "noyes"}:
+            return self._question(self.speaker.say("safety_retry"))
+        if not answers or set(answers) - YES_ANSWERS - NO_ANSWERS:
+            return None
+        if len(answers) > len(self._safety_pending):
+            return self._question(self.speaker.say("safety_retry"))
+
+        # Assign only explicit answers, in the exact order of the last question.
+        idx = len(self.danger.utterances)
+        self.danger.utterances.append(text)
+        newly = []
+        for sign, answer in zip(self._safety_pending, answers):
+            if answer in YES_ANSWERS:
+                if self.danger.add_external(sign, text, idx, phrase="safety_answer"):
+                    newly.append(sign)
+            else:
+                self.danger.states[sign].evidence.append(Evidence(RULED_OUT, text, idx, phrase="safety_answer"))
+        del self._safety_pending[:len(answers)]
+        return self._alerts(newly) + self._continue_safety()
 
     def events(self) -> list[dict]:
         """Browser events since the last call; the queue is cleared."""
@@ -297,6 +385,8 @@ class Visit:
         if visit_type == self.visit_type:
             return [self.speaker.say("visit_kept", visit=self.speaker.visit_name(visit_type))]
         old = self.danger
+        self._safety_pending.clear()
+        self._pending_doubt = None
         self.switches.append({"from": self.visit_type, "to": visit_type, "at": now(), "by": by})
         self.visit_type, self.subject = visit_type, SUBJECTS[visit_type]
         self.danger = DangerChecker(visit_type, self.tested_languages)
@@ -304,7 +394,7 @@ class Visit:
             self.danger.add_utterance(text, code)
         for sign, state in old.states.items():  # what the LLM flagged carries over where it applies
             for e in state.evidence:
-                if e.status == PRESENT and e.phrase == "llm":
+                if e.status == PRESENT and e.phrase in {"llm", "safety_answer"}:
                     self.danger.add_external(sign, e.quote, e.utterance, history=e.history)
         self.danger.add_vitals({k: v for k, v in self.record.items()
                                 if k in ("bp", "temperature", "breaths_per_min", "weight_kg")})
@@ -328,7 +418,7 @@ class Visit:
 
     def _resume(self) -> str:
         """Back to the checklist: the next safety questions once the first readback has asked them."""
-        signs = self.danger.safety_questions() if self._readback_done else []
+        signs = self._safety_pending
         return self.speaker.safety_turn(signs) if signs else self.speaker.say("resume")
 
     def _scope_reply(self, idx: int) -> list[str]:
@@ -420,6 +510,8 @@ class Visit:
                              "evidence": dict(self.evidence)})
 
     def _save(self) -> list[str]:
+        if self.use_store and self.store is None:
+            return [self.speaker.say("save_failed")]
         rows = [{**r, "label": sign_label(r["sign"]), "local": spoken_sign(r["sign"], self.lang)}
                 for r in self.danger.receipt()]
         if self.store:

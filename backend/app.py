@@ -132,19 +132,15 @@ class VisitTurn:
         self.readback_done = True
         number = self.reply_turn
         async with self.visit_lock:
-            task = asyncio.create_task(asyncio.to_thread(self.visit.readback))
-            try:
-                done, _ = await asyncio.wait((task,), timeout=0.55)
-                if not done and (number, "first_tts_byte") not in self.seen_timings:
-                    acknowledgement = self.speech.cached_acknowledgement()
-                    if acknowledgement and not self.holding and not self.speech.busy:
-                        self.queue([acknowledgement], number)
-                lines = await task
-                await self.emit(lines, self.visit.events(), number)
-            finally:
-                if not task.done():
-                    task.cancel()
-                    await asyncio.gather(task, return_exceptions=True)
+            await self.emit(self.visit.readback(), self.visit.events(), number)
+
+    async def send_late_replies(self):
+        while True:
+            await asyncio.sleep(0.25)
+            if self.readback_done:
+                async with self.visit_lock:
+                    # Subsequent calls only drain late LLM replies. They never repeat a question.
+                    await self.emit(self.visit.readback(), self.visit.events(), self.reply_turn)
 
     async def close(self):
         if self.timer:
@@ -272,25 +268,30 @@ async def visit_socket(phone: WebSocket) -> None:
         visit = Visit(start["visit_type"], subject, start["lang"],
                       beneficiary_id=start["beneficiary_id"], understand=timed_understand)
         terms = visit_keyterms(start["visit_type"], start["lang"])
-        headers = stt_headers(key, [locale], keyterms=terms)
+        hands_free = phone.query_params.get("hands_free") == "1"
+        # Keep short pauses within a dictated note together. Button release
+        # still finalizes immediately via commit; hands-free keeps standard VAD.
+        vad = {} if hands_free else {"x_min_silence_ms": 900}
+        headers = stt_headers(key, [locale], keyterms=terms, **vad)
         async with PrismaRelay(headers) as prisma:
             timbre = phone.app.state.timbre
             turn = VisitTurn(phone, visit, VisitSpeech(timbre, phone, start["lang"]),
-                             hands_free=phone.query_params.get("hands_free") == "1",
+                             hands_free=hands_free,
                              session_id=session_id, llm_turns=llm_turns)
             await turn.emit(visit.start(), visit.events())
             upload = asyncio.create_task(send_audio(phone, prisma, turn))
             download = asyncio.create_task(send_transcripts(phone, prisma, locale, turn))
+            followups = asyncio.create_task(turn.send_late_replies())
             try:
-                done, _ = await asyncio.wait((upload, download), return_when=asyncio.FIRST_COMPLETED)
+                done, _ = await asyncio.wait((upload, download, followups), return_when=asyncio.FIRST_COMPLETED)
                 for task in done:
                     task.result()
                 if download in done and upload not in done:
                     await phone.close(code=1011, reason="Prisma connection ended")
             finally:
-                for task in (upload, download):
+                for task in (upload, download, followups):
                     task.cancel()
-                await asyncio.gather(upload, download, return_exceptions=True)
+                await asyncio.gather(upload, download, followups, return_exceptions=True)
                 await turn.close()
     except WebSocketDisconnect:
         pass
