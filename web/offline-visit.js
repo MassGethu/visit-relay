@@ -43,7 +43,7 @@ const OfflineVisit = (() => {
       new TextEncoder().encode(JSON.stringify({
         id: visit.id, draftToken: visit.draftToken, details: visit.details, handsFree: visit.handsFree,
         hasDraft: visit.hasDraft, saved: visit.saved, displayType: visit.displayType,
-        checklist: visit.checklist, answers: visit.answers, checked: visit.checked, entries,
+        checklist: visit.checklist, entries,
       })));
     await transact("readwrite", store => store.put({ key, iv, data }, visit.id));
     sessionStorage.setItem(marker, visit.id);

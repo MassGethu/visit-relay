@@ -1,7 +1,7 @@
 "use strict";
 
 const enable = document.querySelector("#enable-mic");
-const startTyping = document.querySelector("#start-typing");
+const startUpload = document.querySelector("#start-upload");
 const endVoice = document.querySelector("#end-voice");
 const talk = document.querySelector("#talk");
 const handsFree = document.querySelector("#hands-free");
@@ -64,9 +64,7 @@ let stopping = false;
 
 const editor = document.querySelector("#offline-visit");
 const editorStatus = document.querySelector("#offline-status");
-const note = document.querySelector("#note-text");
 const audioImport = document.querySelector("#offline-audio");
-const questions = document.querySelector("#offline-questions");
 const referral = document.querySelector("#offline-alert");
 const queue = document.querySelector("#offline-queue");
 const retry = document.querySelector("#retry-offline");
@@ -80,39 +78,11 @@ function renderOffline(current) {
     ? "The server draft is unavailable. Unsynced entries are still on this phone."
     : current.syncError || (current.syncing ? "Syncing visit entries…"
       : pending ? `${pending} saved on this phone. They’ll sync when connected.`
-        : current.connected ? "Notes and answers sync automatically."
-          : "Offline. Notes, recordings, and answers will sync when connected.");
-  note.disabled = audioImport.disabled = Boolean(current.saved || current.expired);
+        : current.connected ? "MP3 recordings sync automatically."
+          : "Offline. MP3 recordings will sync when connected.");
+  audioImport.disabled = Boolean(current.saved || current.expired);
   confirmSave.disabled = Boolean(!current.connected || pending || current.saved || current.expired);
   retry.hidden = !current.syncError || !current.connected;
-  questions.replaceChildren(...current.checklist.map(({ sign, text }) => {
-    const row = document.createElement("fieldset");
-    const title = document.createElement("legend");
-    title.textContent = text.replace(/<[^>]*>/g, "");
-    row.append(title);
-    const existing = current.entries.find(entry => entry.sign === sign)?.answer ??
-      current.checked[sign] ?? current.answers[sign];
-    if (existing) {
-      const answer = document.createElement("span");
-      answer.textContent = typeof existing === "string" ? existing : "Answered";
-      row.append(answer);
-    } else {
-      for (const answer of ["yes", "no", "not sure"]) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "c-button";
-        button.textContent = answer[0].toUpperCase() + answer.slice(1);
-        button.disabled = Boolean(current.saved || current.expired);
-        button.addEventListener("click", async () => {
-          row.disabled = true;
-          await queueEntry(current, { kind: "answer", sign, answer });
-          row.disabled = false;
-        });
-        row.append(button, " ");
-      }
-    }
-    return row;
-  }));
   referral.hidden = !current.entries.some(entry => entry.kind === "answer" && entry.answer === "yes");
   referral.textContent = referral.hidden ? "" : "Danger sign reported. Refer to PHC.";
   queue.replaceChildren(...current.entries.map((entry, index) => {
@@ -200,7 +170,6 @@ async function acknowledgeEntry(current, event) {
   try {
     if (event.error) current.syncError = event.error;
     else {
-      if (entry.kind === "answer") current.answers[entry.sign] = entry.answer;
       await saveQueue(current, entries => entries.filter(item => item.id !== entry.id));
     }
   } catch {
@@ -215,12 +184,6 @@ async function acknowledgeEntry(current, event) {
     if (!current.speaking && !current.player?.playing) listenHandsFree(current);
   }
 }
-
-document.querySelector("#offline-note").addEventListener("submit", async event => {
-  event.preventDefault();
-  const text = note.value.trim();
-  if (session && text && await queueEntry(session, { kind: "note", text }) && note.value.trim() === text) note.value = "";
-});
 
 audioImport.addEventListener("change", async () => {
   const current = session;
@@ -278,7 +241,7 @@ function reset(current, message) {
   talk.setAttribute("aria-pressed", "false");
   enable.disabled = false;
   enable.hidden = false;
-  startTyping.hidden = false;
+  startUpload.hidden = false;
   endVoice.hidden = true;
   language.disabled = false;
   handsFree.disabled = false;
@@ -336,7 +299,7 @@ function reconnect(current, socket) {
   talk.setAttribute("aria-pressed", "false");
   if (current.hasDraft) window.Cards?.handle({ type: "speaking", on: false });
   status.textContent = current.hasDraft
-    ? "Connection lost. You can still add notes and checklist answers."
+    ? "Connection lost. You can still upload an MP3."
     : "Waiting for a connection…";
   renderOffline(current);
   if (navigator.onLine) {
@@ -402,7 +365,6 @@ function connectVisit(current) {
       current.turn = event.turn;
       current.checklist = event.checklist ?? current.checklist;
       current.saved = event.saved;
-      for (const sign of event.answered_offline ?? []) current.answers[sign] ??= true;
       saveQueue(current).catch(() => { editorStatus.textContent = "Could not save the visit on this phone."; });
       current.heartbeat = setInterval(() => {
         if (performance.now() - current.lastMessageAt > 30000) reconnect(current, socket);
@@ -453,15 +415,12 @@ function connectVisit(current) {
       if (display) appendTranscript(assistantTranscript, display);
     } else if (event.type === "latency") {
       if (!current.released?.played) latency.textContent = `Prisma latency · ${Math.round(event.ms)} ms`;
-    } else if (["saved", "undo", "visit_type", "receipt"].includes(event.type)) {
+    } else if (["saved", "undo", "visit_type"].includes(event.type)) {
       if (event.type === "visit_type") {
         current.displayType = event.visit_type;
         if (event.checklist) current.checklist = event.checklist;
       }
       if (event.type === "saved" || event.type === "undo") current.saved = event.type === "saved";
-      if (event.type === "receipt") current.checked = Object.fromEntries((event.rows ?? [])
-        .filter(row => row.status === "present" || row.status === "ruled_out")
-        .map(row => [row.sign, row.status === "present" ? "Present" : "Ruled out"]));
       renderOffline(current);
       saveQueue(current).catch(() => { editorStatus.textContent = "Could not save the visit on this phone."; });
     }
@@ -471,7 +430,7 @@ function connectVisit(current) {
 
 function makeSession(stored) {
   return { id: crypto.randomUUID(), draftToken: crypto.randomUUID(), handsFree: handsFree.checked,
-    entries: [], answers: {}, checked: {}, checklist: [], ...stored, turn: 0, lastEvent: 0, retryDelay: 500,
+    entries: [], checklist: [], ...stored, turn: 0, lastEvent: 0, retryDelay: 500,
     writes: Promise.resolve() };
 }
 
@@ -491,7 +450,7 @@ function showSession(current) {
   });
   enable.disabled = false;
   enable.hidden = Boolean(current.mic);
-  startTyping.hidden = true;
+  startUpload.hidden = true;
   endVoice.hidden = false;
   talk.hidden = current.handsFree || !current.mic;
   talk.disabled = true;
@@ -524,7 +483,7 @@ function releaseMicrophone(current, message) {
   status.textContent = message;
 }
 
-startTyping.addEventListener("click", async () => {
+startUpload.addEventListener("click", async () => {
   if (session) return;
   const current = session = makeSession();
   try {
@@ -592,11 +551,11 @@ enable.addEventListener("click", async () => {
       }
     };
     mic.addEventListener("processorerror", () => {
-      releaseMicrophone(current, "Audio capture failed. You can keep entering notes.");
+      releaseMicrophone(current, "Audio capture failed. You can still upload an MP3.");
     });
     input.connect(mic).connect(context.destination);
     current.stream.getAudioTracks()[0].addEventListener("ended", () => {
-      if (current.stream) releaseMicrophone(current, "The microphone stopped. You can keep entering notes.");
+      if (current.stream) releaseMicrophone(current, "The microphone stopped. You can still upload an MP3.");
     });
     latency.textContent = "Prisma latency · —";
     if (!current.details) await prepareSession(current);
@@ -610,7 +569,7 @@ enable.addEventListener("click", async () => {
   } catch (error) {
     const message = error.name === "NotAllowedError"
       ? "Allow microphone access in your browser and try again."
-      : "Could not start voice capture. You can enter notes instead.";
+      : "Could not start voice capture. You can upload an MP3 instead.";
     if (current.details) releaseMicrophone(current, message);
     else reset(current, message);
   }
@@ -710,7 +669,7 @@ window.addEventListener("pagehide", () => {
   if (session) reset(session, "Enable your microphone to start.");
 });
 
-enable.disabled = startTyping.disabled = true;
+enable.disabled = startUpload.disabled = true;
 OfflineVisit.load().then(stored => {
   if (stored) {
     session = makeSession(stored);
@@ -719,6 +678,6 @@ OfflineVisit.load().then(stored => {
 }).catch(() => {
   status.textContent = "Could not restore the local visit. Check browser storage and reload.";
 }).finally(() => {
-  enable.disabled = startTyping.disabled = false;
+  enable.disabled = startUpload.disabled = false;
 });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("/visit-worker.js").catch(() => {});

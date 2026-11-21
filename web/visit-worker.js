@@ -1,4 +1,4 @@
-const cacheName = "asha-phone-v1";
+const cacheName = "asha-phone-v2";
 const shell = ["/", "/index.html", "/cards.css", "/cards.js", "/audio-player.js",
   "/app.js", "/offline-visit.js", "/mic-worklet.js"];
 
