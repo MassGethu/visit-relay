@@ -274,10 +274,11 @@ async function visitDetails(lang) {
 }
 
 function listenHandsFree(current) {
-  if (!current.mic || !current.handsFree || current.syncing || current.entries.length) return;
+  if (!current.mic || !current.handsFree || !current.connected || current.speaking ||
+      current.player?.playing || current.syncing || current.entries.length) return;
   current.followNextSpeech = true;
   current.mic.port.postMessage("resume");
-  status.textContent = "Listening hands-free…";
+  status.textContent = "Listening. Say “I am done” when you finish.";
 }
 
 function reconnect(current, socket) {
@@ -395,7 +396,9 @@ function connectVisit(current) {
         selectTranscript(replyTab);
         status.textContent = current.handsFree ? "Speaking. Listening will resume." : "Speaking. Hold to interrupt.";
       } else if (current.player && !event.on && !current.muted) {
+        const playing = current.player.playing;
         current.player.finish();
+        if (!playing) listenHandsFree(current);
         if (!current.handsFree && activePress === null && !stopping) status.textContent = "Hold to talk.";
       }
     } else if (event.type === "transcript") {
@@ -528,6 +531,7 @@ enable.addEventListener("click", async () => {
     mic.port.onmessage = ({ data }) => {
       if (session !== current || !current.connected || current.syncing ||
           current.socket?.readyState !== WebSocket.OPEN) return;
+      if (current.handsFree && (current.speaking || current.player?.playing)) return;
       if (data === "commit") {
         current.socket.send(JSON.stringify({ type: "commit" }));
         stopping = false;

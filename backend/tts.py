@@ -55,7 +55,7 @@ class Timbre:
     async def prewarm(self):
         for lang in ("hi", "kn", "en"):
             speaker = Speaker(lang)
-            for phrase in ("disclosure", "saved", "confirm_short", "acknowledge"):
+            for phrase in ("disclosure", "saved", "confirm_short", "acknowledge", "hands_free_ready"):
                 if lang not in TEMPLATES.get(phrase, {}):
                     continue
                 text = speaker.say(phrase)

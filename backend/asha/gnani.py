@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import json
 import re
+import unicodedata
 from functools import lru_cache
 
 from .numbers import unit_words
@@ -94,6 +95,31 @@ def update_keyterms_message(keyterms: list[str]) -> str:
 
 
 COMMIT_MESSAGE = json.dumps({"type": "commit"})
+
+# Bias Prisma toward the advertised finish cues in code-mixed speech.
+HANDS_FREE_KEYTERMS = ("I am done", "khatam", "katham", "ख़त्म", "ಮಾತು ಮುಗಿಯಿತು", "maatu mugiyitu")
+_TURN_END = re.compile(
+    r"""(?:^|\s|[.,!?;:।॥…—–])["“‘']*(?:i\s+(?:am\s+done|have\s+finished)|i['’]?m\s+done|"""
+    r"""(?:meri\s+baat|मेरी\s+बात)\s+(?:khatam|katham|khatm|ख़?त्?म)|"""
+    r"""ಮಾತು\s+ಮುಗಿಯಿತು|maatu\s+mugiyitu)["”’'\s.,!?;:।॥…—–]*$""",
+    re.IGNORECASE,
+)
+# A bare "finished" can describe a symptom. Treat it as a cue only on its
+# own or after a sentence boundary.
+_STANDALONE_TURN_END = re.compile(
+    r"""(?:^|[.!?।॥…])\s*["“‘']*(?:khatam|katham|khatm|ख़?त्?म|ಮುಗಿಯಿತು|ಆಯಿತು|ಆಯ್ತು|"""
+    r"""mugiyitu|aayitu|aaytu)["”’'\s.,!?;:।॥…—–]*$""",
+    re.IGNORECASE,
+)
+
+
+def split_finish_cue(text: str) -> tuple[str, bool]:
+    """Return the clinical text and whether it ends with a hands-free cue."""
+    text = unicodedata.normalize("NFC", text).strip()
+    match = _TURN_END.search(text) or _STANDALONE_TURN_END.search(text)
+    if not match:
+        return text, False
+    return text[:match.start()].rstrip(" \t\r\n,;:—–"), True
 
 
 # ───────────────────────── keyterms from the glossary ─────────────────────────

@@ -24,6 +24,16 @@ TEMPLATES = {
         "en": "I am an AI. If a danger sign is unclear I will ask, or flag it for the ANM. "
               "I will not give treatment or medicine advice.",
     },
+    "hands_free_intro": {
+        "hi": "Apni baat poori karne ke baad thoda ruk kar ‘khatam’ boliye.",
+        "kn": "ಹೇಳಿ ಮುಗಿಸಿದಾಗ ‘ಮಾತು ಮುಗಿಯಿತು’ ಎಂದು ಹೇಳಿ.",
+        "en": "When you finish speaking, say ‘I am done’.",
+    },
+    "hands_free_ready": {
+        "hi": "Ab aap bol sakti hain.",
+        "kn": "ಈಗ ನೀವು ಮಾತನಾಡಬಹುದು.",
+        "en": "You can start speaking now.",
+    },
     "alert": {
         "hi": "<slow> Yeh ek khatre ka sanket ho sakta hai: {sign}. <pauses> Kripya turant PHC refer karein.",
         "kn": "<slow> ಇದು ಅಪಾಯದ ಲಕ್ಷಣ ಇರಬಹುದು: {sign}. <pauses> ದಯವಿಟ್ಟು ತಕ್ಷಣ PHC ಗೆ ರೆಫರ್ ಮಾಡಿ.",

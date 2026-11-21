@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from asha.gnani import (FRAME_BYTES, ConfigError, Reframer, select_keyterms, stt_headers,
+from asha.gnani import (FRAME_BYTES, ConfigError, Reframer, select_keyterms, split_finish_cue, stt_headers,
                         tts_request, update_keyterms_message)
 from asha.numbers import unit_words
 
@@ -52,3 +52,19 @@ def test_tts_request():
             tts_request("x", **{"language": "hi", **bad})
     with pytest.raises(ConfigError):
         tts_request("agla visit 23/06", "hi")
+
+
+@pytest.mark.parametrize(("transcript", "note", "finished"), [
+    ("I’m done!", "", True),
+    ("Weight 52 kg, I am done.", "Weight 52 kg", True),
+    ("katham.", "", True),
+    ("ख़त्म।", "", True),
+    ("52 kilo. Khatam.", "52 kilo", True),
+    ("ರಕ್ತಸ್ರಾವ ಇಲ್ಲ, ಮಾತು ಮುಗಿಯಿತು.", "ರಕ್ತಸ್ರಾವ ಇಲ್ಲ", True),
+    ("maatu mugiyitu", "", True),
+    ("bleeding khatam", "bleeding khatam", False),
+    ("ಆ ನೋವು ಮುಗಿಯಿತು", "ಆ ನೋವು ಮುಗಿಯಿತು", False),
+    ("I am done taking the tablets", "I am done taking the tablets", False),
+])
+def test_hands_free_finish_cue(transcript, note, finished):
+    assert split_finish_cue(transcript) == (note, finished)

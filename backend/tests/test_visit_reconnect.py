@@ -16,12 +16,13 @@ from store import Store
 
 
 class PhoneSocket:
-    def __init__(self, session, start):
+    def __init__(self, session, start, hands_free):
         self.app = relay.app
-        self.query_params = {"timing": str(session), "hands_free": "1"}
+        self.query_params = {"timing": str(session), "hands_free": str(int(hands_free))}
         self.start = start
         self.incoming = asyncio.Queue()
         self.outgoing = asyncio.Queue()
+        self.spoken = asyncio.Queue()
         self.disconnected = False
 
     async def accept(self):
@@ -52,6 +53,9 @@ class PhoneSocket:
     async def next_event(self):
         return await asyncio.wait_for(self.outgoing.get(), 2)
 
+    async def next_speech(self):
+        return await asyncio.wait_for(self.spoken.get(), 2)
+
     async def receive_until(self, event_type):
         while (event := await self.next_event())["type"] != event_type:
             assert event["type"] != "close", event
@@ -80,11 +84,11 @@ def phone(monkeypatch, tmp_path):
                 yield await incoming.get()
 
     class Speech:
-        def __init__(self, *_):
-            pass
+        def __init__(self, timbre, phone, lang):
+            self.phone = phone
 
         def queue(self, lines, **kwargs):
-            pass
+            self.phone.spoken.put_nowait(lines)
 
         async def close(self):
             pass
@@ -108,8 +112,8 @@ def phone(monkeypatch, tmp_path):
         incoming.put_nowait({"type": "transcript", "text": text})
 
     @asynccontextmanager
-    async def connect(request):
-        socket = PhoneSocket(session, request)
+    async def connect(request, hands_free=True):
+        socket = PhoneSocket(session, request, hands_free)
         task = asyncio.create_task(relay.visit_socket(socket))
         try:
             yield socket
@@ -130,10 +134,10 @@ def test_reconnect_restores_visit_and_continues_checklist(phone):
                 assert not (await socket.receive_until("visit_ready"))["resumed"]
                 socket.incoming.put_nowait({"type": "websocket.receive", "text": '{"type":"ping"}'})
                 assert await socket.receive_until("pong") == {"type": "pong"}
-                dictate("wajan baavan kilo")
+                dictate("wajan baavan kilo, I am done.")
                 weight = await socket.receive_until("record")
                 first = await socket.receive_until("question")
-                dictate("no")
+                dictate("no, I am done.")
                 second = await socket.receive_until("question")
                 assert second["text"] != first["text"]
 
@@ -190,6 +194,67 @@ def test_reconnect_replays_alert_from_transcript_processed_during_disconnect(pho
                 assert (await socket.receive_until("transcript"))["text"] == "thoda khoon aa raha hai"
                 assert (await socket.receive_until("alert"))["sign"] == "anc_vaginal_bleeding"
                 assert (await socket.receive_until("visit_ready"))["resumed"]
+
+    asyncio.run(exercise())
+
+
+def test_hands_free_waits_for_cue_and_preserves_safety_alerts(phone):
+    connect, start, dictate = phone
+
+    async def exercise():
+        async with relay.lifespan(relay.app):
+            async with connect(start) as socket:
+                await socket.receive_until("visit_ready")
+                draft, = relay.app.state.drafts.values()
+                speaker = draft.visit.speaker
+                ready = speaker.say("hands_free_ready")
+                assert await socket.next_speech() == [
+                    speaker.say("disclosure"), speaker.say("hands_free_intro"), ready,
+                ]
+                dictate("wajan baavan kilo")
+                assert (await socket.receive_until("record"))["fields"] == {"weight_kg": 52.0}
+                dictate("thoda khoon aa raha hai")
+                alert = await socket.receive_until("alert")
+                assert alert["sign"] == "anc_vaginal_bleeding"
+                with pytest.raises(TimeoutError):
+                    await asyncio.wait_for(socket.spoken.get(), 0.4)
+                assert not draft.readback_done
+
+            async with connect({**start, "type": "resume_visit"}) as socket:
+                assert not (await socket.receive_until("visit_ready"))["speaking_next"]
+                dictate("hb das, I am done.")
+                assert (await socket.receive_until("transcript"))["text"] == "hb das"
+                first = await socket.receive_until("question")
+                assert await socket.next_speech() == [speaker.alert(alert["sign"]), first["text"], ready]
+                assert [row["text"] for row in draft.visit.transcript] == [
+                    "wajan baavan kilo", "thoda khoon aa raha hai", "hb das",
+                ]
+                dictate("no")
+                await socket.receive_until("transcript")
+                with pytest.raises(TimeoutError):
+                    await asyncio.wait_for(socket.spoken.get(), 0.1)
+                dictate("katham")
+                reply = await socket.next_speech()
+                assert len(reply) == 2 and reply[-1] == ready
+                assert draft.visit.transcript[-1]["text"] == "no"
+
+    asyncio.run(exercise())
+
+
+def test_push_to_talk_uses_button_release_without_a_spoken_cue(phone):
+    connect, start, dictate = phone
+
+    async def exercise():
+        async with relay.lifespan(relay.app):
+            async with connect(start, hands_free=False) as socket:
+                await socket.receive_until("visit_ready")
+                draft, = relay.app.state.drafts.values()
+                assert await socket.next_speech() == [draft.visit.speaker.say("disclosure")]
+                socket.incoming.put_nowait({"type": "websocket.receive", "text": '{"type":"commit"}'})
+                dictate("wajan baavan kilo")
+                assert (await socket.receive_until("transcript"))["text"] == "wajan baavan kilo"
+                question = await socket.receive_until("question")
+                assert await socket.next_speech() == [question["text"]]
 
     asyncio.run(exercise())
 

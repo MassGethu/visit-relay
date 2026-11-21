@@ -25,7 +25,9 @@ from websockets.exceptions import WebSocketException
 
 from asha import dashboard as board
 from asha.context import SUBJECTS
-from asha.gnani import COMMIT_MESSAGE, FRAME_BYTES, stt_headers, visit_keyterms
+from asha.gnani import (
+    COMMIT_MESSAGE, FRAME_BYTES, HANDS_FREE_KEYTERMS, split_finish_cue, stt_headers, visit_keyterms,
+)
 from asha.visit import Visit, now
 from asha.danger import DangerChecker, load_lexicon
 from asha.speak import Speaker, spoken_sign
@@ -106,6 +108,8 @@ class VisitDraft:
         self.has_transcript = False
         self.readback_done = False
         self.turn_number = 0
+        self.dictating = False
+        self.hands_free_replies = []
         self.expiry = None
         self.attached = False
         self.synced = set()
@@ -157,16 +161,31 @@ class VisitTurn:
             self.seen_timings.add(point)
             write_timing(self.session_id, number, stage, time.time_ns() / 1e6)
 
-    def queue(self, lines, number):
-        self.speech.queue(lines, on_first=lambda: self.mark(number, "first_tts_byte"))
+    def queue(self, lines, number, *, hand_off=False):
+        if self.hands_free and (lines or hand_off):
+            lines = [*lines, self.visit.speaker.say("hands_free_ready")]
+        if lines:
+            self.speech.queue(lines, on_first=lambda: self.mark(number, "first_tts_byte"))
 
-    async def emit(self, lines, events, number=0):
+    async def emit(self, lines, events, number=0, *, defer_speech=False, hand_off=False):
+        if self.hands_free and defer_speech:
+            self.draft.hands_free_replies.extend(lines)
+            lines = []
         for event in events:
             await self.phone.send_json(event)
         if self.holding:
             self.pending_speech.extend(lines)
         else:
-            self.queue(lines, number)
+            self.queue(lines, number, hand_off=hand_off)
+
+    async def finish_hands_free(self):
+        self.draft.dictating = False
+        lines = self.draft.hands_free_replies
+        self.draft.hands_free_replies = []
+        if self.draft.has_transcript:
+            self.draft.readback_done = True
+            lines.extend(self.visit.readback())
+        await self.emit(lines, self.draft.remember(self.visit.events()), self.reply_turn, hand_off=True)
 
     def schedule_readback(self, delay):
         if self.draft.readback_done:
@@ -189,11 +208,13 @@ class VisitTurn:
     async def send_late_replies(self):
         while True:
             await asyncio.sleep(0.25)
-            if self.draft.readback_done:
+            if self.draft.readback_done or (self.hands_free and self.draft.has_transcript):
                 async with self.visit_lock:
-                    # Subsequent calls only drain late LLM replies. They never repeat a question.
-                    lines = self.visit.readback()
-                    await self.emit(lines, self.draft.remember(self.visit.events()), self.reply_turn)
+                    # Before the first finish cue, drain updates for the screen
+                    # without advancing to the readback question.
+                    lines = self.visit.readback() if self.draft.readback_done else []
+                    await self.emit(lines, self.draft.remember(self.visit.events()), self.reply_turn,
+                                    defer_speech=self.hands_free)
 
     async def finalize_transcript(self, text, detected, number):
         self.draft.llm_turns[text] = number
@@ -562,9 +583,9 @@ async def send_audio(phone: WebSocket, prisma, turn: VisitTurn, headers) -> None
             elif event.get("type") == "offline_entry":
                 if not turn.sync_task or turn.sync_task.done():
                     turn.sync_task = asyncio.create_task(turn.sync_entry(event, headers))
-            elif event.get("type") == "commit":
+            elif event.get("type") == "commit" and not turn.hands_free:
                 await asyncio.sleep(max(0, next_frame - loop.time()))
-                if not turn.holding and not turn.hands_free:
+                if not turn.holding:
                     turn.turn_number += 1
                 turn.reply_turn = turn.turn_number
                 turn.mark(turn.reply_turn, "commit_sent")
@@ -587,28 +608,36 @@ async def send_transcripts(phone: WebSocket, prisma, locale: str, turn: VisitTur
         if event.get("type") == "transcript":
             turn.open_utterances.discard(event.get("utterance_id"))
         if event.get("type") == "transcript" and event.get("text", "").strip():
-            if turn.hands_free:
-                turn.turn_number += 1
-                turn.reply_turn = turn.turn_number
-            number = turn.turn_number
-            turn.mark(number, "transcript")
             text = event["text"]
+            finished = False
+            if turn.hands_free:
+                text, finished = split_finish_cue(text)
+                if not turn.draft.dictating:
+                    turn.turn_number += 1
+                    turn.reply_turn = turn.turn_number
+                    turn.draft.dictating = True
+            number = turn.turn_number
             detected = event.get("detected_language_code") or locale
             async with turn.visit_lock:
-                work = asyncio.create_task(turn.finalize_transcript(text, detected, number))
-                try:
-                    lines, events = await asyncio.shield(work)
-                except asyncio.CancelledError:
-                    # A final transcript already received from Prisma belongs to the draft.
-                    await work
-                    raise
-                await turn.emit(lines, events, number)
+                if text:
+                    turn.mark(number, "transcript")
+                    work = asyncio.create_task(turn.finalize_transcript(text, detected, number))
+                    try:
+                        lines, events = await asyncio.shield(work)
+                    except asyncio.CancelledError:
+                        # Keep this transcript and its held replies in the reconnectable draft.
+                        lines, _ = await work
+                        if turn.hands_free:
+                            turn.draft.hands_free_replies.extend(lines)
+                        raise
+                    await turn.emit(lines, events, number, defer_speech=turn.hands_free)
+                if finished:
+                    await turn.finish_hands_free()
             latency = event.get("latency")
             if isinstance(latency, (int, float)):
                 await phone.send_json({"type": "latency", "ms": latency})
-            if turn.hands_free:
-                turn.committed = True
-            turn.schedule_readback(0.7 if turn.open_utterances else 0.25)
+            if not turn.hands_free:
+                turn.schedule_readback(0.7 if turn.open_utterances else 0.25)
 
 
 def open_draft(start, session_id, identity):
@@ -678,8 +707,10 @@ async def visit_socket(phone: WebSocket) -> None:
                 draft.expiry = None
         visit = draft.visit
         locale = f"{visit.lang}-IN"
-        terms = visit_keyterms(visit.visit_type, visit.lang)
         hands_free = phone.query_params.get("hands_free") == "1"
+        terms = visit_keyterms(visit.visit_type, visit.lang)
+        if hands_free:
+            terms = (*HANDS_FREE_KEYTERMS, *terms)
         # Keep short pauses within a dictated note together. Button release
         # still finalizes immediately via commit; hands-free keeps standard VAD.
         vad = {} if hands_free else {"x_min_silence_ms": 900}
@@ -693,8 +724,11 @@ async def visit_socket(phone: WebSocket) -> None:
                 if not draft.has_transcript:
                     lines = visit.start()
                     draft.started = True
+                    if hands_free:
+                        lines.append(visit.speaker.say("hands_free_intro"))
                 else:
-                    lines = visit.resume() if draft.readback_done else []
+                    lines = (visit.resume() if draft.readback_done and not (hands_free and draft.dictating)
+                             else [])
                 draft.remember(visit.events())
                 for event in draft.events[after:]:
                     await phone.send_json(event)
@@ -705,7 +739,7 @@ async def visit_socket(phone: WebSocket) -> None:
                                            "answered_offline": sorted(draft.answered_offline),
                                            "checklist": draft.checklist()})
                 turn.queue(lines, 0)
-                if resumed and draft.has_transcript and not draft.readback_done:
+                if resumed and not hands_free and draft.has_transcript and not draft.readback_done:
                     turn.committed = True
                     turn.schedule_readback(0.25)
                 upload = asyncio.create_task(send_audio(phone, prisma, turn, headers))
