@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import json
 import re
+from functools import lru_cache
 
 from .numbers import unit_words
 from .text import DATA
@@ -139,6 +140,31 @@ def select_keyterms(latin: int = 100, kannada: int = 60, devanagari: int = 40) -
             add(t, dev, devanagari)
     picked = lat + kn + dev
     return picked[:200]
+
+
+# Bias clinical vocabulary and measurements without forcing a danger phrase into a transcript.
+_VISIT_TERMS = {
+    "anc": ("ANC", "gestational age", "MCP card", "IFA", "HB", "BP", "weight"),
+    "pnc": ("PNC", "MCP card", "breastfeeding", "birth weight", "HB", "BP", "weight"),
+    "hbnc": ("HBNC", "breastfeeding", "birth weight", "weight", "MCP card"),
+    "hbyc": ("HBYC", "complementary feeding", "weight", "MCP card", "vaccination", "ORS"),
+}
+
+
+@lru_cache(maxsize=12)
+def visit_keyterms(visit_type: str, lang: str) -> tuple[str, ...]:
+    """Prefer visit-related glossary spellings, with room for both local scripts."""
+    focus = _VISIT_TERMS[visit_type]
+    prioritized = list(focus)
+    with (DATA / "glossary.csv").open(encoding="utf-8") as glossary:
+        for row in csv.DictReader(glossary):
+            name = row["canonical"].split("(")[0].strip().lower()
+            if name in {term.lower() for term in focus}:
+                prioritized.extend(_script_forms(row["hi_spoken"], _DEVANAGARI)[:1])
+                prioritized.extend(_script_forms(row["kn_spoken"], _KANNADA)[:1])
+    extras = select_keyterms(latin=16, kannada=12 if lang == "kn" else 6,
+                             devanagari=12 if lang == "hi" else 6)
+    return tuple(dict.fromkeys(prioritized + extras))
 
 
 # ───────────────────────── audio framing ─────────────────────────
