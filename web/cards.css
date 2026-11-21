@@ -86,8 +86,8 @@
 .c-flag.on { background: var(--saffron); color: #362505; }
 
 /* agent question */
-.c-question { border-left: .35rem solid var(--saffron); }
-.c-question p { margin: 0; font-size: 1.05rem; }
+.c-question { background: #fff3df; box-shadow: inset 0 0 0 1px #f3cf96; }
+.c-question p { margin: 0; font-size: 1.05rem; font-weight: 600; text-wrap: pretty; }
 .c-question.c-speaking { box-shadow: 0 0 0 3px var(--saffron); }
 
 /* saved + receipt */
@@ -132,10 +132,6 @@
 .c-context .c-kicker { font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
   color: var(--teal); }
 
-.c-checklist { margin: .85rem 0 0; padding-left: 1.4rem; }
-.c-checklist li { padding: .6rem .25rem; border-top: 1px solid #d5e0dc; }
-.c-checklist .c-status { display: inline-block; margin: .2rem 0 .15rem .35rem; }
-.c-checklist small { display: block; overflow-wrap: anywhere; }
 .c-card a.c-button { display: inline-block; }
 
 .patient-dashboard { margin: 0; background: #fff8ee; color: #173e43; font: 1rem/1.55 system-ui, sans-serif; }
@@ -151,4 +147,65 @@
 .dashboard-flag { color: #812b17; }
 
 .voice-shell .c-visit, .voice-shell .c-live > .c-card, .voice-shell .c-alerts, .voice-shell .c-end { margin-bottom: .85rem; }
-.c-checklist .c-current-question { background: #e4efeb; font-weight: 650; }
+
+/* ---------- visit questions: recorded fields + numbered safety checklist ---------- */
+.c-template .c-fields { gap: 0; margin-top: .75rem; }
+.c-template .c-field { grid-template-columns: minmax(7rem, 42%) 1fr; align-items: baseline;
+  padding: .55rem 0; border-top: 1px solid #e3eae7; }
+.c-field dd.c-missing { color: var(--muted); font-weight: 400; }
+
+.c-checklist { list-style: none; counter-reset: c-q; margin: 1.1rem 0 0; padding: 0;
+  border-top: 1px solid #e3eae7; }
+.c-checklist li { counter-increment: c-q; display: grid; grid-template-columns: 1.75rem 1fr;
+  gap: .45rem .7rem; padding: .8rem .55rem; margin: 0 -.55rem; }
+.c-checklist li + li { border-top: 1px solid #e3eae7; }
+.c-checklist li::before { content: counter(c-q); grid-row: span 2; display: grid; place-items: center;
+  inline-size: 1.75rem; block-size: 1.75rem; border-radius: 50%; background: var(--grey-soft);
+  color: var(--muted); font: 600 .85rem/1 Poppins, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.c-checklist li.is-ruled_out::before { background: var(--ok-soft); color: #1d5c3a; }
+.c-checklist li.is-present::before { background: var(--danger); color: #fff; }
+.c-checklist .c-q { line-height: 1.4; text-wrap: pretty; }
+.c-checklist .c-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .6rem; }
+.c-checklist .c-said { font-size: .85rem; color: var(--muted); font-style: italic; overflow-wrap: anywhere; }
+.c-checklist li.c-current-question { background: #fff3df; border-color: transparent; border-radius: .75rem;
+  box-shadow: inset 0 0 0 1px #f3cf96; }
+.c-checklist li.c-current-question + li { border-color: transparent; }
+.c-checklist li.c-current-question .c-q { font-weight: 650; }
+.c-checklist li.c-current-question::before { background: var(--saffron); color: #362505; }
+
+/* danger report counts */
+.c-counts { list-style: none; display: flex; flex-wrap: wrap; gap: .45rem; margin: 0 0 .6rem; padding: 0; }
+.c-count { display: inline-flex; align-items: baseline; gap: .3rem; border-radius: 999px;
+  padding: .25rem .75rem; font-size: .9rem; background: var(--grey-soft); color: var(--muted); }
+.c-count strong { font: 700 1.05rem/1 Poppins, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.c-count.present:not(.zero) { background: var(--danger); color: #fff; }
+.c-count.ruled_out:not(.zero) { background: var(--ok-soft); color: #1d5c3a; }
+
+/* ---------- patient dashboard link (markup lives in index.html) ----------
+   Phones: a round icon button in the top-right corner. Wider screens: icon + "Patient dashboard". */
+.voice-shell { position: relative; }
+.voice-shell > p:has(> a[href="/dashboard.html"]) { margin: 0; }
+.voice-shell a[href="/dashboard.html"] {
+  --dash-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='8' y='2' width='8' height='4' rx='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3Cpath d='M12 11h4M12 16h4M8 11h.01M8 16h.01'/%3E%3C/svg%3E");
+  position: absolute; top: .85rem; right: clamp(1rem, 5vw, 2rem);
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  inline-size: 2.75rem; block-size: 2.75rem; border-radius: 999px;
+  font-size: 0; color: #0f4c5c; background: #fffdf8; text-decoration: none;
+  box-shadow: 0 1px 3px rgb(15 76 92 / .16), inset 0 0 0 1px #c6d5d4;
+  transition: background-color .15s ease-out;
+}
+.voice-shell a[href="/dashboard.html"]::before {
+  content: ""; flex: none; inline-size: 1.3rem; block-size: 1.3rem; background: currentColor;
+  -webkit-mask: var(--dash-icon) center / contain no-repeat; mask: var(--dash-icon) center / contain no-repeat;
+}
+.voice-shell a[href="/dashboard.html"]:hover { background: #dceae8; }
+.voice-shell a[href="/dashboard.html"]:active { background: #cfe2df; }
+.voice-shell a[href="/dashboard.html"]:focus-visible { outline: 3px solid #0f4c5c; outline-offset: 3px; }
+@media (min-width: 48rem) {
+  .voice-shell a[href="/dashboard.html"] { inline-size: auto; block-size: 2.6rem; padding: 0 1.05rem 0 .85rem;
+    font: 600 .95rem/1 Inter, system-ui, sans-serif; }
+  .voice-shell a[href="/dashboard.html"]::before { inline-size: 1.15rem; block-size: 1.15rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-shell a[href="/dashboard.html"] { transition: none; }
+}

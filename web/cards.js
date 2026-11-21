@@ -236,17 +236,20 @@
       el("p", { class: "c-empty", text: "Review these questions, then dictate what you know. Say “not sure” for a question you cannot answer." }),
       el("dl", { class: "c-fields" }, fields.map(field => {
         const [label, value] = fieldText(field, state.record[field]);
+        const missing = state.record[field] == null;
         return el("div", { class: "c-field" }, el("dt", { text: label }),
-          el("dd", { text: state.record[field] == null ? "Not recorded" : value }));
+          el("dd", { class: missing ? "c-missing" : "", text: missing ? "Not recorded" : value }));
       })),
       checklist?.length ? el("ol", { class: "c-checklist" }, checklist.map(item => {
         const row = receipt.get(item.sign);
+        const status = row?.status || "not_checked";
         const current = state.question === speechText(item.question);
-        return el("li", { class: current ? "c-current-question" : "", "aria-current": current ? "true" : null },
-          el("span", { text: speechText(item.display_question ?? item.question) }),
-          el("span", { class: `c-status ${row?.status || "not_checked"}`,
-            text: STATUS_TEXT[row?.status] || "Not checked" }),
-          row?.quote && el("small", { class: "c-said", text: row.quote }));
+        return el("li", { class: `is-${status}${current ? " c-current-question" : ""}`,
+          "aria-current": current ? "true" : null },
+          el("span", { class: "c-q", text: speechText(item.display_question ?? item.question) }),
+          el("div", { class: "c-meta" },
+            el("span", { class: `c-status ${status}`, text: STATUS_TEXT[status] || "Not checked" }),
+            row?.quote && el("small", { class: "c-said", text: `“${row.quote}”` })));
       })) : el("p", { class: "c-empty", text: checklist ? "Loading safety questions…" : "Could not load safety questions." }));
   }
 
@@ -257,7 +260,12 @@
     const checked = state.receipt.filter(row => row.status === "ruled_out").length;
     return el("section", { class: "c-card", "aria-label": "Danger report preview" },
       el("h2", { text: "Danger report" }),
-      el("p", { text: `${present} present · ${checked} ruled out · ${state.receipt.length - present - checked} not checked` }),
+      el("ul", { class: "c-counts", "aria-label": "Sign counts" }, [
+        ["present", present, "present"],
+        ["ruled_out", checked, "ruled out"],
+        ["not_checked", state.receipt.length - present - checked, "not checked"],
+      ].map(([status, count, label]) => el("li", { class: `c-count ${status}${count ? "" : " zero"}` },
+        el("strong", { text: String(count) }), el("span", { text: label })))),
       el("p", { class: "c-empty", text: present
         ? "Review the cited flags and the PHC referral shown above."
         : "No checklist signs flagged. Review anything still unchecked." }),
