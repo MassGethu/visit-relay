@@ -276,7 +276,7 @@ class Visit:
         return alerts + self._start_safety()
 
     def _answer_safety(self, text: str, words: list[str]) -> list[str] | None:
-        answers = [word for word in words if word not in ANSWER_FILLERS]
+        answers = [word for word in words if word not in ANSWER_FILLERS | {"also", "bhi", "भी"}]
         if len(answers) == 1 and answers[0] in {"yesn", "yesno", "noyes"}:
             return self._question(self.speaker.say("safety_retry"))
         if not answers or set(answers) - YES_ANSWERS - NO_ANSWERS:

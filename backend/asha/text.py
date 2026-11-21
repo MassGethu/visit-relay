@@ -21,7 +21,7 @@ class Token:
 
 def normalize(text: str) -> str:
     text = unicodedata.normalize("NFC", text).lower()
-    text = text.replace("…", " ").replace("—", " ").replace("–", " ")
+    text = text.translate(str.maketrans("…—–।॥", "     "))
     return text
 
 

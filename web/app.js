@@ -53,6 +53,7 @@ function sendTiming(current, turn, stage, time) {
 }
 
 const releaseTailMs = 120;
+const transcriptWaitMs = 5500;
 const maxDebugFrames = 30 * 16000 * 2 / 1024;
 
 let session;
@@ -65,6 +66,7 @@ function reset(current, message) {
   current.socket?.close();
   clearTimeout(current.slowTimer);
   clearTimeout(current.releaseTimer);
+  clearTimeout(current.transcriptTimer);
   current.player?.stop();
   current.stream?.getTracks().forEach(track => track.stop());
   if (current.context?.state !== "closed") current.context?.close().catch(() => {});
@@ -149,6 +151,8 @@ async function connectVisit(current, lang) {
         if (!current.handsFree && activePress === null && !stopping) status.textContent = "Hold to talk.";
       }
     } else if (event.type === "transcript") {
+      current.heardTurn = current.turn;
+      clearTimeout(current.transcriptTimer);
       if (current.turn > 1) clearTimeout(current.slowTimer);
       appendTranscript(transcript, event.text);
       if (current.handsFree && current.followNextSpeech) {
@@ -225,6 +229,15 @@ enable.addEventListener("click", async () => {
         status.textContent = current.interrupted
           ? "The browser interrupted this hold. Try again."
           : "Audio sent. Hold to talk again.";
+        if (!current.interrupted && current.heardTurn !== current.turn) {
+          const turn = current.turn;
+          current.transcriptTimer = setTimeout(() => {
+            if (session === current && current.turn === turn && current.heardTurn !== turn) {
+              clearTimeout(current.slowTimer);
+              status.textContent = "No speech transcribed. Hold to talk and try again.";
+            }
+          }, transcriptWaitMs);
+        }
         if (captureDebugAudio) showDebugAudio(current);
       } else {
         current.socket.send(data);
@@ -264,6 +277,7 @@ endVoice.addEventListener("click", () => {
 function startTalk(press) {
   if (!session || stopping || activePress !== null) return false;
   clearTimeout(session.slowTimer);
+  clearTimeout(session.transcriptTimer);
   activePress = press;
   selectTranscript(speechTab);
   session.turn++;

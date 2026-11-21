@@ -337,7 +337,7 @@ def test_ordered_safety_answers_advance_once_and_preserve_cited_alerts():
     assert v.readback() == []
     v.events()
     assert v.hear("yesn") and v._safety_pending == asked
-    v.hear("no", "en-IN")
+    v.hear("भी नहीं है।", "hi-IN")
     lines = v.hear("yes yes", "en-IN")
     assert any("record pakka" in line for line in lines)
     assert not v._safety_pending
@@ -387,3 +387,15 @@ def test_code_mixed_recording_transcript_keeps_pregnancy_month_and_weight():
     assert v.danger.states["anc_high_fever"].status == "ruled_out"
     assert v.danger.states["anc_severe_headache_blurred_vision"].status == "ruled_out"
     assert not [event for event in v.events() if event["type"] == "alert"]
+
+
+def test_hindi_sentence_punctuation_keeps_spoken_save_and_undo_commands():
+    v = make()
+    v.hear("ANC visit है, her weight is twenty five kilos। बुखार नहीं है।", "hi-IN")
+    v.readback()
+    v.hear("हाँ।", "hi-IN")
+    assert any(e["type"] == "alert" for e in v.events())
+    v.hear("रिकॉर्ड पक्का।", "hi-IN")
+    assert any(e["type"] == "saved" for e in v.events())
+    v.hear("रुको॥", "hi-IN")
+    assert any(e["type"] == "undo" for e in v.events())
