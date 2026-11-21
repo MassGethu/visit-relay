@@ -22,7 +22,12 @@
     ifa_taking: ["IFA tablets", v => (v ? "Taking" : "Not taking")],
     vaccinations_given: ["Vaccines given", v => v.join(", ")],
     vaccinations_due: ["Vaccines due", v => v.join(", ")],
+    medicines_given: ["Medicines already given", v => v.map(medicineText).join(", ")],
   };
+  // {name, count, by} -> "IFA tablets × 30 (by another ASHA)"
+  function medicineText(m) {
+    return `${m.name}${m.count ? ` × ${m.count}` : ""}${m.by ? ` (by ${m.by})` : ""}`;
+  }
 
   const state = {
     people: [], person: null, visitType: "anc", started: false,
@@ -521,6 +526,7 @@
         el("h3", { text: "Worker concern — ASHA asked ANM to review" }),
         flagged.map(c => el("p", { class: "c-quote", text: `ASHA said: “${c.quote}”` }))),
       vitals.length && el("p", { text: `Recorded: ${vitals.join(" · ")}` }),
+      state.record.medicines_given?.length && el("p", { text: fieldText("medicines_given", state.record.medicines_given).join(": ") }),
       el("p", { class: "c-note", text: "No diagnosis made by AI. Synthetic data." }));
   }
 

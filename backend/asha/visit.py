@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from .concern import carries_content, is_flag_request, is_worry
+from . import medicines
 from .context import COVERS, SUBJECTS, VISIT_TYPES, answer_to_switch, context_cues, out_of_scope
 from .correction import apply_correction, is_commit, is_undo
 from .danger import NOT_CHECKED, PRESENT, RULED_OUT, DangerChecker, Evidence, sign_label
@@ -276,6 +277,8 @@ class Visit:
             if key in m and key not in invalid:
                 self._set(key, m[key], text)
                 changed = True
+        if self._note_medicines(text, words):
+            changed = True
         if llm_job:
             rule_fields = {k for k in RULE_FIELDS if k in m}
             if "bp_partial" in m:
@@ -649,6 +652,23 @@ class Visit:
         target["flagged"] = True
         self._emit_record()
         return self.speaker.say("concern_flagged")
+
+    def _note_medicines(self, text: str, words: list[str]) -> bool:
+        """Record medicines she says were already given (by another ASHA, the ANM or the PHC).
+        Shown on screen and saved; never spoken."""
+        if out_of_scope(words):
+            return False
+        found, denied = medicines.read(text)
+        current = self.record.get("medicines_given", [])
+        updated = medicines.merge(current, found, denied)
+        if updated == current:
+            return False
+        if updated:
+            self._set("medicines_given", updated, text)
+        else:
+            self.record.pop("medicines_given", None)
+            self.evidence.pop("medicines_given", None)
+        return True
 
     def _set(self, key: str, value, words: str) -> None:
         if key in self.record and self.record[key] != value:     # a new reading replaces old doubts
