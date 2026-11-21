@@ -19,6 +19,7 @@ function reset(current, message) {
   if (session !== current) return;
   session = null;
   current.socket?.close();
+  current.player?.stop();
   current.stream?.getTracks().forEach(track => track.stop());
   if (current.context?.state !== "closed") current.context?.close().catch(() => {});
   activePress = null;
@@ -59,7 +60,7 @@ async function connectVisit(current, lang) {
   const response = await fetch("/api/beneficiaries");
   if (!response.ok) throw new Error("Could not load the demo visit.");
   const list = await response.json();
-  const person = Array.isArray(list) ? list[0] : list.beneficiaries?.[0];
+  const person = window.Cards?.beneficiary?.() ?? (Array.isArray(list) ? list[0] : list.beneficiaries?.[0]);
   const id = person?.id ?? person?.beneficiary_id;
   if (!id) throw new Error("No synthetic beneficiary is available.");
 
@@ -73,9 +74,23 @@ async function connectVisit(current, lang) {
       ? event.reason : "Speech connection closed. Enable the microphone to try again.");
   });
   socket.addEventListener("message", ({ data }) => {
-    if (session !== current || typeof data !== "string") return;
+    if (session !== current) return;
+    if (typeof data !== "string") {
+      if (!current.muted) current.player.push(data);
+      return;
+    }
     const event = JSON.parse(data);
-    if (event.type === "transcript") {
+    if (event.type === "speaking") {
+      current.speaking = event.on;
+      if (event.on && activePress === null && !stopping) {
+        current.muted = false;
+        current.player.start();
+        status.textContent = "Speaking. Hold to interrupt.";
+      } else if (!event.on && !current.muted) {
+        current.player.finish();
+        if (activePress === null && !stopping) status.textContent = "Hold to talk.";
+      }
+    } else if (event.type === "transcript") {
       if (!current.hasTranscript) transcript.textContent = "";
       transcript.append(document.createTextNode((current.hasTranscript ? "\n" : "") + event.text));
       current.hasTranscript = true;
@@ -108,10 +123,14 @@ enable.addEventListener("click", async () => {
   try {
     const context = new AudioContext();
     current.context = context;
+    current.player = new VisitAudioPlayer(context);
     await context.resume();
     current.stream = await navigator.mediaDevices.getUserMedia({
       audio: { channelCount: 1, echoCancellation: true, noiseSuppression: false, autoGainControl: false },
     });
+    const track = current.stream.getAudioTracks()[0];
+    const model = await navigator.userAgentData?.getHighEntropyValues(["model"]).catch(() => null);
+    console.info("Voice capture", { model: model?.model || "unavailable", settings: track.getSettings() });
     await context.audioWorklet.addModule("mic-worklet.js");
     const input = context.createMediaStreamSource(current.stream);
     const mic = new AudioWorkletNode(context, "visit-microphone", { channelCount: 1 });
@@ -155,6 +174,11 @@ enable.addEventListener("click", async () => {
 function startTalk(press) {
   if (!session || stopping || activePress !== null) return false;
   activePress = press;
+  if (session.speaking || session.player.playing) {
+    session.muted = true;
+    session.player.stop();
+    session.socket.send(JSON.stringify({ type: "barge_in" }));
+  }
   session.interrupted = false;
   if (captureDebugAudio) {
     session.debugFrames = [];
