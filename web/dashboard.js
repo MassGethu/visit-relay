@@ -28,7 +28,8 @@
   const FIELDS = { gestational_month: "Pregnancy month", gestational_trimester: "Pregnancy trimester",
     weight_kg: "Weight", hb: "Hb", bp: "BP",
     temperature: "Temperature", breaths_per_min: "Breathing", next_visit_date: "Next visit",
-    ifa_taking: "IFA tablets", vaccinations_given: "Vaccines given", vaccinations_due: "Vaccines due" };
+    ifa_taking: "IFA tablets", vaccinations_given: "Vaccines given", vaccinations_due: "Vaccines due",
+    medicines_given: "Medicines already given" };
   const AUDIT = { flag: "Danger flag", concern_noted: "Concern noted", concern_flagged: "Concern flagged for ANM",
     visit_switch: "Visit type changed", saved: "Saved", undone: "Undone", referral_referred: "Referred",
     referral_reached_phc: "Reached PHC", referral_closed: "Closed" };
@@ -112,6 +113,8 @@
     if (field === "temperature") return `${value[0]} °${value[1]}`;
     if (field === "next_visit_date") return shortDate(value);
     if (typeof value === "boolean") return value ? "Taking" : "Not taking";
+    if (field === "medicines_given") return value.map(m =>
+      `${m.name}${m.count ? ` × ${m.count}` : ""}${m.by ? ` (by ${m.by})` : ""}`).join(", ");
     return Array.isArray(value) ? value.join(", ") : String(value);
   }
 

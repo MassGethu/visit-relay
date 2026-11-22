@@ -158,6 +158,7 @@
     "Not taking": ["नहीं ले रहीं", "ತಿನ್ನುತ್ತಿಲ್ಲ"],
     "Vaccines given": ["लगे टीके", "ನೀಡಿದ ಲಸಿಕೆಗಳು"],
     "Vaccines due": ["बाकी टीके", "ಬಾಕಿ ಲಸಿಕೆಗಳು"],
+    "Medicines already given": ["पहले दी गई दवाएँ", "ಈಗಾಗಲೇ ನೀಡಿದ ಔಷಧಿಗಳು"],
     "Danger-sign questions": ["खतरे के लक्षणों के सवाल", "ಅಪಾಯದ ಲಕ್ಷಣಗಳ ಪ್ರಶ್ನೆಗಳು"],
     "Questions answered": ["जवाब दिए गए सवाल", "ಉತ್ತರಿಸಿದ ಪ್ರಶ್ನೆಗಳು"],
     "Dictate what you know. Say “not sure” for a question you cannot answer.": [
