@@ -51,6 +51,7 @@
     back: '<path d="M15 6l-6 6 6 6"/>',
     filter: '<path d="M4 6h16M7 12h10M10 18h4"/>',
     chevron: '<path d="m6 9 6 6 6-6"/>',
+    print: '<path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/>',
   };
 
   let board = null;          // /api/dashboard
@@ -686,6 +687,8 @@
         record.length ? el("dl", { class: "d-fields" }, record.map(([k, v]) =>
           el("div", {}, el("dt", { text: FIELDS[k] }), el("dd", {}, raw("span", format(k, v)))))) : null,
         present.map(r => referLine(r.sign, r.label)),
+        el("button", { type: "button", class: "d-btn d-print-btn", onclick: () => printVisit(visit) },
+          icon("print"), el("span", { text: "Print this visit" })),
         el("h4", { class: "d-h4", text: "Audit trail" }),
         el("ol", { class: "d-audit" }, (visit.audit || []).map(a => el("li", {},
           raw("time", new Date(a.at).toLocaleString(locale(), { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })),
@@ -761,11 +764,68 @@
           : empty("Every sign was asked last time.")),
       trends(patient.timeline));
     view.replaceChildren(
-      el("button", { type: "button", class: "d-back", onclick: () => (history.length > 1 ? history.back() : go({})) },
-        icon("back"), el("span", { text: "Back" })),
+      el("div", { class: "d-page-actions" },
+        el("button", { type: "button", class: "d-back", onclick: () => (history.length > 1 ? history.back() : go({})) },
+          icon("back"), el("span", { text: "Back" })),
+        patient.visits.length ? el("button", { type: "button", class: "d-btn d-btn-primary d-print-btn",
+          onclick: () => printVisit(patient.visits[0]) }, icon("print"), el("span", { text: "Print report" })) : null),
       profile(p, patient.due),
       el("div", { class: "d-cols" }, left, right));
   }
+
+  // ---------- printed visit form (laid out like the paper HBNC / MCP home-visit form) ----------
+
+  const MARKS = [["present", "Yes"], ["ruled_out", "No"], ["not_checked", "Not checked"]];
+  const box = on => raw("span", on ? "☑" : "☐", "p-box");
+
+  function printVisit(visit) {
+    const p = patient.patient;
+    const number = patient.visits.length - patient.visits.indexOf(visit);
+    const receipt = visit.receipt || [];
+    const present = receipt.filter(r => r.status === "present");
+    const record = Object.entries(visit.record || {}).filter(([k, v]) => v != null && FIELDS[k]);
+    const cell = (label, value, isRaw = true) => el("div", { class: "p-cell" },
+      el("span", { class: "p-label", text: label }), isRaw ? raw("span", value ?? "", "p-value") : el("span", { class: "p-value", text: value }));
+    const sheet = el("article", { class: "p-sheet", id: "print-sheet" },
+      el("header", { class: "p-head" },
+        el("div", {}, el("p", { class: "p-kicker", text: "Visit Relay" }),
+          el("h1", {}, el("span", { text: TYPES[visit.visit_type] || visit.visit_type }), " ", el("span", { text: "home-visit record" }))),
+        el("div", { class: "p-head-no" }, el("span", { text: "Visit no." }), raw("strong", String(number)))),
+      el("section", {}, el("h2", { text: "1. Beneficiary details" }),
+        el("div", { class: "p-grid" },
+          cell("Name", p.name), cell("ID", p.id), cell("Village", p.village),
+          cell(relationLabel(p.relation) || "Husband", p.relation_name || "—"),
+          cell("Visit date", new Date(visit.saved_at).toLocaleDateString(locale(), { day: "numeric", month: "short", year: "numeric" })),
+          cell("Visit type", TYPES[visit.visit_type] || visit.visit_type, false))),
+      el("section", {}, el("h2", { text: "2. Measurements" }),
+        record.length
+          ? el("table", { class: "p-table" }, el("tbody", {}, record.map(([k, v]) =>
+              el("tr", {}, el("th", { text: FIELDS[k] }), el("td", {}, raw("span", format(k, v)))))))
+          : el("p", { text: "Nothing measured at this visit." })),
+      el("section", {}, el("h2", { text: "3. Danger signs" }),
+        el("table", { class: "p-table p-signs" },
+          el("thead", {}, el("tr", {}, el("th", { text: "#" }), el("th", { text: "Danger sign" }),
+            MARKS.map(([, label]) => el("th", { class: "p-mark", text: label })), el("th", { text: "What was said" }))),
+          el("tbody", {}, receipt.map((r, i) => el("tr", { class: r.status === "present" ? "is-yes" : null },
+            raw("td", String(i + 1)), el("td", {}, raw("span", signName(r.sign, r.label))),
+            MARKS.map(([status]) => el("td", { class: "p-mark" }, box(r.status === status))),
+            el("td", {}, raw("span", r.quote ? `“${r.quote}”` : "")))))),
+        el("p", { class: "p-note", text: "Not checked is never a “No”. Ask these at the next visit." })),
+      el("section", {}, el("h2", { text: "4. Action" }),
+        el("p", { class: "p-action" }, box(present.length > 0), " ", el("strong", { text: "Refer to PHC" }),
+          present.length ? [" — ", raw("span", present.map(r => signName(r.sign, r.label)).join(", "))] : null),
+        el("p", { class: "p-action" }, box(present.length === 0), " ", el("span", { text: "No danger sign recorded" })),
+        visit.record?.next_visit_date ? el("p", {}, el("strong", { text: "Next visit" }), ": ", raw("span", format("next_visit_date", visit.record.next_visit_date))) : null),
+      el("footer", { class: "p-sign" },
+        el("div", {}, el("span", { class: "p-line" }), el("span", { text: "ASHA name and signature" })),
+        el("div", {}, el("span", { class: "p-line" }), el("span", { text: "ANM signature and date" }))),
+      el("p", { class: "p-foot", text: "Recorded by voice in Visit Relay. It does not diagnose. All patients are made up." }));
+    document.getElementById("print-sheet")?.remove();
+    document.body.append(sheet);
+    // let i18n translate the new text first
+    requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+  }
+  window.addEventListener("afterprint", () => document.getElementById("print-sheet")?.remove());
 
   // ---------- language ----------
 

@@ -560,3 +560,42 @@
   .d-nav-menu.is-opening { animation: none; }
   .d-nav-toggle svg:last-child { transition: none; }
 }
+
+/* ---------- print button and printed visit form ---------- */
+.d-page-actions { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
+.d-print-btn { display: inline-flex; align-items: center; gap: .4rem; }
+.d-print-btn svg { inline-size: 1rem; block-size: 1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.d-visit-body .d-print-btn { justify-self: start; }
+.p-sheet { display: none; }
+
+@media print {
+  @page { size: A4; margin: 14mm; }
+  body.dash { display: block; background: #fff; }
+  .dash > .d-side, .dash > .d-main { display: none !important; }
+  .p-sheet { display: block; color: #000; font: 10.5pt/1.4 system-ui, sans-serif; }
+  .p-sheet h1 { margin: 0; font-size: 16pt; }
+  .p-sheet h2 { margin: 0 0 2mm; padding: 1mm 2mm; font-size: 10.5pt; background: #eee; border: 1px solid #000; }
+  .p-sheet section { margin-block: 0 4mm; break-inside: avoid; }
+  .p-head { display: flex; justify-content: space-between; align-items: end; padding-bottom: 2mm; margin-bottom: 4mm; border-bottom: 2px solid #000; }
+  .p-kicker { margin: 0; font-size: 9pt; letter-spacing: .08em; text-transform: uppercase; }
+  .p-head-no { display: grid; justify-items: center; padding: 1mm 4mm; border: 1px solid #000; font-size: 8.5pt; }
+  .p-head-no strong { font-size: 14pt; }
+  .p-grid { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid #000; border-width: 1px 0 0 1px; }
+  .p-cell { display: grid; padding: 1.5mm 2mm; border: 1px solid #000; border-width: 0 1px 1px 0; }
+  .p-label { font-size: 8pt; text-transform: uppercase; letter-spacing: .04em; color: #333; }
+  .p-value { min-block-size: 1.3em; font-weight: 600; }
+  .p-table { inline-size: 100%; border-collapse: collapse; }
+  .p-table th, .p-table td { padding: 1.2mm 2mm; border: 1px solid #000; text-align: start; vertical-align: top; }
+  .p-table tbody th { inline-size: 40%; font-weight: 500; }
+  .p-signs thead th { background: #f4f4f4; font-size: 8.5pt; }
+  .p-signs td:first-child { inline-size: 6mm; text-align: center; }
+  .p-mark { inline-size: 14mm; text-align: center !important; }
+  .p-signs tr.is-yes td { font-weight: 700; }
+  .p-box { font-size: 12pt; line-height: 1; }
+  .p-note, .p-foot { margin: 1.5mm 0 0; font-size: 8.5pt; color: #333; }
+  .p-action { margin: 0 0 1.5mm; }
+  .p-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 12mm; margin-top: 14mm; font-size: 9pt; }
+  .p-sign div { display: grid; gap: 1mm; }
+  .p-line { border-bottom: 1px solid #000; block-size: 8mm; }
+  .p-foot { margin-top: 6mm; text-align: center; }
+}
