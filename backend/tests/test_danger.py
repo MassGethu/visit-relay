@@ -32,7 +32,10 @@ def test_lexicon_self_recall():
             if lang in ("notes", "negations"):
                 continue
             for e in entries:
-                for alt in {a for s in {e["script"], e["roman"]} for a in _alternatives(s)}:
+                # The foul-discharge entry lists accompanying symptoms, not synonyms.
+                alternatives = {a for s in {e["script"], e["roman"]}
+                                for a in _alternatives(s, split_commas=sign != "pnc_foul_lochia")}
+                for alt in alternatives:
                     if any(ch.isdigit() for ch in alt) or alt.strip() in {"ide", "hai"}:
                         continue
                     total += 1

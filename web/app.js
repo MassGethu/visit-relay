@@ -438,11 +438,7 @@ function connectVisit(current) {
       clearTimeout(current.transcriptTimer);
       if (current.turn > 1) clearTimeout(current.slowTimer);
       appendTranscript(transcript, event.text);
-      current.heard ??= [];
-      if (event.seq && !current.heard.some(([seq]) => seq === event.seq)) {
-        current.heard.push([event.seq, event.text]);
-        saveSoon(current);
-      }
+      rememberHeard(current, event.seq, event.text, event.checklist_answer);
       if (current.handsFree && current.followNextSpeech) {
         current.followNextSpeech = false;
         selectTranscript(speechTab);
@@ -450,6 +446,8 @@ function connectVisit(current) {
       if (current.connected && !current.handsFree && activePress === null && !current.interrupted) {
         status.textContent = "Ready to talk.";
       }
+    } else if (event.type === "checklist_answer") {
+      rememberHeard(current, event.seq, null, { sign: event.sign, answer: event.answer });
     } else if (event.type === "assistant_transcript") {
       const display = window.Cards?.assistantTranscriptText?.(event.text) ?? event.text;
       if (display) appendTranscript(assistantTranscript, display);
@@ -468,11 +466,23 @@ function connectVisit(current) {
   });
 }
 
-// The server forgot this visit (it restarted, or the phone was offline past the
-// draft timeout). Start a fresh one and resend everything the worker said as notes,
-// ahead of the entries still queued, so the record and danger checks are rebuilt.
+function rememberHeard(current, seq, text, answer) {
+  current.heard ??= [];
+  if (seq && !current.heard.some(([previous]) => previous === seq)) {
+    current.heard.push([seq, text, answer]);
+    saveSoon(current);
+  }
+}
+
+// Rebuild the same visit before asking any follow-up. Keep each yes/no tied
+// to its original sign so it is never replayed as an unlabelled note.
 function restartVisit(current) {
-  const said = (current.heard ?? []).map(([, text]) => ({ kind: "note", text, id: crypto.randomUUID() }));
+  const heard = current.heard ?? [];
+  const said = heard.map(([, text, answer], index) => ({
+    ...(answer ? { kind: "answer", ...answer } : { kind: "note", text }),
+    id: crypto.randomUUID(),
+    replay: index === heard.length - 1 ? "last" : "continue",
+  }));
   current.restarts = (current.restarts ?? 0) + 1;
   current.draftToken = crypto.randomUUID();
   current.hasDraft = false;

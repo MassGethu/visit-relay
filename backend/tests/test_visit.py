@@ -52,7 +52,7 @@ def test_mixed_symptom_answers_keep_their_own_polarity(text):
 def test_sixth_month_and_unclear_readings_keep_the_bleeding_alert():
     visit = Visit("anc", lang="en", use_llm=False, use_store=False)
     visit.start()
-    visit.add_note("Patient is in the sixth month. Her BP is twenty five. Her temperature is thirty "
+    visit.add_note("Patient is in the sixth month. Her BP is twenty five. Her temperature is fifteen "
                    "degrees Celsius. No abdominal pain. Yes for vaginal bleeding. No for headache.", "en-IN")
     assert visit.record == {"gestational_month": 6}
     assert visit.danger.present() == ["anc_vaginal_bleeding"]
@@ -506,12 +506,8 @@ def test_hindi_sentence_punctuation_keeps_spoken_save_and_undo_commands():
     assert any(e["type"] == "undo" for e in v.events())
 
 
-@pytest.mark.parametrize("text,sign", [
-    ("abhi bimar nahi hai", "anc_severe_headache_blurred_vision"),
-    ("patient ko headache nahi hai", "anc_severe_headache_blurred_vision"),
-    ("there isn't any fever", "anc_high_fever"),
-])
-def test_llm_disagreement_asks_before_alerting(text, sign):
+def test_general_reassurance_keeps_the_llm_disagreement_unanswered():
+    text, sign = "abhi bimar nahi hai", "anc_severe_headache_blurred_vision"
     v = make(use_llm=True, understand=llm_says(danger_signs=[{"id": sign, "status": "present"}]))
     v.hear(text)
     v.followup()
@@ -520,6 +516,42 @@ def test_llm_disagreement_asks_before_alerting(text, sign):
     assert not any(event["type"] == "alert" for event in v.events())
     v.hear("yes")
     assert any(event["type"] == "alert" and event["sign"] == sign for event in v.events())
+
+
+@pytest.mark.parametrize(("text", "sign"), [
+    ("patient ko headache nahi hai", "anc_severe_headache_blurred_vision"),
+    ("there isn't any fever", "anc_high_fever"),
+])
+def test_explicit_denial_stays_answered_even_if_llm_disagrees(text, sign):
+    visit = make(use_llm=True, understand=llm_says(danger_signs=[{"id": sign, "status": "present"}]))
+    visit.hear(text)
+    visit.followup()
+    visit.readback()
+    assert visit.danger.states[sign].status == "ruled_out"
+    assert sign not in visit._safety_pending
+    assert not any(event["type"] == "alert" for event in visit.events())
+
+
+def test_low_temperature_updates_newborn_record_and_raises_existing_cited_flag():
+    visit = Visit("hbnc", "newborn", lang="en", use_llm=False, use_store=False)
+    visit.start()
+    visit.hear("Temperature 36.8 Celsius.", "en-IN")
+    visit.readback()
+    visit.hear("30°", "en-IN")
+    assert visit.record["temperature"] == (30, "C")
+    assert any(event["type"] == "alert" and event["sign"] == "nb_hypothermia" and event["source"]
+               for event in visit.events())
+
+
+def test_abdominal_pain_with_no_severity_gets_a_followup_once():
+    visit = Visit("pnc", lang="en", use_llm=False, use_store=False)
+    visit.start()
+    visit.hear("She has stomach pain.", "en-IN")
+    assert not any(event["type"] == "alert" for event in visit.events())
+    assert "abdominal pain" in visit.readback()[0].lower()
+    visit.hear("no", "en-IN")
+    assert "pnc_severe_abdominal_pain" not in visit._safety_pending
+    assert visit.danger.states["pnc_severe_abdominal_pain"].status == "ruled_out"
 
 
 @pytest.mark.parametrize("chunks", [

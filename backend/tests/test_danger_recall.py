@@ -217,3 +217,20 @@ def test_affirmed_abdominal_pain_is_not_negated_by_earlier_denials():
     assert signs == ["anc_severe_abdominal_pain"]
     assert checker.states["anc_vaginal_bleeding"].status == "ruled_out"
     assert checker.states["anc_severe_headache_blurred_vision"].status == "ruled_out"
+
+
+@pytest.mark.parametrize(("kind", "lang", "text", "state", "ask"), [
+    ("anc", "en-IN", "Her abdomen hurts and it won't stop", "present", False),
+    ("anc", "en-IN", "Very bad pain in her belly", "present", False),
+    ("pnc", "en-IN", "Severe abdominal pain after delivery", "present", False),
+    ("pnc", "hi-IN", "pet mein dard hai", "not_checked", True),
+    ("anc", "kn-IN", "ಹೊಟ್ಟೆ ನೋವು ಇದೆ", "not_checked", True),
+    ("anc", "kn-IN", "ಹೊಟ್ಟೆ ನೋವು ಇಲ್ಲ", "ruled_out", False),
+    ("anc", "en-IN", "No severe stomach pain", "ruled_out", False),
+])
+def test_abdominal_pain_keeps_its_own_severity_and_polarity(kind, lang, text, state, ask):
+    sign = f"{kind}_severe_abdominal_pain"
+    checker = DangerChecker(kind)
+    assert checker.add_utterance(text, lang) == ([sign] if state == "present" else [])
+    assert checker.states[sign].status == state
+    assert (sign in checker.to_ask) is ask

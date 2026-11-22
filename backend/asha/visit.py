@@ -156,6 +156,7 @@ class Visit:
         elif self._measurement_repeats:
             prompt = self._measurement_prompt()
         elif self._safety_started:
+            self._sync_safety_queue()
             prompt = (self._spoken_safety_question(self._safety_pending[0]) if self._safety_pending
                       else self.speaker.say("summary", summary=self._summary()))
         else:
@@ -169,6 +170,11 @@ class Visit:
         if self._pending_doubt:
             return self._pending_doubt.field
         return self._next_measurement() if self._measurement_repeats else None
+
+    @property
+    def awaiting_safety_answer(self) -> bool:
+        return bool(not self.saved and self._safety_pending and not self._switch_offer
+                    and self.pending_readback_field is None)
 
     @property
     def ready_to_save(self) -> bool:
@@ -287,23 +293,21 @@ class Visit:
 
     def answer_checklist(self, sign: str, answer: str) -> list[str]:
         """Apply an explicit answer linked to the question displayed on the phone."""
-        idx = len(self.danger.utterances)
         text = f"{spoken_sign(sign, self.lang)}: {answer}"
-        self.danger.utterances.append(text)
         self.transcript.append({"at": now(), "text": text, "lang": f"{self.lang}-IN"})
-        pending = bool(self._safety_pending and self._safety_pending[0] == sign)
-        if sign in self._safety_pending:
-            self._safety_pending.remove(sign)
-        lines = []
+        return self._record_safety_answer(sign, answer, text) + self._refresh_safety()
+
+    def _record_safety_answer(self, sign: str, answer: str, text: str) -> list[str]:
+        idx = len(self.danger.utterances)
+        self.danger.utterances.append(text)
+        self._events.append({"type": "checklist_answer", "sign": sign, "answer": answer})
         if answer == "yes":
             if self.danger.add_external(sign, text, idx, phrase="safety_answer"):
-                lines = self._alerts([sign])
+                return self._alerts([sign])
         else:
             status = RULED_OUT if answer == "no" else NOT_CHECKED
             self.danger.states[sign].evidence.append(Evidence(status, text, idx, phrase="safety_answer"))
-        if pending:
-            lines += self._continue_safety()
-        return lines
+        return []
 
     def _hear_content(self, text, language_code, words, flag):
         self._drain(wait=False)
@@ -383,19 +387,6 @@ class Visit:
             steer = self._scope_reply(idx)
         else:
             steer = self._context_reply(words, text, language_code, idx)
-        checked = [sign for sign in self._safety_pending
-                   if any(e.utterance == idx for e in self.danger.states[sign].evidence)]
-        if checked:
-            self._safety_pending = [sign for sign in self._safety_pending if sign not in checked]
-            steer += self._continue_safety()
-        if self._safety_started:
-            for sign in self.danger.uncertain_signs.get(idx, ()):
-                if sign not in self._safety_pending and self.danger.states[sign].status == NOT_CHECKED:
-                    if self._safety_pending:
-                        self._safety_pending.insert(1, sign)
-                    else:
-                        self._safety_pending.append(sign)
-                        steer += self._continue_safety()
         if (self._readback_done and not self._pending_doubt
                 and (previous_repeats != self._measurement_repeats
                      or (self._measurement_repeats and ("bp_partial" in m or invalid)))):
@@ -403,6 +394,8 @@ class Visit:
                 steer += self._advance_readback()
             elif self._measurement_repeats:
                 steer += self._question(self._measurement_prompt())
+        else:
+            steer += self._refresh_safety()
         return alerts + concern + steer + self._take_unspoken()
 
     def followup(self) -> list[str]:
@@ -414,7 +407,7 @@ class Visit:
     def readback(self) -> list[str]:
         self._drain(wait=False)
         out = self._take_unspoken()
-        if self._readback_done or self.saved:
+        if self._readback_done or self.saved or self._switch_offer:
             return out
         self._readback_done = True
         if self._measurement_repeats:
@@ -442,27 +435,34 @@ class Visit:
         return next(field for field in MEASUREMENT_PROMPTS if field in self._measurement_repeats)
 
     def _start_safety(self) -> list[str]:
-        if not self._safety_started:
-            self._safety_started = True
-            # Follow the same core questions the phone showed before recording.
-            preview = self.danger.guided_questions()
-            disagreements = [sign for sign in self._safety_disagreements
-                             if self.danger.states[sign].status != PRESENT]
-            disagreements += [sign for sign in self.danger.to_ask
-                              if sign not in disagreements and self.danger.states[sign].status == NOT_CHECKED]
-            self._safety_pending = disagreements + [
-                sign for sign in preview if sign not in disagreements
-                and ((self.danger.states[sign].status == NOT_CHECKED
-                      and not any(e.phrase == "safety_answer" for e in self.danger.states[sign].evidence))
-                     or self.danger.states[sign].needs_confirmation)
-            ]
+        self._safety_started = True
         return self._continue_safety()
+
+    def _unanswered(self, sign: str) -> bool:
+        state = self.danger.states[sign]
+        return state.status == NOT_CHECKED and not any(e.phrase == "safety_answer" for e in state.evidence)
+
+    def _sync_safety_queue(self):
+        candidates = dict.fromkeys([*self._safety_pending, *self._safety_disagreements,
+                                    *self.danger.to_ask, *self.danger.guided_questions()])
+        self._safety_pending = [sign for sign in candidates if self._unanswered(sign)]
+
+    def _refresh_safety(self) -> list[str]:
+        if not self._safety_started:
+            return []
+        previous = next(iter(self._safety_pending), None)
+        self._sync_safety_queue()
+        if (previous != next(iter(self._safety_pending), None)
+                and not (self._measurement_repeats or self._pending_doubt or self._switch_offer)):
+            return self._continue_safety()
+        return []
 
     def _spoken_safety_question(self, sign: str) -> str:
         guided = self.danger.guided_questions()
         return self.speaker.safety_question(sign, guided.index(sign) + 1 if sign in guided else None)
 
     def _continue_safety(self) -> list[str]:
+        self._sync_safety_queue()
         line = (self._spoken_safety_question(self._safety_pending[0]) if self._safety_pending
                 else self.speaker.say("summary", summary=self._summary()))
         return self._question(line)
@@ -516,12 +516,11 @@ class Visit:
         return self._alerts(self.danger.add_vitals({field: value})) + self._advance_readback()
 
     def _answer_safety(self, text: str, words: list[str]) -> list[str] | None:
+        # An asynchronous flag can settle the question the worker just heard.
+        # Consume that answer on its original question before advancing.
         if tuple(words) in SKIP_ANSWERS:
             sign = self._safety_pending.pop(0)
-            idx = len(self.danger.utterances)
-            self.danger.utterances.append(text)
-            self.danger.states[sign].evidence.append(Evidence(NOT_CHECKED, text, idx, phrase="safety_answer"))
-            return self._continue_safety()
+            return self._record_safety_answer(sign, "not sure", text) + self._continue_safety()
         answers = [word for word in words if word not in ANSWER_FILLERS | {"also", "bhi", "भी"}]
         if len(answers) == 1 and answers[0] in {"yesn", "yesno", "noyes"}:
             return self._question(self.speaker.say("safety_retry"))
@@ -531,17 +530,9 @@ class Visit:
             return self._question(self.speaker.say("safety_retry"))
 
         # Assign only explicit answers, in the exact order of the last question.
-        idx = len(self.danger.utterances)
-        self.danger.utterances.append(text)
-        newly = []
-        for sign, answer in zip(self._safety_pending, answers):
-            if answer in YES_ANSWERS:
-                if self.danger.add_external(sign, text, idx, phrase="safety_answer"):
-                    newly.append(sign)
-            else:
-                self.danger.states[sign].evidence.append(Evidence(RULED_OUT, text, idx, phrase="safety_answer"))
-        del self._safety_pending[:len(answers)]
-        return self._alerts(newly) + self._continue_safety()
+        sign = self._safety_pending.pop(0)
+        answer = "yes" if answers[0] in YES_ANSWERS else "no"
+        return self._record_safety_answer(sign, answer, text) + self._continue_safety()
 
     def events(self) -> list[dict]:
         """Browser events since the last call; the queue is cleared."""
@@ -618,15 +609,8 @@ class Visit:
             if uncertain:
                 continue
             if general_denial or denied:
-                if state.status != PRESENT and sign not in self._safety_disagreements:
+                if self._unanswered(sign) and sign not in self._safety_disagreements:
                     self._safety_disagreements.append(sign)
-                    if self._safety_started and sign not in self._safety_pending:
-                        if self._safety_pending:
-                            # Keep the question she already heard at the front.
-                            self._safety_pending.insert(1, sign)
-                        else:
-                            self._safety_pending.append(sign)
-                            self._unspoken += self._continue_safety()
                 continue
             if self.danger.add_external(sign, s.get("evidence") or text, idx,
                                         history=s["status"] == "past"):
@@ -634,6 +618,8 @@ class Visit:
         if changed:
             self._emit_record()
         self._unspoken += self._alerts(new)
+        if not self._safety_pending:
+            self._unspoken += self._refresh_safety()
         other = result.get("visit_context")
         if idx in self._replied:                # the rules already answered this sentence
             return
@@ -669,9 +655,13 @@ class Visit:
         self.danger = DangerChecker(visit_type, self.tested_languages)
         for text, code in self._heard:
             self.danger.add_utterance(text, code)
-        for sign, state in old.states.items():  # what the LLM flagged carries over where it applies
+        for sign, state in old.states.items():
+            if sign not in self.danger.states:
+                continue
             for e in state.evidence:
-                if e.status == PRESENT and e.phrase in {"llm", "safety_answer"}:
+                if e.phrase == "safety_answer":
+                    self.danger.states[sign].evidence.append(e)
+                elif e.status == PRESENT and e.phrase == "llm":
                     self.danger.add_external(sign, e.quote, e.utterance, history=e.history)
         self.danger.add_vitals({k: v for k, v in self.record.items()
                                 if k in ("bp", "temperature", "breaths_per_min", "weight_kg")})
@@ -687,7 +677,8 @@ class Visit:
         self._events.append({"type": "visit_type", "visit_type": visit_type, "subject": self.subject})
         self._emit_record()
         line = self.speaker.say("visit_switched", visit=self.speaker.visit_name(visit_type))
-        return [line] + self._alerts(self.danger.present())
+        next_question = self._continue_safety() if self._safety_started and not self._measurement_repeats else []
+        return [line] + self._alerts(self.danger.present()) + next_question
 
     def _other_visit(self, visit_type: str) -> bool:
         return (visit_type in VISIT_TYPES and visit_type != self.visit_type

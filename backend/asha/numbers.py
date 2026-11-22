@@ -17,8 +17,8 @@ from .text import DATA, tokens
 
 PLAUSIBLE = {  # research/02 rule 6
     "weight_newborn": (0.5, 6.0), "weight_mother": (25.0, 150.0), "hb": (3.0, 20.0),
-    "systolic": (60, 250), "diastolic": (30, 150), "temperature_f": (93.0, 108.0),
-    "temperature_c": (34.0, 42.0), "breaths_per_min": (10, 120),
+    "systolic": (60, 250), "diastolic": (30, 150), "temperature_f": (77.0, 108.0),
+    "temperature_c": (25.0, 42.0), "breaths_per_min": (10, 120),
 }
 
 ENGLISH = {w: n for n, w in enumerate(
@@ -250,9 +250,14 @@ TEMP_ANSWER_WORDS = TEMP_WORDS | TEMP_UNITS.keys() | {
 }
 
 
+def _temperature_notation(text: str) -> str:
+    text = text.replace("\u200c", "").replace("°", " degrees ")
+    return re.sub(r"(?<=\d)([cf])\b", r" \1", text, flags=re.IGNORECASE)
+
+
 def temperature_answer(text: str, *, require_unit=False) -> tuple[float, str] | None:
     """Read a short answer to a temperature question, including a unit after a pause."""
-    text = text.replace("\u200c", "")
+    text = _temperature_notation(text)
     words = [token.text for token in tokens(text)]
     values = parse_numbers(text)
     if len(values) != 1:
@@ -290,7 +295,7 @@ def extract_measurements(text: str, subject: str = "mother") -> dict:
     A number followed by a repair word ("2.6 nahi nahi 2.8") is dropped: her last
     value wins. Returns {"doubts": [(field, value, reason)]} alongside the values.
     """
-    text = re.sub(r"\bb[.\s]+p\b", "bp", text.replace("\u200c", ""), flags=re.IGNORECASE)
+    text = re.sub(r"\bb[.\s]+p\b", "bp", _temperature_notation(text), flags=re.IGNORECASE)
     text = re.sub(r"\bh[.\s]+b\b", "hb", text, flags=re.IGNORECASE)
     toks = [t.text for t in tokens(text)]
     parsed = parse_numbers(text)

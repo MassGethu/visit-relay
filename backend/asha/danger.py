@@ -42,7 +42,7 @@ CORE_SIGNS = {
                   "anc_high_fever", "anc_swelling_face_hands", "anc_reduced_fetal_movement",
                   "anc_water_break_no_labour", "anc_severe_abdominal_pain"],
     "postnatal": ["pnc_heavy_bleeding", "pnc_convulsions_unconscious", "pnc_fever",
-                  "pnc_breathing_difficulty", "pnc_foul_lochia"],
+                  "pnc_breathing_difficulty", "pnc_foul_lochia", "pnc_severe_abdominal_pain"],
     "newborn": ["nb_poor_feeding", "nb_convulsions", "nb_fast_breathing", "nb_lethargy_limp",
                 "nb_fever", "nb_hypothermia", "nb_jaundice_severe", "nb_umbilical_infection"],
     "child_u5": ["ch_unable_to_drink", "ch_vomits_everything", "ch_convulsions",
@@ -76,6 +76,20 @@ CLAUSE_BREAKS = {CLAUSE_MARK, "lekin", "magar", "par", "but", "aur", "and", "mat
                  "लेकिन", "और", "ಆದರೆ", "ಮತ್ತು"}
 SPAN_BREAKS = CLAUSE_BREAKS - {"par"}        # "dabane par" (on pressing) is not a clause break
 ABDOMINAL_SIGN = "anc_severe_abdominal_pain"
+ABDOMINAL_SIGNS = {ABDOMINAL_SIGN, "pnc_severe_abdominal_pain"}
+_ABDOMEN = r"(?:abdominal|abdomen|stomach|belly|tummy|pet|पेट|hotte(?:yalli)?|ಹೊಟ್ಟೆ(?:ಯಲ್ಲಿ)?)"
+_PAIN = r"(?:pain|pains|hurts|ache|aches|dard|दर्द|novu|ನೋವು)"
+_STRONG = (r"(?:very bad|severe|intense|unbearable|persistent|continuous|constant|nonstop|worsening|"
+           r"bahut(?: tez)?|tez|lagataar|lagaataar|बहुत(?: तेज़?)?|तेज़?|लगातार|tumba(?: jaasti)?|"
+           r"jaasti|ತುಂಬಾ(?: ಜಾಸ್ತಿ)?|ಜಾಸ್ತಿ)")
+ABDOMINAL_MENTION = re.compile(
+    rf"(?<!\S)(?P<before>{_STRONG} )?(?:lower |upper )?"
+    rf"(?:{_ABDOMEN}(?: (?:me|mein|में|in|is))?(?: (?P<inside>{_STRONG}))? {_PAIN}"
+    rf"|{_PAIN} (?:in|of) (?:(?:the|her|my|lower|upper) ){{0,3}}{_ABDOMEN}"
+    r"|(?:stomachache|bellyache))"
+    rf"(?: (?:(?:is|got|getting|and it|and) )?(?P<after>{_STRONG}|badh raha|badhta ja raha|"
+    r"worse|niltilla|ನಿಲ್ತಿಲ್ಲ|won t stop|won't stop|will not stop|not going away))?(?!\S)"
+)
 ENGLISH_ABDOMINAL_PHRASES = {"severe abdominal pain", "severe abdomen pain", "persistent abdominal pain",
                             "continuous abdominal pain", "abdominal pain is severe", "abdominal pain is continuous"}
 ABDOMINAL_QUALIFIER = re.compile(
@@ -83,7 +97,8 @@ ABDOMINAL_QUALIFIER = re.compile(
     r"|(?:abdominal|abdomen) pain is (?:severe|persistent|continuous))\b"
 )
 ENGLISH_SIGN_DENIAL = re.compile(
-    r"\bno signs? of[.\s]+(?=vaginal bleeding|headache|(?:severe )?(?:abdominal|abdomen) pain\b)", re.IGNORECASE
+    r"\bno signs? of[.\s]+(?=vaginal bleeding|headache|(?:severe )?(?:abdominal|abdomen|stomach|belly|tummy) pain\b)",
+    re.IGNORECASE
 )
 
 
@@ -142,7 +157,8 @@ def _slots(chunk: str) -> list[frozenset[str]]:
 def _compile(sign: str, entry: dict, negation: bool, inverted: bool) -> list[Phrase]:
     out = []
     for surface in {entry["script"], entry["roman"]}:
-        for chunk in _alternatives(surface, split_commas=not negation):
+        # Chills and abdominal pain alone do not establish foul-smelling discharge.
+        for chunk in _alternatives(surface, split_commas=not negation and sign != "pnc_foul_lochia"):
             if re.search(r"\d", chunk):
                 continue  # "HB 6 hai", "102 hai": number-defined, handled by vitals_signs()
             slots = _slots(chunk)
@@ -272,6 +288,13 @@ KEY_WORDS = {
 SENTENCE_KEY_WORDS = {"anc_prolonged_labour": _LABOUR}
 _WATER_BREAK_WORDS = {fold(word) for word in (
     "water", "paani", "pani", "पानी", "thaili", "थैली", "neeru", "neerina", "ನೀರು", "ನೀರಿನ",
+)}
+_LOCHIA_CUES = {fold(word) for word in (
+    "badboo", "badboodar", "badboodaar", "बदबू", "बदबूदार", "smell", "vaasane", "ವಾಸನೆ",
+)}
+_DISTENSION_CUES = {fold(word) for word in (
+    "bloated", "distended", "vomiting", "vomits", "phool", "फूल", "ulti", "उल्टी",
+    "ubbide", "ಉಬ್ಬಿದೆ", "vaanti", "ವಾಂತಿ",
 )}
 _SENTENCE_KEY_FOLDED = {sign: {fold(w) for w in group} for sign, group in SENTENCE_KEY_WORDS.items()}
 _KEY_FOLDED = {sign: [{fold(w) for w in group} for group in groups] for sign, groups in KEY_WORDS.items()}
@@ -471,17 +494,43 @@ class DangerChecker:
                  or ABDOMINAL_QUALIFIER.search(" ".join(words[m.start:m.end + 1])))
             and (m.sign != "anc_water_break_no_labour"
                  or any(fold(word) in _WATER_BREAK_WORDS for word in words[m.start:m.end + 1]))
+            and (m.sign != "pnc_foul_lochia"
+                 or any(fold(word) in _LOCHIA_CUES for word in words[m.start:m.end + 1]))
+            and (m.sign != "nb_abdominal_distension_vomiting"
+                 or any(fold(word) in _DISTENSION_CUES for word in words[m.start:m.end + 1]))
         ], words)
-        abdominal_starts = {i for i, word in enumerate(words[:-1])
-                            if ABDOMINAL_SIGN in scope and word in {"abdominal", "abdomen"} and words[i + 1] == "pain"}
+        abdominal = []
+        joined = " ".join(words)
+        abdominal_signs = sorted(scope & ABDOMINAL_SIGNS)
+        for mention in ABDOMINAL_MENTION.finditer(joined) if abdominal_signs else ():
+            start = joined[:mention.start()].count(" ")
+            end = start + mention.group().count(" ")
+            qualified = any(mention.group(part) for part in ("before", "inside", "after"))
+            for sign in abdominal_signs:
+                abdominal.append((Match(sign, start, end, False, False, "abdominal pain", True), qualified))
         starts = sorted({m.start for m in danger if not is_negator(words[m.start])}
                         | {a + 1 for _, a, b in neg_spans if a < b and words[a] == "no"}
-                        | abdominal_starts)
+                        | {m.start for m, _ in abdominal})
 
         newly: list[str] = []
         before = {s: self.states[s].status for s in scope}
         per_sign: dict[str, list[Evidence]] = {}
+        uncertain_abdominal = set()
+        for m, qualified in abdominal:
+            quote = " ".join(word for word in words[max(0, m.start - 2):m.end + 4] if word != CLAUSE_MARK)
+            evidence = self._polarity(m, words, starts, idx, quote)
+            if (evidence.status == RULED_OUT and tuple(words[m.start:m.end + 2]) in {
+                ("ಹೊಟ್ಟೆ", "ನೋವು", "ಇಲ್ಲ"), ("hotte", "novu", "illa"),
+            }):
+                evidence.phrase = "explicit_mixed_denial"
+            if evidence.status == RULED_OUT or qualified:
+                per_sign.setdefault(m.sign, []).append(evidence)
+            else:
+                uncertain_abdominal.add(m.sign)
         for m in danger:
+            if m.sign in ABDOMINAL_SIGNS and any(a.sign == m.sign and a.start <= m.end and m.start <= a.end
+                                                for a, _ in abdominal):
+                continue
             covered = any(
                 s == m.sign and (a <= m.start or (words[a] == "no" and a <= m.end)) and m.end <= b
                 for s, a, b in neg_spans
@@ -528,12 +577,10 @@ class DangerChecker:
         for s in scope:
             if before[s] != PRESENT and self.states[s].status == PRESENT:
                 newly.append(s)
-        if (abdominal_starts and ABDOMINAL_SIGN not in self.denied_signs.get(idx, ())
-                and not any(e.status == PRESENT for e in per_sign.get(ABDOMINAL_SIGN, ()))):
-            # The woman reported pain. Ask about severity/persistence before marking this sign present.
-            self.uncertain_signs[idx] = {ABDOMINAL_SIGN}
-            if ABDOMINAL_SIGN not in self.to_ask:
-                self.to_ask.append(ABDOMINAL_SIGN)
+        for sign in sorted(uncertain_abdominal - set(per_sign)):
+            self.uncertain_signs.setdefault(idx, set()).add(sign)
+            if sign not in self.to_ask:
+                self.to_ask.append(sign)
         return newly
 
     def _polarity(self, m: Match, words: list[str], starts: list[int], idx: int,
@@ -586,7 +633,9 @@ class DangerChecker:
             m.sign == "anc_severe_headache_blurred_vision" and m.start > 0
             and words[m.start - 1:m.start + 1] == ["no", "headache"]
         )
-        return Evidence(RULED_OUT, quote, idx, partial=(m.partial or not m.specific) and not explicit_no_headache,
+        explicit_no_fever = m.sign == "anc_high_fever" and bool(_FEVER.intersection(words[m.start:m.end + 1]))
+        return Evidence(RULED_OUT, quote, idx,
+                        partial=(m.partial or not m.specific) and not (explicit_no_headache or explicit_no_fever),
                         phrase=m.phrase)
 
     # ───────── outputs ─────────

@@ -167,7 +167,6 @@ class VisitTurn:
         self.visit = draft.visit
         self.speech = speech
         self.holding = False
-        self.pending_speech = []
         self.committed = False
         self.timer = None
         self.ended = False
@@ -186,14 +185,12 @@ class VisitTurn:
             self.speech.queue(lines, on_first=lambda: self.mark(number, "first_tts_byte"))
 
     async def emit(self, lines, events, number=0, *, defer_speech=False, hand_off=False):
-        if defer_speech:
+        if lines and (defer_speech or self.holding):
             self.draft.hold_replies(lines, events)
             lines = []
         for event in events:
             await self.phone.send_json(event)
-        if self.holding:
-            self.pending_speech.extend(lines)
-        else:
+        if not self.holding:
             self.queue(lines, number, hand_off=hand_off)
 
     async def finish_hands_free(self):
@@ -216,6 +213,8 @@ class VisitTurn:
         if answer is None:
             return []
         field, start = answer
+        if field is None:
+            return []
         segments = [row["text"] for row in self.visit.transcript[start:]]
         lines = self.visit.finish_readback_answer(field, segments)
         events = self.draft.remember(self.visit.events())
@@ -231,7 +230,7 @@ class VisitTurn:
         if text:
             if self.draft.readback_answer is None and not self.draft.dictating:
                 field = self.visit.pending_readback_field
-                if field:
+                if field or self.visit.awaiting_safety_answer:
                     self.draft.readback_answer = (field, len(self.visit.transcript))
             self.draft.dictating = self.hands_free
             self.mark(number, "transcript")
@@ -284,7 +283,13 @@ class VisitTurn:
         lines = await asyncio.to_thread(self.visit.hear, text, detected, **options)
         self.mark(number, "rules_done")
         self.draft.has_transcript = True
-        events = [{"type": "transcript", "text": text, "lang": detected}, *self.visit.events()]
+        transcript = {"type": "transcript", "text": text, "lang": detected}
+        events = [transcript]
+        for event in self.visit.events():
+            if event["type"] == "checklist_answer":
+                transcript["checklist_answer"] = {"sign": event["sign"], "answer": event["answer"]}
+            else:
+                events.append(event)
         return lines, self.draft.remember(events)
 
     async def sync_entry(self, entry, headers):
@@ -340,7 +345,7 @@ class VisitTurn:
                 raise ValueError("The report could not be saved. Retry sync.")
         elif entry["kind"] == "answer":
             sign, answer = entry.get("sign"), entry.get("answer")
-            if sign not in self.visit.danger.guided_questions() or answer not in ("yes", "no", "not sure"):
+            if sign not in self.visit.danger.states or answer not in ("yes", "no", "not sure"):
                 raise ValueError("This question is unavailable in the current visit.")
             lines = self.visit.answer_checklist(sign, answer)
             self.draft.answered_offline.add(sign)
@@ -349,12 +354,13 @@ class VisitTurn:
             lines = await asyncio.to_thread(self.visit.add_note, text, locale)
             events.append({"type": "transcript", "text": text, "lang": locale})
         self.draft.has_transcript = True
-        if not self.draft.readback_done:
+        rebuilding = entry.get("replay") == "continue"
+        if not self.draft.readback_done and not rebuilding:
             self.draft.readback_done = True
             lines += self.visit.readback()
         events = self.draft.remember([*events, *self.visit.events()])
         self.draft.synced.add(entry["id"])
-        return lines, events
+        return ([] if rebuilding else lines), events
 
     async def close(self):
         if self.sync_task:
@@ -668,8 +674,8 @@ async def send_audio(phone: WebSocket, prisma, turn: VisitTurn, headers) -> None
                 turn.mark(turn.reply_turn, "commit_sent")
                 await prisma.send(COMMIT_MESSAGE)
                 turn.holding = False
-                turn.queue(turn.pending_speech, turn.reply_turn)
-                turn.pending_speech.clear()
+                if turn.draft.readback_answer is None:
+                    turn.queue(turn.draft.take_replies(), turn.reply_turn)
                 turn.committed = True
                 turn.schedule_readback(0.9 if turn.open_utterances else 0.35)
             elif event.get("type") == "barge_in":

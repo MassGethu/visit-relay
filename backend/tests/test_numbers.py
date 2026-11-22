@@ -23,6 +23,9 @@ def test_two_digit_decimal_is_low_confidence():
 
 @pytest.mark.parametrize(("answer", "expected"), [
     ("98.6", (98.6, "F")),
+    ("30°", (30, "C")),
+    ("30°C", (30, "C")),
+    ("30C", (30, "C")),
     ("38 degrees C", (38, "C")),
     ("37 ಡಿಗ್ರಿ ಸೆಲ್ಸಿಯಸ್", (37, "C")),
     ("98.6 डिग्री फ़ारेनहाइट", (98.6, "F")),
@@ -32,6 +35,11 @@ def test_two_digit_decimal_is_low_confidence():
 ])
 def test_temperature_answer_uses_the_prompt_context(answer, expected):
     assert temperature_answer(answer) == expected
+
+
+@pytest.mark.parametrize("text", ["30°", "30°C", "30C", "Temperature 30 degrees Celsius"])
+def test_low_temperature_is_retained_as_a_measurement(text):
+    assert extract_measurements(text) == {"temperature": (30, "C"), "doubts": []}
 
 
 @pytest.mark.parametrize("text,subject,key,value", [

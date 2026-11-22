@@ -375,6 +375,62 @@ def test_push_to_talk_uses_button_release_without_a_spoken_cue(phone):
     asyncio.run(exercise())
 
 
+def test_push_to_talk_only_speaks_unanswered_question_after_multiple_segments(phone):
+    connect, start, dictate = phone
+    commit = {"type": "websocket.receive", "text": '{"type":"commit"}'}
+
+    async def exercise():
+        async with relay.lifespan(relay.app):
+            async with connect({**start, "lang": "en"}, hands_free=False) as socket:
+                await socket.receive_until("visit_ready")
+                await socket.next_speech()
+                socket.incoming.put_nowait(commit)
+                dictate("Weight 52 kilos.")
+                await socket.receive_until("transcript")
+                assert (await socket.next_speech())[0].startswith("Question one")
+                socket.incoming.put_nowait({"type": "websocket.receive", "bytes": b"\0" * relay.FRAME_BYTES})
+                await asyncio.sleep(0)
+                for text in ("No vaginal bleeding.", "No fits.", "No headache."):
+                    dictate(text)
+                    assert (await socket.receive_until("transcript"))["text"] == text
+                assert socket.spoken.empty()
+                socket.incoming.put_nowait(commit)
+                lines = await socket.next_speech()
+                assert len(lines) == 1 and lines[0].startswith("Question four")
+
+    asyncio.run(exercise())
+
+
+def test_rebuilding_replays_a_spoken_answer_for_its_original_sign(phone):
+    connect, start, dictate = phone
+    start = {**start, "lang": "en"}
+
+    async def exercise():
+        async with relay.lifespan(relay.app):
+            async with connect(start) as socket:
+                await socket.receive_until("visit_ready")
+                await socket.next_speech()
+                dictate("No vaginal bleeding. I am done.")
+                note = (await socket.receive_until("transcript"))["text"]
+                assert (await socket.next_speech())[0].startswith("Question two")
+                dictate("No. I am done.")
+                answer = (await socket.receive_until("transcript"))["checklist_answer"]
+                assert answer == {"sign": "anc_convulsions", "answer": "no"}
+                assert (await socket.next_speech())[0].startswith("Question three")
+
+            async with connect({**start, "draft_token": str(uuid4())}) as socket:
+                await socket.receive_until("visit_ready")
+                await socket.next_speech()
+                socket.send_entry({"id": "note", "kind": "note", "text": note, "replay": "continue"})
+                assert (await socket.receive_until("offline_synced"))["error"] is None
+                assert socket.spoken.empty()
+                socket.send_entry({"id": "answer", "kind": "answer", **answer, "replay": "last"})
+                assert (await socket.receive_until("offline_synced"))["error"] is None
+                assert (await socket.next_speech())[0].startswith("Question three")
+
+    asyncio.run(exercise())
+
+
 def test_offline_entries_sync_and_retry_without_duplicates(phone, monkeypatch):
     connect, start, _ = phone
     note = {"id": "note", "kind": "note", "text": "wajan baavan kilo"}
