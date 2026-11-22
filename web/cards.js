@@ -32,7 +32,7 @@
   const state = {
     people: [], person: null, visitType: "anc", started: false,
     record: {}, evidence: {}, changed: new Set(), alerts: new Set(),
-    question: "", speaking: false, discreet: false,
+    question: "", speaking: false, discreet: false, manual: new Map(),
     receipt: null, saved: false, savedAt: null, showAnm: false, undone: false,
     context: null,                       // {current, suggested}: the backend asks "which visit is this?"
     switching: "", switchNote: "", switchTimer: null, checklist: [], sessionId: null,
@@ -64,6 +64,7 @@
   const ICONS = {
     alert: ["M12 9v4", "M12 17h.01", "M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"],
     check: ["M20 6 9 17l-5-5"],
+    cross: ["M18 6 6 18", "m6 6 12 12"],
     pin: ["M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z", "M12 7a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"],
   };
   function icon(name) {
@@ -234,6 +235,7 @@
 
   function pickType(visitType) {
     state.visitType = visitType;
+    state.manual.clear();
     drawVisit();
     loadChecklist();
   }
@@ -389,32 +391,60 @@
       })));
   }
 
+  // Tick (yes, the sign was there) / cross (no) per question, for when speech is not working or the
+  // phone is offline. app.js stores the answer on the phone and syncs it. A danger sign once flagged
+  // stays flagged: a later cross can never clear it.
+  function tickCross(sign, status) {
+    if (state.saved) return null;
+    const flagged = status === "present";
+    const mark = (answer, label, path) => el("button", { type: "button", class: `c-mark c-mark-${answer}`,
+      "aria-label": label, title: label, "aria-pressed": String(state.manual.get(sign) === answer
+        || (answer === "yes" ? flagged : status === "ruled_out")),
+      disabled: answer === "no" && flagged,
+      onclick: () => {
+        state.manual.set(sign, answer);
+        window.dispatchEvent(new CustomEvent("cards:answer", { detail: { sign, answer } }));
+        drawLive();
+      } }, icon(path));
+    return el("span", { class: "c-marks" },
+      mark("yes", "Yes, this sign is there", "check"), mark("no", "No, this sign is not there", "cross"));
+  }
+
   function drawChecklist() {
     const receipt = new Map((state.receipt || []).map(row => [row.sign, row]));
     const checklist = state.checklist;
     const asked = checklist?.filter(item => (receipt.get(item.sign)?.status || "not_checked") !== "not_checked").length || 0;
     const total = checklist?.length || 0;
     const hint = checklist?.length ? hintOf(checklist[0]) : "";
-    return el("section", { class: "c-card c-template c-safety", "aria-label": "Danger-sign questions" },
-      el("div", { class: "c-head" }, el("h2", { text: "Danger-sign questions" }),
-        total > 0 && el("span", { class: "c-progress-text", text: `${asked} of ${total} answered` })),
-      total > 0 && el("div", { class: "c-progress", role: "progressbar", "aria-label": "Questions answered",
-        "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(asked) },
-        el("span", { style: `inline-size: ${(asked / total) * 100}%` })),
+    // A drop-down: the heading and progress stay in view, the questions open on tap. Cards redraw on
+    // every event, so whether it is open lives in state.
+    const drop = el("details", { class: "c-drop", open: state.checklistOpen,
+      ontoggle: e => { state.checklistOpen = e.target.open; } },
+      el("summary", {},
+        el("div", { class: "c-head" }, el("h2", { text: "Danger-sign questions" }),
+          total > 0 && el("span", { class: "c-progress-text", text: `${asked} of ${total} answered` }),
+          el("span", { class: "c-drop-chev", "aria-hidden": "true" })),
+        total > 0 && el("div", { class: "c-progress", role: "progressbar", "aria-label": "Questions answered",
+          "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(asked) },
+          el("span", { style: `inline-size: ${(asked / total) * 100}%` }))),
       el("p", { class: "c-empty", text: hint
         ? `Dictate what you know. For each one: ${hint}`
         : "Dictate what you know. Say “not sure” for a question you cannot answer." }),
       checklist?.length ? el("ol", { class: "c-checklist" }, checklist.map(item => {
         const row = receipt.get(item.sign);
-        const status = row?.status || "not_checked";
+        const heard = row?.status || "not_checked";
+        const tapped = state.manual.get(item.sign);
+        const status = heard === "not_checked" && tapped ? (tapped === "yes" ? "present" : "ruled_out") : heard;
         const current = state.question === speechText(item.question);
         return el("li", { class: `is-${status}${current ? " c-current-question" : ""}`,
           "aria-current": current ? "true" : null },
           el("span", { class: "c-q", text: questionOf(item) }),
+          tickCross(item.sign, status),
           el("div", { class: "c-meta" },
             el("span", { class: `c-status ${status}`, text: current && status === "not_checked" ? "Asking now" : STATUS_TEXT[status] || "Not checked" }),
             row?.quote && el("small", { class: "c-said", text: `“${row.quote}”` })));
       })) : el("p", { class: "c-empty", text: checklist ? "Loading safety questions…" : "Could not load safety questions." }));
+    return el("section", { class: "c-card c-template c-safety", "aria-label": "Danger-sign questions" }, drop);
   }
 
   function dangerPreview() {

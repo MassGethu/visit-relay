@@ -41,7 +41,8 @@ ROOT = BACKEND.parent
 FRAME_SECONDS = FRAME_BYTES / (16000 * 2)
 LANGUAGES = {"hi", "kn", "en"}
 VISIT_TYPES = {"anc", "pnc", "hbnc", "hbyc"}
-DRAFT_TIMEOUT = 60 * 60
+# A whole working day, so a worker offline for hours can still resume.
+DRAFT_TIMEOUT = 12 * 60 * 60
 MAX_CLIP_BYTES = 60 * 16000 * 2
 DEMO_BENEFICIARIES = [
     {"id": "demo-anc", "name": "Sunita Devi", "visit_type": "anc"},

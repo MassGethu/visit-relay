@@ -40,12 +40,11 @@ body .voice-shell {
   gap: .85rem;
 }
 body .voice-shell h1 {
-  margin: .35rem 3.5rem .15rem 0;
+  margin: 0;
   font: 700 1.6rem/1.15 Poppins, system-ui, sans-serif;
   letter-spacing: -.01em;
   text-wrap: balance;
 }
-body .voice-banner { border-radius: .4rem; font-size: .78rem; padding: .2rem .55rem; }
 
 /* reading order on the phone */
 .voice-shell .c-visit { order: 1; }
@@ -75,94 +74,82 @@ body .voice-shell .voice-meta #latency { font-size: .78rem; color: var(--muted);
 
 body .voice-shell .voice-controls {
   position: sticky; bottom: 0; z-index: 5;
-  display: grid; grid-template-columns: minmax(7.25rem, auto) minmax(0, 1fr);
-  grid-template-areas: "lang hands" "main main" "alt alt";
-  gap: .5rem;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-areas: "hands main alt";
+  align-items: start; gap: .25rem .5rem;
   margin: -.85rem calc(-1 * var(--gutter)) 0; /* cancels the shell's flex gap: one panel with the status line */
-  padding: .55rem var(--gutter) calc(.7rem + env(safe-area-inset-bottom));
+  padding: .6rem var(--gutter) calc(.6rem + env(safe-area-inset-bottom));
   background: var(--card);
 }
-.voice-controls label[for="speech-language"] {
-  position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
-}
-body .voice-shell .voice-controls select {
-  grid-area: lang; min-height: 2.9rem; padding: .4rem 2.2rem .4rem .9rem;
-  border: 1px solid #b9c9c8; border-radius: 999px; background-color: #fff; color: var(--ink);
-  font: 600 1rem/1.2 Inter, system-ui, sans-serif;
-  appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f4c5c' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right .8rem center; background-size: 1rem;
-}
 
-/* hands-free: the checkbox is drawn as a switch */
-.voice-controls label:has(#hands-free) {
-  grid-area: hands; display: flex; align-items: center; justify-content: space-between; gap: .5rem;
-  min-height: 2.9rem; padding: 0 .55rem 0 .9rem; box-sizing: border-box;
-  border: 1px solid #b9c9c8; border-radius: 999px; background: #fff;
-  font-weight: 600; font-size: .92rem; line-height: 1.15; cursor: pointer; user-select: none;
-  flex-direction: row-reverse;
+/* Bottom bar: three tiles, an icon box with a short caption under it. The whole tile is the target. */
+body .voice-shell .vc-tile {
+  display: flex; flex-direction: column; align-items: center; gap: .3rem;
+  min-inline-size: 0; margin: 0; padding: .1rem 0 0; border: 0; background: transparent; box-shadow: none;
+  color: var(--ink); font: 600 .8rem/1.2 Inter, system-ui, sans-serif; text-align: center;
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
 }
-#hands-free {
-  appearance: none; -webkit-appearance: none; flex: none; margin: 0; cursor: pointer;
-  inline-size: 2.6rem; block-size: 1.55rem; border-radius: 999px; background: #c5d1d0; position: relative;
-  transition: background-color .18s var(--ease-out);
-}
-#hands-free::after {
-  content: ""; position: absolute; inset-block-start: .2rem; inset-inline-start: .2rem;
-  inline-size: 1.15rem; block-size: 1.15rem; border-radius: 50%; background: #fff;
-  box-shadow: 0 1px 2px rgb(0 0 0 / .2); transition: transform .2s var(--ease-out);
-}
-#hands-free:checked { background: var(--teal); }
-#hands-free:checked::after { transform: translateX(1.05rem); }
-#hands-free:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
-
-/* buttons */
-body .voice-shell .voice-controls button {
-  display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
-  min-height: 3.25rem; border-radius: 999px; font: 700 1.05rem/1.2 Inter, system-ui, sans-serif;
-  touch-action: manipulation; transition: transform .12s var(--ease-out), background-color .15s var(--ease-out);
-}
-body .voice-shell .voice-controls button[hidden], .voice-controls a[hidden] { display: none; }
-body .voice-shell .voice-controls button:active:not(:disabled) { transform: scale(.97); }
-#enable-mic, #talk { grid-area: main; }
+body .voice-shell .vc-tile[hidden], .voice-controls a[hidden] { display: none; }
+.vc-hands { grid-area: hands; }
+#enable-mic, #talk, .vc-live { grid-area: main; }
 #start-upload, #end-voice { grid-area: alt; }
 #debug-audio { grid-column: 1 / -1; text-align: center; font-size: .85rem; color: var(--teal); }
 
-/* the big one: mic icon + label */
-body .voice-shell .voice-controls #enable-mic,
-body .voice-shell .voice-controls #talk {
-  min-height: 4.25rem; font-size: 1.2rem; background: var(--teal);
-  box-shadow: 0 2px 0 var(--teal-deep), 0 8px 20px rgb(15 76 92 / .25);
+.vc-icon {
+  display: grid; place-items: center; flex: none; box-sizing: border-box;
+  inline-size: 3.25rem; block-size: 3.25rem; border-radius: 1rem;
+  background: #fff; box-shadow: inset 0 0 0 1.5px #b9c9c8; color: var(--teal);
+  transition: transform .12s var(--ease-out), background-color .15s var(--ease-out), box-shadow .15s var(--ease-out);
 }
-#enable-mic::before, #talk::before {
-  content: ""; flex: none; inline-size: 1.6rem; block-size: 1.6rem; background: currentColor;
-  -webkit-mask: var(--mic) center / contain no-repeat; mask: var(--mic) center / contain no-repeat;
-}
-.voice-controls {
-  --mic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='2' width='6' height='12' rx='3'/%3E%3Cpath d='M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8'/%3E%3C/svg%3E");
-}
-/* before the mic is on, "Enable microphone" is the only big button */
-#enable-mic:not([hidden]) ~ #talk:disabled { display: none; }
-body .voice-shell .voice-controls #talk:disabled { background: #8aa1a4; box-shadow: none; }
+.vc-icon svg { inline-size: 1.55rem; block-size: 1.55rem; }
+.vc-label { max-inline-size: 100%; overflow-wrap: break-word; text-wrap: balance; }
+body .voice-shell .vc-tile:active:not(:disabled) .vc-icon { transform: scale(.94); }
+body .voice-shell .vc-tile:focus-visible { outline: none; }
+body .voice-shell .vc-tile:focus-visible .vc-icon,
+.vc-hands:has(:focus-visible) .vc-icon { outline: 3px solid var(--teal); outline-offset: 3px; }
 
-/* holding to talk: saffron, a listening ring, and the label says so */
-body .voice-shell .voice-controls #talk[aria-pressed="true"] {
-  background: var(--saffron); color: #2b1a02; font-size: 0; transform: scale(.98);
+/* hands-free: a toggle tile; the checkbox stays in the page for keyboards and screen readers */
+#hands-free { position: absolute; opacity: 0; inline-size: 1px; block-size: 1px; margin: 0; pointer-events: none; }
+.vc-hands:has(#hands-free:checked) .vc-icon { background: var(--teal); color: #fff; box-shadow: none; }
+.vc-hands:has(#hands-free:disabled) { cursor: default; opacity: .6; }
+
+/* the mic: the one filled, round button, a size up from its neighbours */
+.vc-mic .vc-icon {
+  inline-size: 3.6rem; block-size: 3.6rem; border-radius: 50%;
+  background: var(--teal); color: #fff;
+  box-shadow: 0 2px 0 var(--teal-deep), 0 6px 16px rgb(15 76 92 / .25);
+}
+.vc-mic .vc-icon svg { inline-size: 1.65rem; block-size: 1.65rem; }
+/* side boxes sit centred on the mic so the three captions line up */
+.vc-hands .vc-icon, .vc-upload .vc-icon, .vc-end .vc-icon { margin-block: .175rem; }
+/* before the mic is on, "Enable microphone" is the only mic button */
+#enable-mic:not([hidden]) ~ #talk:disabled { display: none; }
+body .voice-shell #talk:disabled .vc-icon { background: #8aa1a4; box-shadow: none; }
+body .voice-shell #talk:disabled { cursor: default; color: var(--muted); }
+/* hands-free during a visit: no button to hold, so the slot shows that it is listening */
+body .voice-shell .vc-live { display: none; cursor: default; }
+body .voice-shell .voice-controls:not(:has(#enable-mic:not([hidden]), #talk:not([hidden]))) .vc-live { display: flex; }
+.vc-live .vc-icon { animation: c-listen 1.6s var(--ease-out) infinite; }
+
+/* holding to talk: saffron, a listening ring, and the caption says so */
+body .voice-shell #talk[aria-pressed="true"] .vc-icon {
+  background: var(--saffron); color: #2b1a02; transform: scale(1.06);
   box-shadow: 0 0 0 0 rgb(242 165 65 / .55); animation: c-listen 1.4s var(--ease-out) infinite;
 }
-#talk[aria-pressed="true"]::after { content: "Listening… let go to send"; font-size: 1.2rem; }
+#talk[aria-pressed="true"] .vc-label { display: none; }
+#talk[aria-pressed="true"]::after { content: "Listening… let go to send"; color: var(--saffron-ink); }
 #talk[data-listening][aria-pressed="true"]::after { content: attr(data-listening); }
-#talk[aria-pressed="true"]::before { inline-size: 1.75rem; block-size: 1.75rem; }
-@keyframes c-listen { to { box-shadow: 0 0 0 .9rem rgb(242 165 65 / 0); } }
+@keyframes c-listen { to { box-shadow: 0 0 0 .8rem rgb(242 165 65 / 0); } }
+.vc-live .vc-icon { box-shadow: 0 0 0 0 rgb(15 76 92 / .35); }
 
-/* secondary actions are quiet */
-body .voice-shell .voice-controls #start-upload,
-body .voice-shell .voice-controls #end-voice {
-  min-height: 2.75rem; background: transparent; color: var(--teal); font-size: .98rem;
-  box-shadow: inset 0 0 0 1.5px #b9c9c8;
-}
-body .voice-shell .voice-controls #end-voice { color: var(--danger); box-shadow: inset 0 0 0 1.5px #ecc3b6; }
-body .voice-shell .voice-controls :focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
+/* MP3 upload: green, a note with an upload arrow */
+.vc-upload .vc-icon { background: var(--ok-soft); color: var(--ok); box-shadow: inset 0 0 0 1.5px #a9d3b9; }
+.vc-upload .vc-label { color: var(--ok); }
+body .voice-shell .vc-tile:disabled { cursor: default; }
+body .voice-shell .vc-upload:disabled, body .voice-shell #enable-mic:disabled { opacity: .55; }
+/* end visit takes the same slot during a visit */
+.vc-end .vc-icon { background: var(--danger-soft); color: var(--danger); box-shadow: inset 0 0 0 1.5px #ecc3b6; }
+.vc-end .vc-icon svg { inline-size: 1.15rem; block-size: 1.15rem; }
+.vc-end .vc-label { color: var(--danger); }
 
 /* transcript */
 body .voice-shell .voice-transcript {
@@ -341,6 +328,32 @@ body .voice-shell #offline-visit input[type="file"] {
 .c-progress { block-size: .4rem; border-radius: 999px; background: var(--grey-soft); margin: .55rem 0 0; overflow: hidden; }
 .c-progress span { display: block; block-size: 100%; border-radius: inherit; background: var(--ok);
   transition: inline-size .4s var(--ease-out); }
+/* danger-sign questions: a drop-down card */
+.c-safety .c-drop { margin: 0; }
+.c-safety .c-drop > summary {
+  display: block; min-height: 0; list-style: none; cursor: pointer; color: inherit; font: inherit;
+  margin: -.35rem -.5rem; padding: .35rem .5rem; border-radius: .75rem;
+}
+.c-safety .c-drop > summary::-webkit-details-marker { display: none; }
+.c-safety .c-drop > summary:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+.c-safety .c-drop > summary .c-head { align-items: center; flex-wrap: nowrap; }
+.c-safety .c-drop > summary h2 { flex: 1; }
+.c-drop-chev {
+  flex: none; inline-size: 2rem; block-size: 2rem; border-radius: 999px; background: var(--teal-soft);
+  display: grid; place-items: center; transition: transform .2s var(--ease-out);
+}
+.c-drop-chev::before {
+  content: ""; inline-size: 1rem; block-size: 1rem; background: var(--teal);
+  -webkit-mask: var(--chev) center / contain no-repeat; mask: var(--chev) center / contain no-repeat;
+}
+.c-safety { --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); }
+.c-drop[open] .c-drop-chev { transform: rotate(180deg); }
+.c-drop[open] > summary ~ * { animation: c-drop-in .2s var(--ease-out); }
+@keyframes c-drop-in { from { opacity: 0; transform: translateY(-.35rem); } }
+@media (prefers-reduced-motion: reduce) {
+  .c-drop-chev { transition: none; }
+  .c-drop[open] > summary ~ * { animation: none; }
+}
 .c-checklist { list-style: none; counter-reset: c-q; margin: .75rem 0 0; padding: 0; }
 .c-checklist li { counter-increment: c-q; display: grid; grid-template-columns: 2rem minmax(0, 1fr);
   gap: .35rem .7rem; padding: .75rem .55rem; margin: 0 -.55rem; border-top: 1px solid var(--line); }
@@ -349,9 +362,26 @@ body .voice-shell #offline-visit input[type="file"] {
   color: var(--muted); font: 600 .9rem/1 Poppins, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 .c-checklist li.is-ruled_out::before { background: var(--ok-soft); color: var(--ok); }
 .c-checklist li.is-present::before { background: var(--danger); color: #fff; }
+/* tick / cross: small manual answers beside each question (grid column 3) */
+.c-checklist li .c-meta { grid-column: 2 / -1; }
+.c-marks { grid-row: 1; grid-column: 3; display: flex; gap: .3rem; align-self: start; }
+.c-mark {
+  display: grid; place-items: center; inline-size: 1.75rem; block-size: 1.75rem; padding: 0;
+  border: 1.5px solid #b9c9c8; border-radius: .4rem; background: #fff; color: #9aaeaf; cursor: pointer;
+  transition: transform .1s var(--ease-out), background-color .15s var(--ease-out);
+}
+.c-mark svg { inline-size: 1rem; block-size: 1rem; fill: none; stroke: currentColor; stroke-width: 3;
+  stroke-linecap: round; stroke-linejoin: round; }
+.c-mark:active:not(:disabled) { transform: scale(.9); }
+.c-mark:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+.c-mark-yes[aria-pressed="true"] { background: var(--danger); border-color: var(--danger); color: #fff; }
+.c-mark-no[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: #fff; }
+.c-mark:disabled { opacity: .35; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) { .c-mark { transition: none; } .c-mark:active:not(:disabled) { transform: none; } }
 .c-checklist .c-q { line-height: 1.4; text-wrap: pretty; font-weight: 500; }
 .c-checklist .c-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .6rem; }
 .c-checklist .c-said { font-size: .85rem; color: var(--muted); font-style: italic; overflow-wrap: anywhere; }
+.c-checklist li { grid-template-columns: 2rem minmax(0, 1fr) auto; }
 .c-checklist li.c-current-question { background: var(--saffron-soft); border-radius: .75rem;
   box-shadow: inset 0 0 0 1.5px #f3cf96; border-top-color: transparent; }
 .c-checklist li.c-current-question + li { border-top-color: transparent; }
@@ -465,39 +495,36 @@ details > summary { cursor: pointer; color: var(--teal); font-weight: 600; font-
 
 @media (prefers-reduced-motion: reduce) {
   .c-pick-list, .c-alert, .c-tile.c-new, .c-field.c-new dd, .c-wave i, .c-saved-mark, .c-saved-mark path,
-  #talk[aria-pressed="true"] { animation: none !important; }
+  #talk[aria-pressed="true"] .vc-icon, .vc-live .vc-icon { animation: none !important; }
   .c-saved-mark path { stroke-dashoffset: 0; }
-  #hands-free, #hands-free::after, .c-progress span, .c-button,
-  body .voice-shell .voice-controls button { transition: none; }
+  .c-progress span, .c-button { transition: none; }
 }
 
-/* ---------- patient dashboard link (markup lives in index.html) ----------
-   Phones: a round icon button in the top-right corner. Wider screens: icon + "Patient dashboard". */
-.voice-shell { position: relative; }
-.voice-shell > p:has(> a[href="/dashboard.html"]) { margin: 0; }
-.voice-shell a[href="/dashboard.html"] {
-  --dash-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='8' y='2' width='8' height='4' rx='1'/%3E%3Cpath d='M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2'/%3E%3Cpath d='M12 11h4M12 16h4M8 11h.01M8 16h.01'/%3E%3C/svg%3E");
-  position: absolute; top: .85rem; right: var(--gutter);
-  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+/* ---------- header (markup lives in index.html): app name left, language + dashboard icons right ---------- */
+.voice-top { display: flex; align-items: center; gap: .5rem; }
+body .voice-shell .voice-top h1 { flex: 1; margin: .15rem 0; }
+.voice-icon-btn {
+  position: relative; flex: none; display: grid; place-items: center;
   inline-size: 2.9rem; block-size: 2.9rem; border-radius: 999px;
-  font-size: 0; color: #0f4c5c; background: #fffdf8; text-decoration: none;
+  color: var(--teal); background: var(--card); text-decoration: none; cursor: pointer;
   box-shadow: 0 1px 3px rgb(15 76 92 / .16), inset 0 0 0 1px #c6d5d4;
-  transition: background-color .15s ease-out;
+  transition: background-color .15s var(--ease-out), transform .12s var(--ease-out);
 }
-.voice-shell a[href="/dashboard.html"]::before {
-  content: ""; flex: none; inline-size: 1.3rem; block-size: 1.3rem; background: currentColor;
-  -webkit-mask: var(--dash-icon) center / contain no-repeat; mask: var(--dash-icon) center / contain no-repeat;
+.voice-icon-btn svg { inline-size: 1.35rem; block-size: 1.35rem; display: block; }
+.voice-lang svg { inline-size: 1.6rem; block-size: 1.6rem; }
+.voice-icon-btn:hover { background: var(--teal-soft); }
+.voice-icon-btn:active { transform: scale(.94); }
+.voice-icon-btn:focus-visible, .voice-lang:has(select:focus-visible) { outline: 3px solid var(--teal); outline-offset: 3px; }
+/* the language picker is the phone's own list, opened by tapping the icon */
+.voice-lang select {
+  position: absolute; inset: 0; inline-size: 100%; block-size: 100%; opacity: 0;
+  border-radius: inherit; cursor: pointer; font-size: 1rem; appearance: none; -webkit-appearance: none;
 }
-.voice-shell a[href="/dashboard.html"]:hover { background: #dceae8; }
-.voice-shell a[href="/dashboard.html"]:active { background: #cfe2df; }
-.voice-shell a[href="/dashboard.html"]:focus-visible { outline: 3px solid #0f4c5c; outline-offset: 3px; }
-@media (min-width: 48rem) {
-  .voice-shell a[href="/dashboard.html"] { inline-size: auto; block-size: 2.6rem; padding: 0 1.05rem 0 .85rem;
-    font: 600 .95rem/1 Inter, system-ui, sans-serif; }
-  .voice-shell a[href="/dashboard.html"]::before { inline-size: 1.15rem; block-size: 1.15rem; }
-}
+.vc-sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) {
-  .voice-shell a[href="/dashboard.html"] { transition: none; }
+  .voice-icon-btn, .vc-icon { transition: none; }
+  .voice-icon-btn:active, body .voice-shell .vc-tile:active .vc-icon { transform: none; }
+  .vc-live .vc-icon, body .voice-shell #talk[aria-pressed="true"] .vc-icon { animation: none; }
 }
 
 /* Long words (Kannada, Hindi, IDs) wrap inside their box instead of running out of it. */

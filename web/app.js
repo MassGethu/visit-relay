@@ -74,7 +74,7 @@ function renderOffline(current) {
   if (session !== current) return;
   editor.hidden = false;
   const pending = current.entries.length;
-  endVoice.textContent = !current.expired && !current.saved && (current.hasNotes || pending)
+  (endVoice.querySelector(".vc-label") ?? endVoice).textContent = !current.expired && !current.saved && (current.hasNotes || pending)
     ? "Save visit" : "End visit session";
   editorStatus.textContent = current.expired
     ? "The server draft is unavailable. Unsynced entries are still on this phone."
@@ -211,6 +211,22 @@ retry.addEventListener("click", () => {
   syncEntries(session);
   renderOffline(session);
 });
+// Tick / cross on a danger-sign question (cards.js): stored on the phone, synced like any offline entry.
+// With no visit running yet, start one without the microphone first.
+window.addEventListener("cards:answer", async ({ detail }) => {
+  if (!detail || !["yes", "no"].includes(detail.answer)) return;
+  if (!session) {
+    const current = session = makeSession();
+    try {
+      await prepareSession(current);
+    } catch {
+      reset(current, "Connect once to select a beneficiary and start the visit.");
+      return;
+    }
+  }
+  queueEntry(session, { kind: "answer", sign: detail.sign, answer: detail.answer });
+});
+
 confirmSave.addEventListener("click", () => {
   if (session && !confirmSave.disabled) {
     confirmSave.disabled = true;
@@ -331,6 +347,13 @@ function connectVisit(current) {
   });
   socket.addEventListener("close", event => {
     if (session !== current || current.socket !== socket) return;
+    if (event.code === 4404 && !current.saved && (current.restarts ?? 0) < 2) {
+      current.socket = null;
+      current.connected = false;
+      clearVoiceTimers(current);
+      restartVisit(current);
+      return;
+    }
     if (event.code === 4404 || event.code === 1008 || event.code === 4403) {
       current.socket = null;
       current.connected = false;
@@ -415,6 +438,11 @@ function connectVisit(current) {
       clearTimeout(current.transcriptTimer);
       if (current.turn > 1) clearTimeout(current.slowTimer);
       appendTranscript(transcript, event.text);
+      current.heard ??= [];
+      if (event.seq && !current.heard.some(([seq]) => seq === event.seq)) {
+        current.heard.push([event.seq, event.text]);
+        saveSoon(current);
+      }
       if (current.handsFree && current.followNextSpeech) {
         current.followNextSpeech = false;
         selectTranscript(speechTab);
@@ -438,6 +466,36 @@ function connectVisit(current) {
     }
     window.Cards?.handle(event);
   });
+}
+
+// The server forgot this visit (it restarted, or the phone was offline past the
+// draft timeout). Start a fresh one and resend everything the worker said as notes,
+// ahead of the entries still queued, so the record and danger checks are rebuilt.
+function restartVisit(current) {
+  const said = (current.heard ?? []).map(([, text]) => ({ kind: "note", text, id: crypto.randomUUID() }));
+  current.restarts = (current.restarts ?? 0) + 1;
+  current.draftToken = crypto.randomUUID();
+  current.hasDraft = false;
+  current.lastEvent = 0;
+  current.heard = [];
+  current.syncing = null;
+  current.syncError = "";
+  saveQueue(current, entries => [...said, ...entries]).then(() => {
+    showSession(current);
+    status.textContent = "The server lost this visit. Rebuilding it from this phone…";
+  }, () => {
+    current.expired = true;
+    renderOffline(current);
+  });
+}
+
+// Coalesce the frequent small saves (one per transcript) into one write.
+function saveSoon(current) {
+  clearTimeout(current.saveTimer);
+  current.saveTimer = setTimeout(() => {
+    current.saveTimer = null;
+    saveQueue(current).catch(() => { editorStatus.textContent = "Could not save the visit on this phone."; });
+  }, 400);
 }
 
 function makeSession(stored) {
@@ -688,6 +746,10 @@ window.addEventListener("online", () => {
   }
 });
 window.addEventListener("pagehide", () => {
+  if (session?.saveTimer) {
+    clearTimeout(session.saveTimer);
+    saveQueue(session).catch(() => {});
+  }
   if (session) reset(session, "Enable your microphone to start.");
 });
 

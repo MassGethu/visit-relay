@@ -208,11 +208,18 @@ FIELD_NAMES = {
 UNITS = {"weight_kg": {"hi": "kilo", "kn": "ಕಿಲೋ", "en": "kilo"}}
 
 
+# Plain English names for signs whose official wording names a disease (guard() would block it).
+PLAIN_EN = {
+    "pnc_foul_lochia": "Foul-smelling discharge, fever or lower belly pain",
+    "nb_tetanus_stiffness": "Stiff body after the fourth day, unable to suckle or open mouth",
+}
+
+
 @lru_cache(maxsize=None)
 def spoken_sign(sign: str, lang: str) -> str:
     """Name of a danger sign in her language: the official Hindi wording where it exists."""
     if lang == "en":
-        return sign_label(sign)
+        return PLAIN_EN.get(sign) or sign_label(sign)
     entries = json.loads((DATA / "lexicon.json").read_text("utf-8"))[sign].get(lang, [])
     official = [e for e in entries if e["provenance"].startswith("OFFICIAL")]
     pick = (official or entries or [{"script": sign_label(sign)}])[0]["script"]

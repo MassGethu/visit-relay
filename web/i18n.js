@@ -321,6 +321,11 @@
     "BP": ["BP", "BP"],
     // laptop dashboard: sidebar, top bar, overview
     "Dashboard": ["डैशबोर्ड", "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್"],
+    "Visit Relay dashboard": ["Visit Relay डैशबोर्ड", "Visit Relay ಡ್ಯಾಶ್‌ಬೋರ್ಡ್"],
+    "Yes, this sign is there": ["हाँ, यह लक्षण है", "ಹೌದು, ಈ ಲಕ್ಷಣ ಇದೆ"],
+    "No, this sign is not there": ["नहीं, यह लक्षण नहीं है", "ಇಲ್ಲ, ಈ ಲಕ್ಷಣ ಇಲ್ಲ"],
+    "Hands-free": ["हैंड्स-फ़्री", "ಹ್ಯಾಂಡ್ಸ್-ಫ್ರೀ"],
+    "Upload MP3": ["MP3 अपलोड करें", "MP3 ಅಪ್‌ಲೋಡ್ ಮಾಡಿ"],
     "Overview": ["सारांश", "ಸಾರಾಂಶ"],
     "ASHA Register": ["आशा रजिस्टर", "ಆಶಾ ರಿಜಿಸ್ಟರ್"],
     "Supervisor view": ["सुपरवाइज़र के लिए", "ಮೇಲ್ವಿಚಾರಕರಿಗೆ"],

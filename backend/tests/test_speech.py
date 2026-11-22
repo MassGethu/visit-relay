@@ -54,3 +54,12 @@ def test_choice_question_reads_numbers_as_words():
     s = Speaker("hi")
     s.say("disclosure")
     assert s.choice("weight_kg", 28, 2.8, 28) == "Maine अट्ठाईस kilo suna. दो पॉइंट आठ kilo ya अट्ठाईस kilo?"
+
+
+def test_every_sign_name_passes_guard_in_every_language():
+    from asha.danger import load_lexicon
+    from asha.guard import violations
+    from asha.speak import spoken_sign
+    blocked = [(sign, lang) for sign in load_lexicon().signs for lang in ("en", "hi", "kn")
+               if violations(spoken_sign(sign, lang))]
+    assert blocked == []

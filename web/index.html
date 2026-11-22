@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ASHA Voice Register</title>
-  <meta name="description" content="Dictate a synthetic ASHA home-visit note.">
+  <title>Visit Relay</title>
+  <meta name="description" content="Visit Relay: dictate an ASHA home-visit note.">
   <link rel="stylesheet" href="cards.css">
   <script defer src="cards.js"></script>
   <script defer src="audio-player.js"></script>
@@ -14,8 +14,6 @@
     :root { color: #173e43; background: #fff8ee; font: 100%/1.5 system-ui, sans-serif; }
     body { margin: 0; }
     .voice-shell { max-width: 36rem; margin: auto; padding: 1.25rem clamp(1rem, 5vw, 2rem); }
-    .voice-banner { align-self: flex-start; display: inline-block; background: #f2a541; color: #362505; padding: .25rem .65rem;
-      font-size: .875rem; font-weight: 750; letter-spacing: .06em; }
     .voice-shell { display: flex; flex-direction: column; }
     #cards, .c-live { display: contents; }
     .c-visit { order: 1; }
@@ -24,13 +22,8 @@
     .c-live > :not(.c-template), .c-end { order: 4; }
     .voice-shell h1 { margin: .7rem 0 1.25rem; font-size: clamp(1.75rem, 7vw, 2.6rem); line-height: 1.1; }
     .voice-controls { display: grid; gap: .6rem; }
-    .voice-controls select, .voice-controls button { font: inherit; min-height: 3rem;
-      border-radius: .6rem; padding: .55rem .8rem; }
-    .voice-controls select { color: inherit; border: 1px solid #799196; background: #fffdf8; }
-    .voice-controls button { color: white; border: 0; background: #0f4c5c; font-weight: 700; }
     .voice-controls button:disabled { opacity: .6; }
-    .voice-controls #talk { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; min-height: 5.5rem; font-size: 1.25rem; }
-    .voice-controls #talk[aria-pressed="true"] { background: #173e43; box-shadow: inset 0 0 0 4px #f2a541; }
+    .voice-controls #talk { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
     .voice-controls :focus-visible { outline: 3px solid #0f4c5c; outline-offset: 3px; }
     .voice-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .35rem 1rem;
       margin: .75rem 0 1.25rem; }
@@ -50,22 +43,58 @@
 </head>
 <body>
   <section class="voice-shell" aria-labelledby="voice-title">
-    <span class="voice-banner">SYNTHETIC DATA</span>
-    <h1 id="voice-title">ASHA Voice Register</h1>
-    <p><a href="/dashboard.html">Patient dashboard</a></p>
+    <header class="voice-top">
+      <h1 id="voice-title">Visit Relay</h1>
+      <label class="voice-icon-btn voice-lang" title="Speech language">
+        <span class="vc-sr">Speech language</span>
+        <svg viewBox="0 0 32 32" aria-hidden="true" stroke="#173e43" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="11" y="6.5" width="19.5" height="23.5" rx="3" fill="#e8edf0"/>
+          <path d="M23.5 11.5v2.3M19.6 14h8.4M26.6 14c-.9 3.8-3 6.6-6 8.6M21.4 16.8c1.5 2.7 3.3 4.6 5.6 5.9" fill="none"/>
+          <path d="M16.6 25.5 18 30l5-4.5z" fill="#1b6dc1"/>
+          <path d="M4 1.6h10.6l8.4 23.9H4A2.4 2.4 0 0 1 1.6 23V4A2.4 2.4 0 0 1 4 1.6z" fill="#2f8fe6"/>
+          <path d="M5.6 19.5 9.3 8.7l3.7 10.8M6.9 15.7h4.8" fill="none"/>
+        </svg>
+        <select id="speech-language">
+          <option value="hi">हिन्दी</option>
+          <option value="kn">ಕನ್ನಡ</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <a class="voice-icon-btn" href="/dashboard.html" title="Patient dashboard" aria-label="Patient dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+          <path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>
+      </a>
+    </header>
     <main id="cards"></main>
     <div class="voice-controls">
-      <label for="speech-language">Speech language</label>
-      <select id="speech-language">
-        <option value="hi">हिन्दी</option>
-        <option value="kn">ಕನ್ನಡ</option>
-        <option value="en">English</option>
-      </select>
-      <label><input id="hands-free" type="checkbox"> Hands-free listening</label>
-      <button id="enable-mic" type="button">Enable microphone</button>
-      <button id="start-upload" type="button">Upload MP3 instead</button>
-      <button id="talk" type="button" aria-pressed="false" disabled>Hold to talk</button>
-      <button id="end-voice" type="button" hidden>End visit session</button>
+      <label class="vc-tile vc-hands">
+        <input id="hands-free" type="checkbox">
+        <span class="vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 11V6a2 2 0 0 0-4 0v5M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/>
+          <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg></span>
+        <span class="vc-label">Hands-free</span>
+      </label>
+      <button id="enable-mic" class="vc-tile vc-mic" type="button">
+        <span class="vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></span><span class="vc-label">Enable microphone</span>
+      </button>
+      <button id="talk" class="vc-tile vc-mic" type="button" aria-pressed="false" disabled>
+        <span class="vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></span><span class="vc-label">Hold to talk</span>
+      </button>
+      <span class="vc-tile vc-mic vc-live" aria-hidden="true">
+        <span class="vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1M12 18v4M8 22h8"/></svg></span><span class="vc-label">Listening hands-free…</span>
+      </span>
+      <button id="start-upload" class="vc-tile vc-upload" type="button">
+        <span class="vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="6.5" cy="17.5" r="2.5" fill="currentColor"/><path d="M9 17.5V5l4.5 2.5"/>
+          <path d="M18.5 15.5V4.5M15 8l3.5-3.5L22 8M14.5 17.5v3h8v-3"/></svg></span>
+        <span class="vc-label">Upload MP3</span>
+      </button>
+      <button id="end-voice" class="vc-tile vc-end" type="button" hidden>
+        <span class="vc-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor"/></svg></span>
+        <span class="vc-label">End visit session</span>
+      </button>
       <a id="debug-audio" download="prisma-input.wav" hidden>Download last turn audio</a>
     </div>
     <div class="voice-meta">
